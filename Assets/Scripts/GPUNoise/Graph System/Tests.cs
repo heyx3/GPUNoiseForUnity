@@ -10,7 +10,7 @@ using GPUNoise;
 
 public static class Tests
 {
-	[MenuItem("GPUNoise/Tests/Graph 1")]
+	[MenuItem("GPU Noise/Tests/Graph 1")]
 	public static void TestOutput()
 	{
 		string testsFolder = Path.Combine(Application.dataPath, "Tests");
@@ -54,7 +54,7 @@ public static class Tests
 
 		Debug.Log("Successfully wrote graph to '" + testsFolder + "'.");
 	}
-	[MenuItem("GPUNoise/Tests/Graph 2")]
+	[MenuItem("GPU Noise/Tests/Graph 2")]
 	public static void TestInput()
 	{
 		string testsFolder = Path.Combine(Application.dataPath, "Tests");
