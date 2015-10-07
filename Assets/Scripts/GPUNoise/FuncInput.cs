@@ -36,7 +36,12 @@ namespace GPUNoise
 		{
 			if (IsAConstantValue)
 			{
-				return ConstantValue.ToString();
+				string str = ConstantValue.ToString();
+				if (!str.Contains('.'))
+				{
+					str += ".0";
+				}
+				return str;
 			}
 			else
 			{
