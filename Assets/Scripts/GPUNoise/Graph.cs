@@ -187,6 +187,7 @@ namespace GPUNoise
 
 
 		//Serialization support.
+		private List<FuncCall> deserializedCalls = new List<FuncCall>();
 		//PRIORITY: Use callbacks instead for this class: https://msdn.microsoft.com/en-us/library/ty01x675(v=vs.110).aspx
 		protected Graph(SerializationInfo info, StreamingContext context)
 		{
@@ -200,20 +201,27 @@ namespace GPUNoise
 			Hash3 = info.GetString("Hash3");
 
 			int nCalls = info.GetInt32("NFuncCalls");
-			UIDToFuncCall = new Dictionary<long, FuncCall>(nCalls);
-		
 			for (int i = 0; i < nCalls; ++i)
 			{
-				FuncCall call = (FuncCall)info.GetValue("FuncCall" + i.ToString(), typeof(FuncCall));
-				if (UIDToFuncCall.ContainsKey(call.UID))
+				deserializedCalls.Add((FuncCall)info.GetValue("FuncCall" + i.ToString(), typeof(FuncCall)));
+			}
+		}
+		[OnDeserialized]
+		private void FinalizeSerializedStuff(StreamingContext context)
+		{
+			UIDToFuncCall = new Dictionary<long, FuncCall>(deserializedCalls.Count);
+			foreach (FuncCall c in deserializedCalls)
+			{
+				if (UIDToFuncCall.ContainsKey(c.UID))
 				{
-					//throw new SerializationException("Two FuncCall instances have UID of " + call.UID);
+					throw new SerializationException("Two FuncCall instances have UID of " + c.UID);
 				}
 				else
 				{
-					UIDToFuncCall.Add(call.UID, call);
+					UIDToFuncCall.Add(c.UID, c);
 				}
 			}
+			deserializedCalls.Clear();
 		}
 		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
@@ -235,5 +243,6 @@ namespace GPUNoise
 				count += 1;
 			}
 		}
+
 	}
 }
