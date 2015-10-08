@@ -7,7 +7,7 @@ using UnityEngine;
 namespace GPUNoise
 {
 	/// <summary>
-	/// A float value for inputting into a function.
+	/// A float value for inputting into a Func.
 	/// Either a constant value or the output from a FuncCall.
 	/// FuncCalls are stored by their UID.
 	/// </summary>

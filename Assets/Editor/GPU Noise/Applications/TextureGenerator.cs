@@ -3,15 +3,21 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
+using GPUNoise;
 
 
-namespace GPUNoise
+namespace GPUNoise.Applications
 {
-	public class TextureGeneratorOptionsWindow : EditorWindow
+	public class TextureGenerator : EditorWindow
 	{
 		//TODO: Make things easier for the user by showing a dropdown of all graphs inside the Assets folder.
+		//TODO: Have checkboxes for whether to use Red, Green, Blue, and Alpha channels in the texture.
 		
-		private static string tempShaderName = "gpuNoiseShaderTemp.shader";
+		[MenuItem("GPU Noise/Generate texture with graph")]
+		public static void GenerateTexture()
+		{
+			ScriptableObject.CreateInstance<TextureGenerator>().Show();
+		}
 
 
 		public int X = 512, Y = 512;
@@ -46,28 +52,15 @@ namespace GPUNoise
 					return;
 				}
 
-				string shaderPath = Path.Combine(Application.dataPath, tempShaderName);
-				Shader shader = null;
-				try
-				{
-					File.WriteAllText(shaderPath, g.GenerateShader("TempGPUNoiseShader"));
-					shader = Resources.Load("TempGPUNoiseShader") as Shader;
-					string path = AssetDatabase.GetAssetPath(shader);
-					AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
-				}
-				catch (Exception e)
-				{
-					Debug.LogError("Error generating/writing/compiling shader: " + e.Message);
-					return;
-				}
-
+				string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
+				Shader shader = GraphSaveLoad.SaveShader(g, shaderPath, "TempGPUNoiseShader");
 				if (shader == null)
 				{
 					return;
 				}
 
 				//Create a material and render into a render texture.
-				//TODO: Implement.
+				//TODO: Implement. Use this: http://forum.unity3d.com/threads/creating-a-totally-custom-scene-editor-in-the-editor.118065/#post-791686
 				//Material m = new Material(shader);
 
 				//Now that we're finished, delete the shader.

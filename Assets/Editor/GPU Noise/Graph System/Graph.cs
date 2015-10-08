@@ -18,15 +18,6 @@ namespace GPUNoise
 		public FuncInput Output;
 
 		/// <summary>
-		/// The name of this graph.
-		/// </summary>
-		public string Name;
-		/// <summary>
-		/// A description of this graph.
-		/// </summary>
-		public string Description;
-
-		/// <summary>
 		/// The 1D, 2D, and 3D hash functions this graph is using.
 		/// </summary>
 		public string Hash1, Hash2, Hash3;
@@ -39,10 +30,8 @@ namespace GPUNoise
 		private long nextUID;
 
 
-		public Graph(string name, string description, FuncInput output = new FuncInput())
+		public Graph(FuncInput output = new FuncInput())
 		{
-			Name = name;
-			Description = description;
 			Output = output;
 			nextUID = 0;
 
@@ -73,16 +62,8 @@ namespace GPUNoise
 		/// </summary>
 		/// <param name="shaderName">The name to go at the top of the shader source.</param>
 		/// <param name="outputComponent">Which component (r, g, b, or a) to output to.</param>
-		public string GenerateShader(string shaderName, string outputComponent = "r")
+		public string GenerateShader(string shaderName, string outputComponents = "r")
 		{
-			if (outputComponent != "r" && outputComponent != "g" &&
-				outputComponent != "b" && outputComponent != "a")
-			{
-				Debug.LogError("Output component must be 'r', 'b', 'g', or 'a', not '" +
-							   outputComponent + "'");
-				return null;
-			}
-
 			System.Text.StringBuilder sb = new System.Text.StringBuilder();
 		
 			sb.Append("Shader \"");
@@ -171,7 +152,7 @@ namespace GPUNoise
 				{
 					fixed4 outCol = fixed4(1.0, 1.0, 1.0, 1.0);
 					outCol.");
-			sb.Append(outputComponent);
+			sb.Append(outputComponents);
 			sb.Append(" = ");
 			sb.Append(Output.GetShaderExpression(this));
 			sb.Append(@";
@@ -188,11 +169,8 @@ namespace GPUNoise
 
 		//Serialization support.
 		private List<FuncCall> deserializedCalls = new List<FuncCall>();
-		//PRIORITY: Use callbacks instead for this class: https://msdn.microsoft.com/en-us/library/ty01x675(v=vs.110).aspx
 		protected Graph(SerializationInfo info, StreamingContext context)
 		{
-			Name = info.GetString("Name");
-			Description = info.GetString("Description");
 			Output = (FuncInput)info.GetValue("Output", typeof(FuncInput));
 			nextUID = info.GetInt64("NextUID");
 		
@@ -225,8 +203,6 @@ namespace GPUNoise
 		}
 		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			info.AddValue("Name", Name);
-			info.AddValue("Description", Description);
 			info.AddValue("Output", Output);
 			info.AddValue("NextUID", nextUID);
 
@@ -243,6 +219,5 @@ namespace GPUNoise
 				count += 1;
 			}
 		}
-
 	}
 }
