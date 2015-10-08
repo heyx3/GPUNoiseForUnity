@@ -27,6 +27,7 @@ namespace GPUNoise
 
 		public FuncInput(float constantValue) { constValue = constantValue; funcCallID = -1; }
 		public FuncInput(long funcCallUID) { funcCallID = funcCallUID; constValue = float.NaN; }
+		public FuncInput(FuncCall call) : this(call.UID) { }
 
 
 		/// <summary>

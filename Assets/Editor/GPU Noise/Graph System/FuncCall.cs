@@ -41,6 +41,12 @@ namespace GPUNoise
 				Inputs[i] = new FuncInput(calling.Params[i].DefaultValue);
 
 		}
+		/// <summary>
+		/// Calls the Func from FuncDefinitions with the given name.
+		/// Starts with default constant values for all inputs (using NaN for inputs with no default).
+		/// The UID is initialized to -1; it will be set when added to a Graph.
+		/// </summary>
+		public FuncCall(string funcName) : this(FuncDefinitions.FunctionsByName[funcName]) { }
 
 
 		//Serialization support.

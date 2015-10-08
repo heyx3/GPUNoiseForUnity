@@ -61,8 +61,12 @@ namespace GPUNoise
 		/// If an error occurred, it is output into Unity's debug console and "null" is returned.
 		/// </summary>
 		/// <param name="shaderName">The name to go at the top of the shader source.</param>
-		/// <param name="outputComponent">Which component (r, g, b, or a) to output to.</param>
-		public string GenerateShader(string shaderName, string outputComponents = "r")
+		/// <param name="outputComponent">Which components (r, g, b, or a) to output to.</param>
+		/// <param name="defaultColor">
+		/// The color (generally 0-1) of the color components which aren't set by the noise.
+		/// </param>
+		public string GenerateShader(string shaderName, string outputComponents = "rgb",
+									 float defaultColor = 0.0f)
 		{
 			System.Text.StringBuilder sb = new System.Text.StringBuilder();
 		
@@ -150,7 +154,14 @@ namespace GPUNoise
 
 				fixed4 frag(v2f IN) : COLOR
 				{
-					fixed4 outCol = fixed4(1.0, 1.0, 1.0, 1.0);
+					fixed4 outCol = fixed4(");
+			for (int i = 0; i < 4; ++i)
+			{
+				if (i != 0)
+					sb.Append(", ");
+				sb.Append(defaultColor.ToString());
+			}
+			sb.Append(@");
 					outCol.");
 			sb.Append(outputComponents);
 			sb.Append(" = ");
