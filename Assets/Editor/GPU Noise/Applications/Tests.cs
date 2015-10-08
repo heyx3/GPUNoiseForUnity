@@ -177,11 +177,11 @@ namespace GPUNoise.Applications.Tests
 				inf.Delete();
 		}
 
-		[MenuItem("GPU Noise/Make Sample Graph")]
+		[MenuItem("GPU Noise/Tests/Make Sample Graph")]
 		public static void MakeSampleGraph()
 		{
 			Graph g = new Graph();
-			g.Output = new FuncInput(0.25f);
+			g.Output = new FuncInput(0.5f);
 
 			string path = EditorUtility.SaveFilePanel("Choose file location.",
 													  Application.dataPath,

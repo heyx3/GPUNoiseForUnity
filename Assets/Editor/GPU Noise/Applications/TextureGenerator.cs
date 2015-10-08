@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
@@ -10,11 +12,7 @@ namespace GPUNoise.Applications
 {
 	public class TextureGenerator : EditorWindow
 	{
-		//TODO: Make things easier for the user by showing a dropdown of all graphs inside the Assets folder.
-		//TODO: Have checkboxes for whether to use Red, Green, Blue, and Alpha channels in the texture.
-		//TODO: Have float box for default value for unused channels.
-		
-		[MenuItem("GPU Noise/Generate texture with graph")]
+		[MenuItem("GPU Noise/Generate Texture")]
 		public static void GenerateTexture()
 		{
 			ScriptableObject.CreateInstance<TextureGenerator>().Show();
@@ -22,8 +20,29 @@ namespace GPUNoise.Applications
 
 
 		public int X = 512, Y = 512;
-		public string SavePath = null,
-					  GraphPath = null;
+		public bool UseRed = true,
+					UseGreen = true,
+					UseBlue = true,
+					UseAlpha = false;
+		public float UnusedColor = 1.0f;
+		public string SavePath = null;
+		public int SelectedGraphIndex = 0;
+
+		private List<string> graphPaths = new List<string>();
+		private GUIContent[] graphNameOptions;
+
+
+		void OnEnable()
+		{
+			graphPaths.Clear();
+			graphPaths = GraphUtils.GetAllGraphsInProject();
+
+			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
+			graphNameOptions = graphPaths.Select(selector).ToArray();
+
+			this.titleContent = new GUIContent("Tex Gen");
+			this.minSize = new Vector2(200.0f, 250.0f);
+		}
 
 		void OnGUI()
 		{
@@ -31,17 +50,21 @@ namespace GPUNoise.Applications
 			Y = EditorGUILayout.IntField("Height", Y);
 			
 			EditorGUILayout.Space();
+			
+			UseRed = GUILayout.Toggle(UseRed, "Use Red?");
+			UseGreen = GUILayout.Toggle(UseGreen, "Use Green?");
+			UseBlue = GUILayout.Toggle(UseBlue, "Use Blue?");
+			UseAlpha = GUILayout.Toggle(UseAlpha, "Use Alpha?");
+			if (!UseRed && !UseGreen && !UseBlue && !UseAlpha)
+			{
+				UseRed = true;
+			}
+			
+			UnusedColor = EditorGUILayout.FloatField("Unused color value", UnusedColor);
 
-			if (GraphPath != null)
-			{
-				EditorGUILayout.LabelField("Graph: " + Path.GetFileNameWithoutExtension(GraphPath));
-			}
-			if (GUILayout.Button("Choose graph to use"))
-			{
-				GraphPath = EditorUtility.OpenFilePanel("Choose the graph shader to use.",
-														Application.dataPath,
-														GraphUtils.Extension);
-			}
+			EditorGUILayout.Space();
+
+			SelectedGraphIndex = EditorGUILayout.Popup(SelectedGraphIndex, graphNameOptions);
 
 			EditorGUILayout.Space();
 
@@ -59,50 +82,40 @@ namespace GPUNoise.Applications
 
 			if (GUILayout.Button("Generate Texture"))
 			{
-				//Generate a shader from the graph and have Unity compile it.
-
-				Graph g = GraphUtils.LoadGraph(GraphPath);
+				//Load the graph.
+				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
 				if (g == null)
 				{
 					return;
 				}
 
-				string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
-				Shader shader = GraphUtils.SaveShader(g, shaderPath, "TempGPUNoiseShader", "rgb", 1.0f);
-				if (shader == null)
+				//Render the noise to a texture.
+				System.Text.StringBuilder components = new System.Text.StringBuilder();
+				if (UseRed)
+				{
+					components.Append("r");
+				}
+				if (UseGreen)
+				{
+					components.Append("g");
+				}
+				if (UseBlue)
+				{
+					components.Append("b");
+				}
+				if (UseAlpha)
+				{
+					components.Append("a");
+				}
+				Texture2D tex = GraphUtils.RenderToTexture(g, X, Y, components.ToString(), UnusedColor);
+				if (tex == null)
 				{
 					return;
 				}
 
-
-				//Render the shader's output into a render texture.
-
-				RenderTexture tex = new RenderTexture(X, Y, 16, RenderTextureFormat.ARGBFloat);
-				tex.Create();
-				RenderTexture activeTex = RenderTexture.active;
-				RenderTexture.active = tex;
-				
-				Material mat = new Material(shader);
-				mat.SetPass(0);
-				
-				GL.PushMatrix();
-				GL.LoadIdentity();
-				GL.Viewport(new Rect(0, 0, X, Y));
-				GL.Begin(GL.TRIANGLE_STRIP);
-				GL.Vertex3(-1.0f, -1.0f, 0.0f);
-				GL.Vertex3(1.0f, -1.0f, 0.0f);
-				GL.Vertex3(-1.0f, 1.0f, 0.0f);
-				GL.Vertex3(1.0f, 1.0f, 0.0f);
-				GL.End();
-				GL.PopMatrix();
-
-
-				//Save the contents of the texture.
-				Texture2D resultTex = new Texture2D(X, Y, TextureFormat.RGBAFloat, false, true);
-				resultTex.ReadPixels(new Rect(0, 0, X, Y), 0, 0);
 				try
 				{
-					File.WriteAllBytes(SavePath, resultTex.EncodeToPNG());
+					File.WriteAllBytes(SavePath, tex.EncodeToPNG());
 				}
 				catch (Exception e)
 				{
@@ -111,9 +124,6 @@ namespace GPUNoise.Applications
 
 
 				//Now that we're finished, clean up.
-				RenderTexture.active = activeTex;
-				tex.Release();
-				AssetDatabase.DeleteAsset(PathUtils.GetRelativePath(shaderPath, "Assets"));
 				AssetDatabase.ImportAsset(PathUtils.GetRelativePath(SavePath, "Assets"));
 
 				//Finally, open explorer to show the user the texture.

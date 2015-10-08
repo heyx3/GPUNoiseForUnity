@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using Path = System.IO.Path;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
@@ -17,22 +19,52 @@ namespace GPUNoise.Editor
 		}
 
 
-		EditorGraph Editor = new EditorGraph("Graph Name Here", "Graph description here");
+		public EditorGraph Editor = new EditorGraph();
+
+		private int selectedGraph = 0;
+
+		private List<string> GraphPaths;
+		private GUIContent[] graphSelections;
+
 
 		void OnEnable()
 		{
 			wantsMouseMove = true;
+
+			GraphPaths = GPUNoise.Applications.GraphUtils.GetAllGraphsInProject();
+
+			Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
+			graphSelections = GraphPaths.Select(selector).ToArray();
+			
+			selectedGraph = 0;
+			if (GraphPaths.Count > 0)
+			{
+				Editor = new EditorGraph(GraphPaths[0]);
+			}
 		}
 		void OnGUI()
 		{
 			const float leftSpace = 200.0f;
 
 			GUILayout.BeginArea(new Rect(0, 0, leftSpace, position.height));
+
 			GUILayout.Space(10.0f);
-			Editor.Name = GUILayout.TextField(Editor.Name);
+
+			GUILayout.Label(Path.GetFileNameWithoutExtension(Editor.FilePath));
+
+			GUILayout.Space(10.0f);
+
+			int oldVal = selectedGraph;
+			selectedGraph = EditorGUILayout.Popup(selectedGraph, graphSelections);
+			if (selectedGraph != oldVal)
+			{
+				Editor = new EditorGraph(GraphPaths[selectedGraph]);
+			}
+
 			GUILayout.Space(50.0f);
-			Editor.Description = GUILayout.TextArea(Editor.Description);
+
 			GUILayout.EndArea();
+
 
 			GUILayout.BeginArea(new Rect(leftSpace, 0, position.width - leftSpace, 500));
 			

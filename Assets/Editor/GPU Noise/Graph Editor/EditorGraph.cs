@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 using GPUNoise;
+using GPUNoise.Applications;
 
 
 namespace GPUNoise.Editor
@@ -10,17 +11,15 @@ namespace GPUNoise.Editor
 	/// <summary>
 	/// The visual representation of a Graph.
 	/// </summary>
-	[Serializable]
-	public class EditorGraph : ISerializable
+	public class EditorGraph
 	{
+		private static readonly float FuncCallCellSize = 50.0f;
+
+
 		/// <summary>
-		/// The name of this graph.
+		/// The full path to the graph file.
 		/// </summary>
-		public string Name;
-		/// <summary>
-		/// A description of this graph.
-		/// </summary>
-		public string Description;
+		public string FilePath = "C:/MyGraph." + GraphUtils.Extension;
 
 		/// <summary>
 		/// The graph for the shader.
@@ -33,46 +32,13 @@ namespace GPUNoise.Editor
 		public Dictionary<long, Vector2> FuncCallPoses = new Dictionary<long, Vector2>();
 
 
-		public EditorGraph(string name, string description)
+		public EditorGraph() { }
+		public EditorGraph(string filePath)
 		{
-			Name = name;
-			Description = description;
-		}
+			FilePath = filePath;
+			GPUGraph = GraphUtils.LoadGraph(FilePath);
 
-
-		//Serialization support.
-		protected EditorGraph(SerializationInfo info, StreamingContext context)
-		{
-			Name = info.GetString("Name");
-			Description = info.GetString("Description");
-
-			GPUGraph = (Graph)info.GetValue("Graph", typeof(Graph));
-
-			int nCalls = info.GetInt32("NFuncCalls");
-			for (int i = 0; i < nCalls; ++i)
-			{
-				string iStr = i.ToString();
-				FuncCallPoses.Add(info.GetInt64("UID" + iStr),
-								  new Vector2(info.GetSingle("PosX" + iStr),
-											  info.GetSingle("PosY" + iStr)));
-			}
-		}
-		public void GetObjectData(SerializationInfo info, StreamingContext context)
-		{
-			info.AddValue("Name", Name);
-			info.AddValue("Description", Description);
-
-			info.AddValue("Graph", GPUGraph);
-
-			info.AddValue("NFuncCalls", FuncCallPoses.Count);
-			int count = 0;
-			foreach (KeyValuePair<long, Vector2> kvp in FuncCallPoses)
-			{
-				string cStr = count.ToString();
-				info.AddValue("UID" + cStr, kvp.Key);
-				info.AddValue("PosX" + cStr, kvp.Value.x);
-				info.AddValue("PosY" + cStr, kvp.Value.y);
-			}
+			//TODO: Generate positions for the func calls. 
 		}
 	}
 }
