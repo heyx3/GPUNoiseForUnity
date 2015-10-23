@@ -179,6 +179,7 @@ namespace GPUNoise
 
 
 		//Serialization support.
+
 		private List<FuncCall> deserializedCalls = new List<FuncCall>();
 		protected Graph(SerializationInfo info, StreamingContext context)
 		{

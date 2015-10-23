@@ -47,6 +47,15 @@ namespace GPUNoise
 		/// The UID is initialized to -1; it will be set when added to a Graph.
 		/// </summary>
 		public FuncCall(string funcName) : this(FuncDefinitions.FunctionsByName[funcName]) { }
+		/// <summary>
+		/// Explicitly sets the data of this FuncCall.
+		/// </summary>
+		public FuncCall(long funcUID, Func calling, FuncInput[] inputs)
+		{
+			UID = funcUID;
+			Calling = calling;
+			Inputs = inputs;
+		}
 
 
 		//Serialization support.

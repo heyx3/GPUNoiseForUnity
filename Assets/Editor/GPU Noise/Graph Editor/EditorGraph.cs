@@ -16,6 +16,11 @@ namespace GPUNoise.Editor
 	{
 		private static readonly float FuncCallCellSize = 50.0f;
 
+		private static Rect ToR(float x, float y)
+		{
+			return new Rect(Mathf.RoundToInt(x), Mathf.RoundToInt(y), 100.0f, 50.0f);
+		}
+
 
 		/// <summary>
 		/// The full path to the graph file.
@@ -31,26 +36,36 @@ namespace GPUNoise.Editor
 		/// The position of each FuncCall on the visual graph.
 		/// The graph output is also stored in this dictionary, with a UID of -1.
 		/// </summary>
-		public Dictionary<long, Vector2> FuncCallPoses = new Dictionary<long, Vector2>();
+		public Dictionary<long, Rect> FuncCallPoses = new Dictionary<long, Rect>();
 
 
 		public EditorGraph() { }
 
-		public EditorGraph(string filePath)
+		public EditorGraph(string filePath, Rect viewRect)
 		{
 			FilePath = filePath;
 			GPUGraph = GraphUtils.LoadGraph(FilePath);
 
-			//Generate positions for the FuncCalls. Assume each node only outputs to one other node.
+			//First, store each node by its depth and then by its position along that depth (i.e. breadth).
+			List<List<long>> nodesByDepth = new List<List<long>> { new List<long>() { -1 } };
+			TraverseDepthFirst(nodesByDepth, GPUGraph.Output, 1);
 
-			//First, list each node by its depth and then by its position along that depth (i.e. breadth).
-			//Split each breadth into groups based on which parent each node has (this is the innermost list).
-			List<List<List<long>>> nodesByDepth = new List<List<List<long>>> { new List<List<long>>() { new List<long>() { -1 } } };
-			TraverseDepthFirst(nodesByDepth, GPUGraph.Output, 1, 0);
+			//Next, position all those nodes.
+			for (int col = 0; col < nodesByDepth.Count; ++col)
+			{
+				float lerpX = (float)col / (float)nodesByDepth.Count;
+				for (int row = 0; row < nodesByDepth[col].Count; ++row)
+				{
+					float lerpY = (float)row / (float)nodesByDepth[col].Count;
 
-			//TODO: Finish.
+					FuncCallPoses.Add(nodesByDepth[col][row],
+									  ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) -
+											(0.5f * viewRect.width / nodesByDepth.Count),
+										  Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY)));
+				}
+			}
 		}
-		private void TraverseDepthFirst(List<List<List<long>>> nodesByDepth, FuncInput input, int inputDepth, int parentGroup)
+		private void TraverseDepthFirst(List<List<long>> nodesByDepth, FuncInput input, int inputDepth)
 		{
 			if (input.IsAConstantValue)
 			{
@@ -58,36 +73,28 @@ namespace GPUNoise.Editor
 			}
 
 			//Get the column this node is in.
-			List<List<long>> myColumn;
+			List<long> myColumn;
 			if (nodesByDepth.Count <= inputDepth)
 			{
-				nodesByDepth.Add(new List<List<long>>());
+				nodesByDepth.Add(new List<long>());
 			}
 			myColumn = nodesByDepth[inputDepth];
 
-			//Get the parent group this node is in.
-			List<long> myParentGroup;
-			if (myColumn.Count <= parentGroup)
-			{
-				myColumn.Add(new List<long>());
-			}
-			myParentGroup = myColumn[parentGroup];
-
 			//Add this node to the group.
-			myParentGroup.Add(input.FuncCallID);
+			myColumn.Add(input.FuncCallID);
 
 			//Now process this node's inputs.
 			int newDepth = inputDepth + 1;
-			int newParentGroup = 0;
-			if (nodesByDepth.Count > newDepth)
-			{
-				newParentGroup = nodesByDepth[newDepth].Count;
-			}
 			FuncCall call = GPUGraph.UIDToFuncCall[input.FuncCallID];
 			for (int i = 0; i < call.Inputs.Length; ++i)
 			{
-				TraverseDepthFirst(nodesByDepth, call.Inputs[i], newDepth, newParentGroup);
+				TraverseDepthFirst(nodesByDepth, call.Inputs[i], newDepth);
 			}
+		}
+
+		public bool Resave()
+		{
+			return GraphUtils.SaveGraph(GPUGraph, FilePath);
 		}
 	}
 }

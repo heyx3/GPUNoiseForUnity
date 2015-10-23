@@ -177,7 +177,7 @@ namespace GPUNoise.Applications.Tests
 				inf.Delete();
 		}
 
-		[MenuItem("GPU Noise/Tests/Make Sample Graph")]
+		[MenuItem("GPU Noise/Tests/Make Simple Graph")]
 		public static void MakeSampleGraph()
 		{
 			Graph g = new Graph();
@@ -185,9 +185,37 @@ namespace GPUNoise.Applications.Tests
 
 			string path = EditorUtility.SaveFilePanel("Choose file location.",
 													  Application.dataPath,
-													  "My Graph." + GraphUtils.Extension,
+													  "My Simple Graph." + GraphUtils.Extension,
 													  GraphUtils.Extension);
-			GraphUtils.SaveGraph(g, path);
+			if (path != null && path != "")
+			{
+				GraphUtils.SaveGraph(g, path);
+			}
+		}
+		[MenuItem("GPU Noise/Tests/Make Complex Graph")]
+		public static void MakeComplexGraph()
+		{
+			Graph g = new Graph();
+
+			FuncCall noise1 = new FuncCall(FuncDefinitions.FunctionsByName["WhiteNoise1"]);
+			noise1.Inputs[0] = new FuncInput(322.235f);
+			g.CreateFuncCall(noise1);
+
+			FuncCall powNoise = new FuncCall(FuncDefinitions.FunctionsByName["Pow"]);
+			powNoise.Inputs[0] = new FuncInput(noise1);
+			powNoise.Inputs[1] = new FuncInput(1.5f);
+			g.CreateFuncCall(powNoise);
+
+			g.Output = new FuncInput(powNoise);
+
+			string path = EditorUtility.SaveFilePanel("Choose graph location.",
+													  Application.dataPath,
+													  "My Complex Graph." + GraphUtils.Extension,
+													  GraphUtils.Extension);
+			if (path != null && path != "")
+			{
+				GraphUtils.SaveGraph(g, path);
+			}
 		}
 	}
 }
