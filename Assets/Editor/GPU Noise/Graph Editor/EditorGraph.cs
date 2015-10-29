@@ -58,10 +58,18 @@ namespace GPUNoise.Editor
 				{
 					float lerpY = (float)row / (float)nodesByDepth[col].Count;
 
-					FuncCallPoses.Add(nodesByDepth[col][row],
-									  ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) -
-											(0.5f * viewRect.width / nodesByDepth.Count),
-										  Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY)));
+					Rect pos = ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) -
+									(0.5f * viewRect.width / nodesByDepth.Count),
+								   Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY));
+
+					if (FuncCallPoses.ContainsKey(nodesByDepth[col][row]))
+					{
+						FuncCallPoses[nodesByDepth[col][row]] = pos;
+					}
+					else
+					{
+						FuncCallPoses.Add(nodesByDepth[col][row], pos);
+					}
 				}
 			}
 		}
@@ -71,7 +79,7 @@ namespace GPUNoise.Editor
 			{
 				return;
 			}
-
+			
 			//Get the column this node is in.
 			List<long> myColumn;
 			if (nodesByDepth.Count <= inputDepth)
