@@ -62,3 +62,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+
+# Custom
+Assets/UnityVS
+Assets/UnityVS.meta
