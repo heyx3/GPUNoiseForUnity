@@ -197,13 +197,26 @@ namespace GPUNoise.Applications.Tests
 		{
 			Graph g = new Graph();
 
-			FuncCall noise1 = new FuncCall(FuncDefinitions.FunctionsByName["WhiteNoise1"]);
-			noise1.Inputs[0] = new FuncInput(322.235f);
-			g.CreateFuncCall(noise1);
+			FuncCall uvX = new FuncCall("UV_x"),
+					 uvY = new FuncCall("UV_y");
+			g.CreateFuncCall(uvX);
+			g.CreateFuncCall(uvY);
 
-			FuncCall powNoise = new FuncCall(FuncDefinitions.FunctionsByName["Pow"]);
-			powNoise.Inputs[0] = new FuncInput(noise1);
-			powNoise.Inputs[1] = new FuncInput(1.5f);
+			FuncCall seedParam = FuncCall.CreateSliderParam("_Seed", 0.0f, 1000.0f, 0.0f);
+			g.CreateFuncCall(seedParam);
+
+			FuncCall noise = new FuncCall("WhiteNoise3");
+			noise.Inputs[0] = new FuncInput(uvX);
+			noise.Inputs[1] = new FuncInput(uvY);
+			noise.Inputs[2] = new FuncInput(seedParam);
+			g.CreateFuncCall(noise);
+
+			FuncCall powParam = FuncCall.CreateFloatParam("_Power", 1.0f);
+			g.CreateFuncCall(powParam);
+
+			FuncCall powNoise = new FuncCall("Pow");
+			powNoise.Inputs[0] = new FuncInput(noise);
+			powNoise.Inputs[1] = new FuncInput(powParam);
 			g.CreateFuncCall(powNoise);
 
 			g.Output = new FuncInput(powNoise);

@@ -10,6 +10,30 @@ namespace GPUNoise
 	[Serializable]
 	public class FuncCall : ISerializable
 	{
+		public static FuncCall CreateFloatParam(string varName, float defaultValue)
+		{
+			FuncCall fc = new FuncCall("FloatParam");
+			FloatParamNode.FloatParamData dat = (FloatParamNode.FloatParamData)fc.CustomDat;
+
+			dat.VarName = varName;
+			dat.DefaultValue = defaultValue;
+
+			return fc;
+		}
+		public static FuncCall CreateSliderParam(string varName, float min, float max, float defaultLerp)
+		{
+			FuncCall fc = new FuncCall("SliderParam");
+			SliderParamNode.SliderParamData dat = (SliderParamNode.SliderParamData)fc.CustomDat;
+
+			dat.VarName = varName;
+			dat.DefaultLerp = defaultLerp;
+			dat.Min = min;
+			dat.Max = max;
+
+			return fc;
+		}
+
+
 		/// <summary>
 		/// A unique identifier for this instance in the graph.
 		/// Should always be non-negative.
@@ -20,6 +44,10 @@ namespace GPUNoise
 		/// The function being called.
 		/// </summary>
 		public Func Calling;
+		/// <summary>
+		/// Extra data that special Func instances may need.
+		/// </summary>
+		public Func.ExtraData CustomDat = null;
 
 		/// <summary>
 		/// The inputs into the Func. Must match the number of parameters in that Func!
@@ -35,6 +63,7 @@ namespace GPUNoise
 		{
 			UID = -1;
 			Calling = calling;
+			CustomDat = Calling.InitCustomGUI();
 
 			Inputs = new FuncInput[calling.Params.Count];
 			for (int i = 0; i < Inputs.Length; ++i)
@@ -55,6 +84,9 @@ namespace GPUNoise
 			UID = funcUID;
 			Calling = calling;
 			Inputs = inputs;
+
+			if (calling != null)
+				CustomDat = Calling.InitCustomGUI();
 		}
 
 
@@ -69,6 +101,8 @@ namespace GPUNoise
 				throw new SerializationException("Function '" + fName + "' not found!");
 			}
 			Calling = FuncDefinitions.FunctionsByName[fName];
+
+			CustomDat = (Func.ExtraData)info.GetValue("CustomData", typeof(Func.ExtraData));
 
 			Inputs = new FuncInput[info.GetInt32("NInputs")];
 			if (Inputs.Length != Calling.Params.Count)
@@ -87,6 +121,8 @@ namespace GPUNoise
 		{
 			info.AddValue("UID", UID);
 			info.AddValue("Func", Calling.Name);
+
+			info.AddValue("CustomData", CustomDat, typeof(Func.ExtraData));
 
 			info.AddValue("NInputs", Inputs.Length);
 			for (int i = 0; i < Inputs.Length; ++i)

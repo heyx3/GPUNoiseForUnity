@@ -4,6 +4,8 @@ using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEditor;
 using ParamList = System.Collections.Generic.List<GPUNoise.Func.Param>;
+using StringBuilder = System.Text.StringBuilder;
+
 
 namespace GPUNoise
 {
@@ -12,6 +14,30 @@ namespace GPUNoise
 	/// </summary>
 	public static class FuncDefinitions
 	{
+		/// <summary>
+		/// Turns the given variable name into a nice display name.
+		/// </summary>
+		public static string PrettifyVarName(string name)
+		{
+			StringBuilder sb = new StringBuilder(name);
+			for (int i = 0; i < sb.Length; ++i)
+			{
+				if (sb[i] == '_')
+				{
+					sb[i] = ' ';
+
+					//Make the next letter uppercase.
+					if (i + 1 < sb.Length && sb[i + 1] >= 'a' && sb[i + 1] <= 'z')
+					{
+						sb[i + 1] -= (char)('a' - 'A');
+					}
+				}
+			}
+
+			return sb.ToString().Trim();
+		}
+
+
 		//TODO: Two Funcs for getting the UV.x and UV.y, and another Func that gets a shader parameter.
 
 
@@ -242,6 +268,11 @@ namespace GPUNoise
 						return lerp(destMin, destMax, (srcValue - srcMin) / (srcMax - srcMin));
 					}"),
 
+			new TexCoordNode("x"),
+			new TexCoordNode("y"),
+			new FloatParamNode(),
+			new SliderParamNode(),
+
 			#endregion
 		};
 
@@ -254,4 +285,181 @@ namespace GPUNoise
 				FunctionsByName.Add(f.Name, f);
 		}
 	}
+
+
+	#region Special Nodes
+
+	public class TexCoordNode : Func
+	{
+		private string XOrY;
+
+		public TexCoordNode(string xOrY)
+			: base("UV_" + xOrY, new ParamList(), "{ return 0.0f; }")
+		{
+			XOrY = xOrY;
+		}
+
+		public override string GetInvocation(Func.ExtraData customDat, string paramList)
+		{
+			return "IN.texcoord." + XOrY;
+		}
+
+	}
+	public class FloatParamNode : Func
+	{
+		[Serializable]
+		public class FloatParamData : ExtraData
+		{
+			public string VarName;
+			public float DefaultValue;
+
+			public FloatParamData(string varName, float defaultValue)
+			{
+				VarName = varName;
+				DefaultValue = defaultValue;
+			}
+		}
+
+
+		public FloatParamNode()
+			: base("FloatParam", new ParamList(), "{ return 0.0f; }")
+		{
+
+		}
+
+
+		public override Func.ExtraData InitCustomGUI()
+		{
+			return new FloatParamData("MyFloat", 0.0f);
+		}
+		public override void CustomGUI(Func.ExtraData myData)
+		{
+			FloatParamData dat = (FloatParamData)myData;
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Var Name:");
+			dat.VarName = GUILayout.TextField(dat.VarName).Trim().Replace(' ', '_').Replace("\t", "");
+			EditorGUILayout.EndHorizontal();
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Default Value:");
+			dat.DefaultValue = EditorGUILayout.FloatField(dat.DefaultValue);
+			EditorGUILayout.EndHorizontal();
+		}
+
+		public override string GetInvocation(Func.ExtraData customDat, string paramList)
+		{
+			FloatParamData dat = (FloatParamData)customDat;
+			return dat.VarName;
+		}
+
+		public override void GetPropertyDeclarations(Func.ExtraData customDat, StringBuilder shaderText)
+		{
+			FloatParamData dat = (FloatParamData)customDat;
+
+			shaderText.Append("\t\t\t");
+			shaderText.Append(dat.VarName);
+			shaderText.Append(" (\"");
+			shaderText.Append(FuncDefinitions.PrettifyVarName(dat.VarName));
+			shaderText.Append("\", Float) = ");
+			shaderText.AppendLine(dat.DefaultValue.ToString());
+		}
+		public override void GetParamDeclarations(ExtraData customDat, StringBuilder shaderText)
+		{
+			FloatParamData dat = (FloatParamData)customDat;
+
+			shaderText.Append("\t\t\t\tfloat ");
+			shaderText.Append(dat.VarName);
+			shaderText.AppendLine(";");
+		}
+	}
+	public class SliderParamNode : Func
+	{
+		[Serializable]
+		public class SliderParamData : ExtraData
+		{
+			public string VarName;
+			public float DefaultLerp;
+			public float Min, Max;
+
+			public SliderParamData(string varName, float min, float max, float defaultLerp)
+			{
+				VarName = varName;
+				DefaultLerp = defaultLerp;
+				Min = min;
+				Max = max;
+			}
+		}
+
+
+		public SliderParamNode()
+			: base("SliderParam", new ParamList(), "{ return 0.0f; }")
+		{
+
+		}
+
+
+		public override Func.ExtraData InitCustomGUI()
+		{
+			return new SliderParamData("MyFloat", 0.0f, 1.0f, 0.5f);
+		}
+		public override void CustomGUI(Func.ExtraData myData)
+		{
+			SliderParamData dat = (SliderParamData)myData;
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Var Name:");
+			dat.VarName = GUILayout.TextField(dat.VarName).Trim().Replace(' ', '_').Replace("\t", "");
+			EditorGUILayout.EndHorizontal();
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Min:");
+			dat.Min = EditorGUILayout.FloatField(dat.Min);
+			EditorGUILayout.EndHorizontal();
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Max:");
+			dat.Max = EditorGUILayout.FloatField(dat.Max);
+			EditorGUILayout.EndHorizontal();
+
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Default Value:");
+			float newDefault = EditorGUILayout.Slider(Mathf.Lerp(dat.Min, dat.Max, dat.DefaultLerp),
+													  dat.Min, dat.Max);
+			dat.DefaultLerp = Mathf.InverseLerp(dat.Min, dat.Max, newDefault);
+			EditorGUILayout.EndHorizontal();
+		}
+
+		public override string GetInvocation(Func.ExtraData customDat, string paramList)
+		{
+			SliderParamData dat = (SliderParamData)customDat;
+			return dat.VarName;
+		}
+
+		public override void GetPropertyDeclarations(Func.ExtraData customDat, StringBuilder shaderText)
+		{
+			SliderParamData dat = (SliderParamData)customDat;
+
+			shaderText.Append("\t\t\t");
+			shaderText.Append(dat.VarName);
+			shaderText.Append(" (\"");
+			shaderText.Append(FuncDefinitions.PrettifyVarName(dat.VarName));
+			shaderText.Append("\", Range(");
+			shaderText.Append(dat.Min);
+			shaderText.Append(", ");
+			shaderText.Append(dat.Max);
+			shaderText.Append(")) = ");
+			shaderText.AppendLine(Mathf.Lerp(dat.Min, dat.Max, dat.DefaultLerp).ToString());
+		}
+		public override void GetParamDeclarations(ExtraData customDat, StringBuilder shaderText)
+		{
+			SliderParamData dat = (SliderParamData)customDat;
+
+			shaderText.Append("\t\t\t\tfloat ");
+			shaderText.Append(dat.VarName);
+			shaderText.AppendLine(";");
+		}
+	}
+
+	#endregion
 }

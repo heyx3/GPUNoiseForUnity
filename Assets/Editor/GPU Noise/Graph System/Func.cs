@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using StringBuilder = System.Text.StringBuilder;
 
 namespace GPUNoise
 {
@@ -245,7 +246,13 @@ namespace GPUNoise
 			}
 			Body = funcBody;
 		}
+		
 
+		//Some nodes need to offer custom UI behavior.
+		[Serializable]
+		public abstract class ExtraData { }
+		public virtual ExtraData InitCustomGUI() { return null; }
+		public virtual void CustomGUI(ExtraData myData) { }
 
 		/// <summary>
 		/// Gets the full shader function this Func represents.
@@ -273,5 +280,22 @@ namespace GPUNoise
 
 			return sb.ToString();
 		}
+		/// <summary>
+		/// Outputs an expression that has the expected output for this Func.
+		/// Will not need to be overridden except for special nodes like Param ones.
+		/// </summary>
+		public virtual string GetInvocation(ExtraData customDat, string paramList)
+		{
+			return Name + "(" + paramList + ")";
+		}
+
+		/// <summary>
+		/// Gets any custom parameter declarations for the shader's "Properties" block.
+		/// </summary>
+		public virtual void GetPropertyDeclarations(ExtraData customDat, StringBuilder shaderText) { }
+		/// <summary>
+		/// Gets any custom parameter declarations for the Cg part of the shader.
+		/// </summary>
+		public virtual void GetParamDeclarations(ExtraData customDat, StringBuilder shaderText) { }
 	}
 }

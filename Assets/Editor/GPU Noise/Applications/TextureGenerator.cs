@@ -30,6 +30,9 @@ namespace GPUNoise.Applications
 
 		private List<string> graphPaths = new List<string>();
 		private GUIContent[] graphNameOptions;
+		
+
+		private GraphParamCollection gParams;
 
 
 		void OnEnable()
@@ -42,6 +45,18 @@ namespace GPUNoise.Applications
 
 			this.titleContent = new GUIContent("Tex Gen");
 			this.minSize = new Vector2(200.0f, 250.0f);
+
+			gParams = new GraphParamCollection();
+
+			SelectedGraphIndex = 0;
+			if (graphPaths.Count > 0)
+			{
+				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
+				if (g != null)
+				{
+					gParams = new GraphParamCollection(g);
+				}
+			}
 		}
 
 		void OnGUI()
@@ -51,6 +66,7 @@ namespace GPUNoise.Applications
 			
 			EditorGUILayout.Space();
 			
+
 			UseRed = GUILayout.Toggle(UseRed, "Use Red?");
 			UseGreen = GUILayout.Toggle(UseGreen, "Use Green?");
 			UseBlue = GUILayout.Toggle(UseBlue, "Use Blue?");
@@ -64,9 +80,29 @@ namespace GPUNoise.Applications
 
 			EditorGUILayout.Space();
 
+
+			int oldIndex = SelectedGraphIndex;
 			SelectedGraphIndex = EditorGUILayout.Popup(SelectedGraphIndex, graphNameOptions);
+			if (oldIndex != SelectedGraphIndex)
+			{
+				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
+				if (g == null)
+				{
+					SelectedGraphIndex = oldIndex;
+				}
+				else
+				{
+					gParams = new GraphParamCollection(g);
+				}
+			}
 
 			EditorGUILayout.Space();
+
+
+			gParams.ParamEditorGUI();
+
+			EditorGUILayout.Space();
+
 
 			if (SavePath != null)
 			{
@@ -80,6 +116,7 @@ namespace GPUNoise.Applications
 
 			EditorGUILayout.Space();
 
+
 			if (GUILayout.Button("Generate Texture"))
 			{
 				//Load the graph.
@@ -88,6 +125,8 @@ namespace GPUNoise.Applications
 				{
 					return;
 				}
+
+				gParams.OverwriteParamValues(g);
 
 				//Render the noise to a texture.
 				System.Text.StringBuilder components = new System.Text.StringBuilder();

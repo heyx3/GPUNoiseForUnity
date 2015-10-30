@@ -14,8 +14,6 @@ namespace GPUNoise.Editor
 	/// </summary>
 	public class EditorGraph
 	{
-		private static readonly float FuncCallCellSize = 50.0f;
-
 		private static Rect ToR(float x, float y)
 		{
 			return new Rect(Mathf.RoundToInt(x), Mathf.RoundToInt(y), 100.0f, 50.0f);

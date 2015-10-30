@@ -207,6 +207,11 @@ namespace GPUNoise.Applications
 			RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
 			target.Create();
 			Texture2D resultTex = new Texture2D(width, height, format, false, true);
+
+			//Create the material and set its parameters.
+			Material mat = new Material(shader);
+			new GraphParamCollection(g).SetParams(mat);
+
 			RenderToTexture(target, new Material(shader), resultTex);
 
 			//Clean up.

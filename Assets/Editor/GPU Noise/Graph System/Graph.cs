@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 
+
 namespace GPUNoise
 {
 	/// <summary>
@@ -42,6 +43,7 @@ namespace GPUNoise
 			UIDToFuncCall = new Dictionary<long, FuncCall>();
 		}
 
+
 		/// <summary>
 		/// Adds the given Func call to this graph.
 		/// </summary>
@@ -76,8 +78,10 @@ namespace GPUNoise
 			sb.AppendLine(@"
 	{
 		Properties
-		{
-	
+		{");
+			foreach (FuncCall fc in UIDToFuncCall.Values)
+				fc.Calling.GetPropertyDeclarations(fc.CustomDat, sb);
+			sb.AppendLine(@"
 		}
 		SubShader
 		{
@@ -123,6 +127,12 @@ namespace GPUNoise
 
 					return OUT;
 				}
+
+				//------------Params---------------
+				//--------------------------------");
+			foreach (FuncCall fc in UIDToFuncCall.Values)
+				fc.Calling.GetParamDeclarations(fc.CustomDat, sb);
+			sb.AppendLine(@"
 
 				//-----------Func declarations---------
 				//-------------------------------------");
@@ -175,6 +185,25 @@ namespace GPUNoise
 	}");
 
 			return sb.ToString();
+		}
+		
+		/// <summary>
+		/// Gets all params used by this Graph.
+		/// </summary>
+		public void GetParams(List<FloatParamNode.FloatParamData> outFloatParams,
+							  List<SliderParamNode.SliderParamData> outSliderParams)
+		{
+			foreach (FuncCall fc in UIDToFuncCall.Values)
+			{
+				if (fc.Calling is FloatParamNode)
+				{
+					outFloatParams.Add((FloatParamNode.FloatParamData)fc.CustomDat);
+				}
+				else if (fc.Calling is SliderParamNode)
+				{
+					outSliderParams.Add((SliderParamNode.SliderParamData)fc.CustomDat);
+				}
+			}
 		}
 
 

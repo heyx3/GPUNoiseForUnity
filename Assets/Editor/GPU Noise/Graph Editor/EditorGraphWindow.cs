@@ -223,6 +223,8 @@ namespace GPUNoise.Editor
 					GUILayout.EndHorizontal();
 				}
 
+				fc.Calling.CustomGUI(fc.CustomDat);
+
 				GUILayout.EndVertical();
 
 				GUILayout.BeginVertical();
