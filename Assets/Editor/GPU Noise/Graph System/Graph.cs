@@ -206,6 +206,41 @@ namespace GPUNoise
 			}
 		}
 
+		/// <summary>
+		/// Removes all references to the given func call from this graph, if it exists.
+		/// Returns whether any references to it actually existed.
+		/// </summary>
+		public bool RemoveFuncCall(FuncCall call) { return RemoveFuncCall(call.UID); }
+		/// <summary>
+		/// Removes all references to the given func call from this graph, if it exists.
+		/// Returns whether any references to it actually existed.
+		/// </summary>
+		public bool RemoveFuncCall(long callUID)
+		{
+			if (!UIDToFuncCall.Remove(callUID))
+			{
+				return false;
+			}
+
+			//Replace all its outputs with default values.
+			foreach (FuncCall fc in UIDToFuncCall.Values)
+			{
+				for (int i = 0; i < fc.Inputs.Length; ++i)
+				{
+					if (!fc.Inputs[i].IsAConstantValue && fc.Inputs[i].FuncCallID == callUID)
+					{
+						fc.Inputs[i] = new FuncInput(fc.Calling.Params[i].DefaultValue);
+					}
+				}
+			}
+			if (!Output.IsAConstantValue && Output.FuncCallID == callUID)
+			{
+				Output = new FuncInput(0.5f);
+			}
+
+			return true;
+		}
+
 
 		//Serialization support.
 

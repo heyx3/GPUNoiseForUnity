@@ -34,8 +34,11 @@ namespace GPUNoise.Editor
 					 reconnectingInput = -2;
 		private int reconnectingInput_Index = 0;
 
+		private int activeWindowID = -1,
+					copiedWindowID = -1;
+
 		private static readonly Vector2 MinLeftSize = new Vector2(100.0f, 100.0f),
-										MinGraphSIze = new Vector2(500.0f, 500.0f);
+										MinGraphSize = new Vector2(500.0f, 500.0f);
 
 		private Rect WindowRect { get { return new Rect(0.0f, 0.0f, position.width - MinLeftSize.x, position.height); } }
 
@@ -51,16 +54,46 @@ namespace GPUNoise.Editor
 			
 			selectedGraph = -1;
 
-			minSize = new Vector2(MinLeftSize.x + MinGraphSIze.x,
-								  Mathf.Max(MinLeftSize.y, MinGraphSIze.y));
+			titleContent = new GUIContent("GPUG Editor");
+			minSize = new Vector2(MinLeftSize.x + MinGraphSize.x,
+								  Mathf.Max(MinLeftSize.y, MinGraphSize.y));
 		}
 
 		void OnGUI()
 		{
 			const float leftSpace = 200.0f;
 
+			//Draw the side-bar.
 			GUILayout.BeginArea(new Rect(0, 0, leftSpace, position.height));
+			GUILeftArea();
+			GUILayout.EndArea();
+			GUIUtil.DrawLine(new Vector2(leftSpace + 10.0f, 0.0f), new Vector2(leftSpace + 10.0f, position.height), 5.0f, Color.black);
+			if (Editor == null)
+				return;
 
+			//Respond to UI events.
+			Rect graphArea = new Rect(leftSpace, 0.0f, position.width - leftSpace, position.height);
+			GUIHandleEvents(graphArea, leftSpace);
+			
+
+			//Draw the various windows.
+
+			GUILayout.BeginArea(graphArea);
+			BeginWindows();
+
+			long[] keys = Editor.FuncCallPoses.Keys.ToArray();
+			foreach (long uid in keys)
+			{
+				FuncCall call = (uid == -1 ? new FuncCall(-1, null, new FuncInput[0]) :
+											 Editor.GPUGraph.UIDToFuncCall[uid]);
+				Editor.FuncCallPoses[uid] = GUINode(Editor.FuncCallPoses[uid], call);
+			}
+
+			EndWindows();
+			GUILayout.EndArea();
+		}
+		private void GUILeftArea()
+		{
 			GUILayout.Space(10.0f);
 
 			if (Editor != null)
@@ -77,33 +110,108 @@ namespace GPUNoise.Editor
 
 			GUILayout.Space(50.0f);
 
-			if (Editor != null && GUILayout.Button("Save Changes"))
+			if (Editor != null)
 			{
-				Editor.Resave();
+				GUILayout.Label("1D Hash:");
+				Editor.GPUGraph.Hash1 = GUILayout.TextField(Editor.GPUGraph.Hash1);
+				GUILayout.Space(10.0f);
+				GUILayout.Label("2D Hash:");
+				Editor.GPUGraph.Hash2 = GUILayout.TextField(Editor.GPUGraph.Hash2);
+				GUILayout.Space(10.0f);
+				GUILayout.Label("3D Hash:");
+				Editor.GPUGraph.Hash3 = GUILayout.TextField(Editor.GPUGraph.Hash3);
+
+				GUILayout.Space(50.0f);
+
+				if (GUILayout.Button("Save Changes"))
+				{
+					Editor.Resave();
+				}
+
+				if (GUILayout.Button("Discard Changes"))
+				{
+					if (EditorUtility.DisplayDialog("Discard Changes?",
+													"Are you sure you want to discard your changes?",
+													"Yes", "Cancel"))
+					{
+						Editor = new EditorGraph(GraphPaths[selectedGraph], WindowRect);
+					}
+				}
 			}
-
-			GUILayout.EndArea();
-
-			GUIUtil.DrawLine(new Vector2(leftSpace + 10.0f, 0.0f), new Vector2(leftSpace + 10.0f, position.height), 5.0f, Color.black);
-
-
-			if (Editor == null)
-				return;
-
-
-			GUILayout.BeginArea(new Rect(leftSpace, 0, position.width - leftSpace, position.height));
-			BeginWindows();
-
-			long[] keys = Editor.FuncCallPoses.Keys.ToArray();
-			foreach (long uid in keys)
+		}
+		private void GUIHandleEvents(Rect graphArea, float leftSpace)
+		{
+			Event evt = Event.current;
+			switch (evt.type)
 			{
-				FuncCall call = (uid == -1 ? new FuncCall(-1, null, new FuncInput[0]) :
-											 Editor.GPUGraph.UIDToFuncCall[uid]);
-				Editor.FuncCallPoses[uid] = GUINode(Editor.FuncCallPoses[uid], call);
-			}
+				case EventType.MouseDown:
+					activeWindowID = -2;
+					Vector2 mPos = evt.mousePosition + new Vector2(-leftSpace, 0.0f);
+					foreach (KeyValuePair<long, Rect> uidAndR in Editor.FuncCallPoses)
+					{
+						if (uidAndR.Value.Contains(mPos))
+						{
+							activeWindowID = (int)uidAndR.Key;
+						}
+					}
 
-			EndWindows();
-			GUILayout.EndArea();
+					break;
+					
+				case EventType.ContextClick:
+					Vector2 mousePos = evt.mousePosition;
+					if (graphArea.Contains(mousePos))
+					{
+						GenericMenu popupMenu = new GenericMenu();
+						foreach (string s in FuncDefinitions.FunctionsByName.Keys)
+						foreach (Func fu in FuncDefinitions.Functions)
+						{
+							AddNodeData dat = new AddNodeData();
+							dat.Pos = evt.mousePosition + new Vector2(-leftSpace, 0.0f);
+							dat.Name = fu.Name;
+							popupMenu.AddItem(new GUIContent(fu.Name), false, OnAddNode, dat);
+						}
+						popupMenu.ShowAsContext();
+						evt.Use();
+					}
+					break;
+
+				case EventType.ValidateCommand:
+					switch (evt.commandName)
+					{
+						case "Copy":
+							copiedWindowID = activeWindowID;
+							break;
+
+						case "Paste":
+							Rect pos = Editor.FuncCallPoses[copiedWindowID];
+							FuncCall fc = Editor.GPUGraph.UIDToFuncCall[copiedWindowID];
+
+							FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs);
+							Editor.GPUGraph.CreateFuncCall(copy);
+							Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
+																		pos.width, pos.height));
+
+							Repaint();
+							break;
+					}
+					break;
+
+				case EventType.KeyDown:
+					switch (evt.keyCode)
+					{
+						case KeyCode.Delete:
+						case KeyCode.Backspace:
+							if (activeWindowID >= 0 && Editor.FuncCallPoses.ContainsKey(activeWindowID))
+							{
+								Editor.FuncCallPoses.Remove(activeWindowID);
+								Editor.GPUGraph.RemoveFuncCall(activeWindowID);
+
+								Repaint();
+							}
+							break;
+					}
+					break;
+			}
 		}
 		private Rect GUINode(Rect nodeRect, FuncCall node)
 		{
@@ -121,6 +229,9 @@ namespace GPUNoise.Editor
 		private void GUINodeWindow(int windowID)
 		{
 			long uid = (long)windowID;
+			if (!Editor.FuncCallPoses.ContainsKey(uid))
+				return;
+
 			Rect r = Editor.FuncCallPoses[uid];
 
 			if (uid == -1)
@@ -261,6 +372,16 @@ namespace GPUNoise.Editor
 			}
 
 			GUI.DragWindow();
+		}
+
+		private struct AddNodeData { public Vector2 Pos; public string Name; }
+		private void OnAddNode(object datObj)
+		{
+			AddNodeData dat = (AddNodeData)datObj;
+
+			FuncCall fc = new FuncCall(dat.Name);
+			Editor.GPUGraph.CreateFuncCall(fc);
+			Editor.FuncCallPoses.Add(fc.UID, new Rect(dat.Pos.x, dat.Pos.y, 100.0f, 50.0f));
 		}
 	}
 }
