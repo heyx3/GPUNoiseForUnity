@@ -223,5 +223,30 @@ namespace GPUNoise.Applications
 
 			return resultTex;
 		}
+
+		/// <summary>
+		/// Generates a 2D grid of noise from the given graph.
+		/// If an error occurred, outputs to the Unity debug console and returns "null".
+		/// </summary>
+		public static float[,] GenerateNoise(Graph g, int width, int height)
+		{
+			Texture2D t = RenderToTexture(g, width, height, "r");
+			if (t == null)
+			{
+				return null;
+			}
+
+			Color[] cols = t.GetPixels();
+			float[,] vals = new float[width, height];
+			for (int i = 0; i < cols.Length; ++i)
+			{
+				int x = i % width,
+					y = i / width;
+
+				vals[x, y] = cols[i].r;
+			}
+
+			return vals;
+		}
 	}
 }
