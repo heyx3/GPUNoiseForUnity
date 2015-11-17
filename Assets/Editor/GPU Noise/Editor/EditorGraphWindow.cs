@@ -162,7 +162,6 @@ namespace GPUNoise.Editor
 					if (graphArea.Contains(mousePos))
 					{
 						GenericMenu popupMenu = new GenericMenu();
-						foreach (string s in FuncDefinitions.FunctionsByName.Keys)
 						foreach (Func fu in FuncDefinitions.Functions)
 						{
 							AddNodeData dat = new AddNodeData();
