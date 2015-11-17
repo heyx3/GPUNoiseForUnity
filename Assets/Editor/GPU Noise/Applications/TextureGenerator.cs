@@ -25,7 +25,6 @@ namespace GPUNoise.Applications
 					UseBlue = true,
 					UseAlpha = false;
 		public float UnusedColor = 1.0f;
-		public string SavePath = null;
 		public int SelectedGraphIndex = 0;
 
 		private List<string> graphPaths = new List<string>();
@@ -104,21 +103,11 @@ namespace GPUNoise.Applications
 			EditorGUILayout.Space();
 
 
-			if (SavePath != null)
-			{
-				EditorGUILayout.LabelField("Save to: " + SavePath);
-			}
-			if (GUILayout.Button("Choose Save Location"))
-			{
-				SavePath = EditorUtility.SaveFilePanel("Choose where to save the texture.",
-													   Application.dataPath, "MyTex.png", "png");
-			}
-
-			EditorGUILayout.Space();
-
-
 			if (GUILayout.Button("Generate Texture"))
 			{
+				string savePath = EditorUtility.SaveFilePanel("Choose where to save the texture.",
+															  Application.dataPath, "MyTex.png", "png");
+
 				//Load the graph.
 				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
 				if (g == null)
@@ -154,7 +143,7 @@ namespace GPUNoise.Applications
 
 				try
 				{
-					File.WriteAllBytes(SavePath, tex.EncodeToPNG());
+					File.WriteAllBytes(savePath, tex.EncodeToPNG());
 				}
 				catch (Exception e)
 				{
@@ -163,14 +152,14 @@ namespace GPUNoise.Applications
 
 
 				//Now that we're finished, clean up.
-				AssetDatabase.ImportAsset(PathUtils.GetRelativePath(SavePath, "Assets"));
+				AssetDatabase.ImportAsset(PathUtils.GetRelativePath(savePath, "Assets"));
 
 				//Finally, open explorer to show the user the texture.
 				if (Application.platform == RuntimePlatform.WindowsEditor)
 				{
 					System.Diagnostics.Process.Start("explorer.exe",
 													 "/select," +
-													   PathUtils.FixDirectorySeparators(SavePath));
+													   PathUtils.FixDirectorySeparators(savePath));
 				}
 				else if (Application.platform == RuntimePlatform.OSXEditor)
 				{
@@ -179,7 +168,7 @@ namespace GPUNoise.Applications
 						System.Diagnostics.Process proc = new System.Diagnostics.Process();
 						proc.StartInfo.FileName = "open";
 						proc.StartInfo.Arguments = "-n -R \"" +
-													PathUtils.FixDirectorySeparators(SavePath) +
+													PathUtils.FixDirectorySeparators(savePath) +
 													"\"";
 						proc.StartInfo.UseShellExecute = false;
 						proc.StartInfo.RedirectStandardError = false;
