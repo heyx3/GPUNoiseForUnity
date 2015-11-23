@@ -236,6 +236,129 @@ namespace GPUNoise
 						float3 inV = float3(fX, fY, fZ);
 						INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, v)))
 					}"),
+			new Func(@"float PerlinNoise1(float f)
+					 {
+					     float minX = floor(f),
+							   maxX = minX + 1.0,
+							   lerpVal = f - minX;
+
+						 float minX_V = -1.0 + (2.0 * hashValue1(minX));
+						 float toMin = -lerpVal;
+
+						 float maxX_V = -1.0 + (2.0 * hashValue1(maxX));
+						 float toMax = maxX - f;
+
+						 float outVal = lerp(dot(minX_V, toMin),
+											 dot(maxX_V, toMax),
+											 smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, lerpVal)));
+						 return 0.5 + (0.5 * outVal);
+					 }"),
+			new Func(@"float PerlinNoise2(float fX, float fY)
+					 {
+						 float2 f = float2(fX, fY);
+					     float2 minXY = floor(f),
+							    maxXY = minXY + float2(1.0, 1.0),
+								minXmaxY = float2(minXY.x, maxXY.y),
+								maxXminY = float2(maxXY.x, minXY.y),
+							    lerpVal = f - minXY;
+
+						 float temp = hashValue2(minXY);
+						 float2 minXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+						 float2 toMinXY = -lerpVal;
+
+						 temp = hashValue2(maxXY);
+						 float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+						 float2 toMaxXY = maxXY - f;
+
+						 temp = hashValue2(minXmaxY);
+						 float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+						 float2 toMinXmaxY = minXmaxY - f;
+
+						 temp = hashValue2(maxXminY);
+						 float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+						 float2 toMaxXminY = maxXminY - f;
+
+						 lerpVal = smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, lerpVal));
+						 float outVal = lerp(lerp(dot(minXY_V, toMinXY),
+										     dot(maxXminY_V, toMaxXminY),
+										     lerpVal.x),
+									    lerp(dot(minXmaxY_V, toMinXmaxY),
+									   	     dot(maxXY_V, toMaxXY),
+										     lerpVal.x),
+									    lerpVal.y);
+						 return 0.5 + (0.5 * outVal);
+					 }"),
+			new Func(@"float PerlinNoise3(float fX, float fY, float fZ)
+					 {
+						 float3 f = float3(fX, fY, fZ);
+					     float3 minXYZ = floor(f),
+							    maxXYZ = minXYZ + float3(1.0, 1.0, 1.0),
+								minXYmaxZ =    float3(minXYZ.xy, maxXYZ.z),
+								minXmaxYminZ = float3(minXYZ.x, maxXYZ.y, minXYZ.z),
+								minXmaxYZ =    float3(minXYZ.x, maxXYZ.y, maxXYZ.z),
+								maxXminYZ =    float3(maxXYZ.x, minXYZ.y, minXYZ.z),
+								maxXminYmaxZ = float3(maxXYZ.x, minXYZ.y, maxXYZ.z),
+								maxXYminZ =    float3(maxXYZ.xy, minXYZ.z),
+							    lerpVal = f - minXYZ;
+
+						 float temp = hashValue3(minXYZ),
+							   temp2 = hashValue1(temp);
+						 float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMinXYZ = -lerpVal;
+
+						 temp = hashValue3(maxXYZ);
+						 temp2 = hashValue1(temp);
+						 float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMaxXYZ = maxXYZ - f;
+
+						 temp = hashValue3(minXYmaxZ);
+						 temp2 = hashValue1(temp);
+						 float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMinXYmaxZ = minXYmaxZ - f;
+
+						 temp = hashValue3(minXmaxYminZ);
+						 temp2 = hashValue1(temp);
+						 float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMinXmaxYminZ = minXmaxYminZ - f;
+
+						 temp = hashValue3(minXmaxYZ);
+						 temp2 = hashValue1(temp);
+						 float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMinXmaxYZ = minXmaxYZ - f;
+
+						 temp = hashValue3(maxXminYZ);
+						 temp2 = hashValue1(temp);
+						 float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMaxXminYZ = maxXminYZ - f;
+
+						 temp = hashValue3(maxXminYmaxZ);
+						 temp2 = hashValue1(temp);
+						 float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMaxXminYmaxZ = maxXminYmaxZ - f;
+
+						 temp = hashValue3(maxXYminZ);
+						 temp2 = hashValue1(temp);
+						 float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+						 float3 toMaxXYminZ = maxXYminZ - f;
+
+						 lerpVal = smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, lerpVal));
+						 float outVal = lerp(lerp(lerp(dot(minXYZ_V, toMinXYZ),
+											           dot(maxXminYZ_V, toMaxXminYZ),
+											           lerpVal.x),
+										          lerp(dot(minXmaxYminZ_V, toMinXmaxYminZ),
+											           dot(maxXYminZ_V, toMaxXYminZ),
+											           lerpVal.x),
+										          lerpVal.y),
+									         lerp(lerp(dot(minXYmaxZ_V, toMinXYmaxZ),
+											           dot(maxXminYmaxZ_V, toMaxXminYmaxZ),
+											           lerpVal.x),
+										          lerp(dot(minXmaxYZ_V, toMinXmaxYZ),
+											           dot(maxXYZ_V, toMaxXYZ),
+											           lerpVal.x),
+										          lerpVal.y),
+									         lerpVal.z);
+						 return 0.5 + (0.5 * outVal);
+					 }"),
 			MakeSimple1("Fract", "frac(f)"),
 			MakeSimple1("Ceil", "ceil(f)"),
 			MakeSimple1("Floor", "floor(f)"),
@@ -332,9 +455,12 @@ namespace GPUNoise
 		{
 			return new FloatParamData("MyFloat", 0.0f);
 		}
-		public override void CustomGUI(Func.ExtraData myData)
+		public override bool CustomGUI(Func.ExtraData myData)
 		{
 			FloatParamData dat = (FloatParamData)myData;
+
+			string oldVarName = dat.VarName;
+			float oldDefaultVal = dat.DefaultValue;
 
 			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField("Var Name:");
@@ -345,6 +471,8 @@ namespace GPUNoise
 			EditorGUILayout.LabelField("Default Value:");
 			dat.DefaultValue = EditorGUILayout.FloatField(dat.DefaultValue);
 			EditorGUILayout.EndHorizontal();
+
+			return (dat.VarName != oldVarName) || (dat.DefaultValue != oldDefaultVal);
 		}
 
 		public override string GetInvocation(Func.ExtraData customDat, string paramList)
@@ -403,9 +531,14 @@ namespace GPUNoise
 		{
 			return new SliderParamData("MyFloat", 0.0f, 1.0f, 0.5f);
 		}
-		public override void CustomGUI(Func.ExtraData myData)
+		public override bool CustomGUI(Func.ExtraData myData)
 		{
 			SliderParamData dat = (SliderParamData)myData;
+
+			string oldVarName = dat.VarName;
+			float oldMin = dat.Min,
+				  oldMax = dat.Max,
+				  oldDefaultLerp = dat.DefaultLerp;
 
 			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField("Var Name:");
@@ -428,6 +561,11 @@ namespace GPUNoise
 													  dat.Min, dat.Max);
 			dat.DefaultLerp = Mathf.InverseLerp(dat.Min, dat.Max, newDefault);
 			EditorGUILayout.EndHorizontal();
+
+			return dat.VarName != oldVarName ||
+				   dat.Min != oldMin ||
+				   dat.Max != oldMax ||
+				   dat.DefaultLerp != oldDefaultLerp;
 		}
 
 		public override string GetInvocation(Func.ExtraData customDat, string paramList)

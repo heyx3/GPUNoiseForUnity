@@ -37,11 +37,35 @@ namespace GPUNoise.Editor
 		private int activeWindowID = -1,
 					copiedWindowID = -1;
 
+		private bool unsavedChanges = false;
+
 		private static readonly Vector2 MinLeftSize = new Vector2(100.0f, 100.0f),
 										MinGraphSize = new Vector2(500.0f, 500.0f);
 
 		private Rect WindowRect { get { return new Rect(0.0f, 0.0f, position.width - MinLeftSize.x, position.height); } }
 
+
+		private bool ConfirmLoseUnsavedChanges()
+		{
+			if (unsavedChanges)
+			{
+				if (EditorUtility.DisplayDialog("Unsaved changes",
+												"You have unsaved changes. Are you sure you want to lose them?",
+												"Yes", "Cancel"))
+				{
+					unsavedChanges = false;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return true;
+			}
+		}
 
 		void OnEnable()
 		{
@@ -57,6 +81,20 @@ namespace GPUNoise.Editor
 			titleContent = new GUIContent("GPUG Editor");
 			minSize = new Vector2(MinLeftSize.x + MinGraphSize.x,
 								  Mathf.Max(MinLeftSize.y, MinGraphSize.y));
+		}
+		void OnDestroy()
+		{
+			if (unsavedChanges &&
+				EditorUtility.DisplayDialog("Unsaved changes",
+											"You have unsaved changes to graph '" +
+												graphSelections[selectedGraph].text +
+												"'. Do you want to save them?",
+											"Yes", "No"))
+			{
+				Editor.Resave();
+			}
+			
+			unsavedChanges = false;
 		}
 
 		void OnGUI()
@@ -97,7 +135,9 @@ namespace GPUNoise.Editor
 			GUILayout.Space(10.0f);
 
 			if (Editor != null)
+			{
 				GUILayout.Label(Path.GetFileNameWithoutExtension(Editor.FilePath));
+			}
 
 			GUILayout.Space(10.0f);
 
@@ -105,7 +145,14 @@ namespace GPUNoise.Editor
 			selectedGraph = EditorGUILayout.Popup(selectedGraph, graphSelections);
 			if (selectedGraph != oldVal)
 			{
-				Editor = new EditorGraph(GraphPaths[selectedGraph], WindowRect);
+				if (ConfirmLoseUnsavedChanges())
+				{
+					Editor = new EditorGraph(GraphPaths[selectedGraph], WindowRect);
+				}
+				else
+				{
+					selectedGraph = oldVal;
+				}
 			}
 
 			GUILayout.Space(50.0f);
@@ -113,30 +160,80 @@ namespace GPUNoise.Editor
 			if (Editor != null)
 			{
 				GUILayout.Label("1D Hash:");
+				string oldHash = Editor.GPUGraph.Hash1;
 				Editor.GPUGraph.Hash1 = GUILayout.TextField(Editor.GPUGraph.Hash1);
+				unsavedChanges = unsavedChanges || (oldHash != Editor.GPUGraph.Hash1);
+
 				GUILayout.Space(10.0f);
+
 				GUILayout.Label("2D Hash:");
+				oldHash = Editor.GPUGraph.Hash2;
 				Editor.GPUGraph.Hash2 = GUILayout.TextField(Editor.GPUGraph.Hash2);
+				unsavedChanges = unsavedChanges || (oldHash != Editor.GPUGraph.Hash2);
+
 				GUILayout.Space(10.0f);
+
 				GUILayout.Label("3D Hash:");
+				oldHash = Editor.GPUGraph.Hash3;
 				Editor.GPUGraph.Hash3 = GUILayout.TextField(Editor.GPUGraph.Hash3);
+				unsavedChanges = unsavedChanges || (oldHash != Editor.GPUGraph.Hash3);
 
 				GUILayout.Space(50.0f);
 
 				if (GUILayout.Button("Save Changes"))
 				{
 					Editor.Resave();
+					unsavedChanges = false;
 				}
 
 				if (GUILayout.Button("Discard Changes"))
 				{
-					if (EditorUtility.DisplayDialog("Discard Changes?",
-													"Are you sure you want to discard your changes?",
-													"Yes", "Cancel"))
+					if (ConfirmLoseUnsavedChanges())
 					{
 						Editor = new EditorGraph(GraphPaths[selectedGraph], WindowRect);
 					}
 				}
+			}
+
+			GUILayout.Space(30.0f);
+			
+			if (GUILayout.Button("New Graph") && ConfirmLoseUnsavedChanges())
+			{
+				string savePath = EditorUtility.SaveFilePanelInProject("Choose Graph location",
+																	   "MyGraph.gpug", "gpug",
+																	   "Choose where to save the graph.");
+				if (savePath != "")
+				{
+					Graph g = new Graph(new FuncInput(0.5f));
+					if (Applications.GraphUtils.SaveGraph(g, savePath))
+					{
+						Editor = new EditorGraph(savePath, WindowRect);
+						
+						GraphPaths = GPUNoise.Applications.GraphUtils.GetAllGraphsInProject();
+
+						Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
+						graphSelections = GraphPaths.Select(selector).ToArray();
+
+						selectedGraph = -1;
+						for (int i = 0; i < graphSelections.Length; ++i)
+						{
+							if (graphSelections[i].text == Path.GetFileNameWithoutExtension(savePath))
+							{
+								selectedGraph = i;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (unsavedChanges)
+			{	
+				titleContent = new GUIContent("GPUG Editor*");
+			}
+			else
+			{
+				titleContent = new GUIContent("GPUG Editor");
 			}
 		}
 		private void GUIHandleEvents(Rect graphArea, float leftSpace)
@@ -182,6 +279,7 @@ namespace GPUNoise.Editor
 							break;
 
 						case "Paste":
+
 							Rect pos = Editor.FuncCallPoses[copiedWindowID];
 							FuncCall fc = Editor.GPUGraph.UIDToFuncCall[copiedWindowID];
 
@@ -189,6 +287,32 @@ namespace GPUNoise.Editor
 							Editor.GPUGraph.CreateFuncCall(copy);
 							Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
 																		pos.width, pos.height));
+
+							if (reconnectingOutput >= 0)
+							{
+								if (copy.Inputs.Length > 0)
+								{
+									unsavedChanges = true;
+									copy.Inputs[0] = new FuncInput(reconnectingOutput);
+								}
+								reconnectingOutput = -1;
+							}
+							else if (reconnectingInput >= 0)
+							{
+								unsavedChanges = true;
+
+								FuncCall rI = Editor.GPUGraph.UIDToFuncCall[reconnectingInput];
+								rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
+
+								reconnectingInput = -2;
+							}
+							else if (reconnectingInput == -1)
+							{
+								unsavedChanges = true;
+
+								Editor.GPUGraph.Output = new FuncInput(copy);
+								reconnectingInput = -2;
+							}
 
 							Repaint();
 							break;
@@ -204,6 +328,8 @@ namespace GPUNoise.Editor
 							{
 								Editor.FuncCallPoses.Remove(activeWindowID);
 								Editor.GPUGraph.RemoveFuncCall(activeWindowID);
+								
+								unsavedChanges = true;
 
 								Repaint();
 							}
@@ -246,6 +372,7 @@ namespace GPUNoise.Editor
 					if (reconnectingOutput >= 0)
 					{
 						Editor.GPUGraph.Output = new FuncInput(reconnectingOutput);
+						unsavedChanges = true;
 						reconnectingOutput = -1;
 					}
 					else
@@ -258,12 +385,14 @@ namespace GPUNoise.Editor
 				if (graphOut.IsAConstantValue)
 				{
 					Editor.GPUGraph.Output = new FuncInput(EditorGUILayout.FloatField(graphOut.ConstantValue));
+					unsavedChanges = true;
 				}
 				else
 				{
 					if (GUILayout.Button("Disconnect"))
 					{
 						Editor.GPUGraph.Output = new FuncInput(0.5f);
+						unsavedChanges = true;
 						reconnectingInput = -2;
 						reconnectingOutput = -1;
 					}
@@ -301,6 +430,7 @@ namespace GPUNoise.Editor
 						if (reconnectingOutput >= 0)
 						{
 							fc.Inputs[i] = new FuncInput(reconnectingOutput);
+							unsavedChanges = true;
 							reconnectingOutput = -1;
 						}
 						else
@@ -311,7 +441,12 @@ namespace GPUNoise.Editor
 					}
 					if (fc.Inputs[i].IsAConstantValue)
 					{
-						fc.Inputs[i] = new FuncInput(EditorGUILayout.FloatField(fc.Inputs[i].ConstantValue));
+						float newVal = EditorGUILayout.FloatField(fc.Inputs[i].ConstantValue);
+						if (newVal != fc.Inputs[i].ConstantValue)
+						{
+							fc.Inputs[i] = new FuncInput(newVal);
+							unsavedChanges = true;
+						}
 					}
 					else
 					{
@@ -325,6 +460,7 @@ namespace GPUNoise.Editor
 						if (GUILayout.Button("Disconnect"))
 						{
 							fc.Inputs[i] = new FuncInput(fc.Calling.Params[i].DefaultValue);
+							unsavedChanges = true;
 							reconnectingInput = -2;
 							reconnectingOutput = -1;
 						}
@@ -333,7 +469,7 @@ namespace GPUNoise.Editor
 					GUILayout.EndHorizontal();
 				}
 
-				fc.Calling.CustomGUI(fc.CustomDat);
+				unsavedChanges = fc.Calling.CustomGUI(fc.CustomDat) || unsavedChanges;
 
 				GUILayout.EndVertical();
 
@@ -354,11 +490,13 @@ namespace GPUNoise.Editor
 						if (reconnectingInput == -1)
 						{
 							Editor.GPUGraph.Output = new FuncInput(uid);
+							unsavedChanges = true;
 						}
 						else
 						{
 							FuncInput[] inputs = Editor.GPUGraph.UIDToFuncCall[reconnectingInput].Inputs;
 							inputs[reconnectingInput_Index] = new FuncInput(uid);
+							unsavedChanges = true;
 						}
 
 						reconnectingInput = -2;
@@ -381,6 +519,8 @@ namespace GPUNoise.Editor
 			FuncCall fc = new FuncCall(dat.Name);
 			Editor.GPUGraph.CreateFuncCall(fc);
 			Editor.FuncCallPoses.Add(fc.UID, new Rect(dat.Pos.x, dat.Pos.y, 100.0f, 50.0f));
+			
+			unsavedChanges = true;
 		}
 	}
 }

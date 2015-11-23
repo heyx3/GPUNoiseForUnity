@@ -252,7 +252,8 @@ namespace GPUNoise
 		[Serializable]
 		public abstract class ExtraData { }
 		public virtual ExtraData InitCustomGUI() { return null; }
-		public virtual void CustomGUI(ExtraData myData) { }
+		//Should return whether any values have changed.
+		public virtual bool CustomGUI(ExtraData myData) { return false; }
 
 		/// <summary>
 		/// Gets the full shader function this Func represents.
