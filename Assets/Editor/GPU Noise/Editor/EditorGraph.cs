@@ -56,9 +56,17 @@ namespace GPUNoise.Editor
 				{
 					float lerpY = (float)row / (float)nodesByDepth[col].Count;
 
-					Rect pos = ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) -
-									(0.75f * viewRect.width / (nodesByDepth.Count - 1)),
-								   Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY));
+					Rect pos;
+					if (nodesByDepth.Count == 1)
+					{
+						pos = ToR((viewRect.xMin + viewRect.xMax) / 2.0f,
+								  (viewRect.yMin + viewRect.yMax) / 2.0f);
+					}
+					else
+					{
+						pos = ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) - 25.0f,
+								  Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY));
+					}
 
 					if (FuncCallPoses.ContainsKey(nodesByDepth[col][row]))
 					{
