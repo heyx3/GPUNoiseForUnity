@@ -44,11 +44,28 @@ namespace GPUNoise.Editor
 			FilePath = filePath;
 			GPUGraph = GraphUtils.LoadGraph(FilePath);
 
+			//Position all nodes coming out of the graph output.
+			List<long> usedNodes = PositionNodesFromRoot(viewRect, -1);
+
+			//Position all nodes that aren't actually plugged into the output.
+			foreach (var kvp in GPUGraph.UIDToFuncCall.Where(v => !usedNodes.Contains(v.Key)))
+			{
+				FuncCallPoses[kvp.Key] = ToR(Mathf.Lerp(viewRect.xMin, viewRect.xMax,
+														UnityEngine.Random.Range(0.0f, 0.7f)),
+											 Mathf.Lerp(viewRect.yMin, viewRect.yMax,
+														UnityEngine.Random.Range(0.5f, 0.7f)));
+			}
+		}
+		private List<long> PositionNodesFromRoot(Rect area, long node)
+		{
+			List<long> usedNodes = new List<long>();
+
 			//First, store each node by its depth and then by its position along that depth (i.e. breadth).
-			List<List<long>> nodesByDepth = new List<List<long>> { new List<long>() { -1 } };
+			List<List<long>> nodesByDepth = new List<List<long>> { new List<long>() { node } };
 			TraverseDepthFirst(nodesByDepth, GPUGraph.Output, 1);
 
 			//Next, position all those nodes.
+			usedNodes.Capacity = nodesByDepth.Sum(l => l.Count);
 			for (int col = 0; col < nodesByDepth.Count; ++col)
 			{
 				float lerpX = (float)col / (float)nodesByDepth.Count;
@@ -59,25 +76,30 @@ namespace GPUNoise.Editor
 					Rect pos;
 					if (nodesByDepth.Count == 1)
 					{
-						pos = ToR((viewRect.xMin + viewRect.xMax) / 2.0f,
-								  (viewRect.yMin + viewRect.yMax) / 2.0f);
+						pos = ToR((area.xMin + area.xMax) / 2.0f,
+								  (area.yMin + area.yMax) / 2.0f);
 					}
 					else
 					{
-						pos = ToR(Mathf.Lerp(viewRect.xMax, viewRect.xMin, lerpX) - 25.0f,
-								  Mathf.Lerp(viewRect.yMin, viewRect.yMax, lerpY));
+						pos = ToR(Mathf.Lerp(area.xMax, area.xMin, lerpX) - 25.0f,
+								  Mathf.Lerp(area.yMin, area.yMax, lerpY));
 					}
 
-					if (FuncCallPoses.ContainsKey(nodesByDepth[col][row]))
+					long id = nodesByDepth[col][row];
+					usedNodes.Add(id);
+
+					if (FuncCallPoses.ContainsKey(id))
 					{
-						FuncCallPoses[nodesByDepth[col][row]] = pos;
+						FuncCallPoses[id] = pos;
 					}
 					else
 					{
-						FuncCallPoses.Add(nodesByDepth[col][row], pos);
+						FuncCallPoses.Add(id, pos);
 					}
 				}
 			}
+
+			return usedNodes;
 		}
 		private void TraverseDepthFirst(List<List<long>> nodesByDepth, FuncInput input, int inputDepth)
 		{
