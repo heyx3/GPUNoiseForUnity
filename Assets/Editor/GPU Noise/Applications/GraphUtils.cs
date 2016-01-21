@@ -171,6 +171,7 @@ namespace GPUNoise.Applications
 					copyTo.Resize(rendTarget.width, rendTarget.height);
 				}
 				copyTo.ReadPixels(new Rect(0, 0, rendTarget.width, rendTarget.height), 0, 0);
+				copyTo.Apply();
 			}
 
 			//Reset rendering state.

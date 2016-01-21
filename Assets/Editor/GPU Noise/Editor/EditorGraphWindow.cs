@@ -18,6 +18,7 @@ namespace GPUNoise.Editor
 			UnityEditor.EditorWindow.GetWindow(typeof(EditorGraphWindow));
 		}
 
+
 		private static readonly float OutputHeight = 30.0f;
 		private static readonly float TitleBarHeight = 30.0f,
 									  InputSpacing = 20.0f;
@@ -40,10 +41,9 @@ namespace GPUNoise.Editor
 		private bool unsavedChanges = false;
 
 		private Texture2D previewNoise = null;
-		private GUIStyle previewStyle = null;
 		private bool autoUpdatePreview = false;
 
-		private static readonly Vector2 MinLeftSize = new Vector2(256.0f, 705.0f),
+		private static readonly Vector2 MinLeftSize = new Vector2(300.0f, 705.0f),
 										MinGraphSize = new Vector2(500.0f, 500.0f);
 
 		private Rect WindowRect { get { return new Rect(0.0f, 0.0f, position.width - MinLeftSize.x, position.height); } }
@@ -85,9 +85,6 @@ namespace GPUNoise.Editor
 			titleContent = new GUIContent("GPUG Editor");
 			minSize = new Vector2(MinLeftSize.x + MinGraphSize.x,
 								  Mathf.Max(MinLeftSize.y, MinGraphSize.y));
-
-			previewStyle = new GUIStyle();
-			previewStyle.imagePosition = ImagePosition.ImageOnly;
 		}
 		void OnDestroy()
 		{
