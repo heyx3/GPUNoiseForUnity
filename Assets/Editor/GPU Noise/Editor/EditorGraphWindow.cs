@@ -324,66 +324,71 @@ namespace GPUNoise.Editor
 					break;
 
 				case EventType.ValidateCommand:
-					switch (evt.commandName)
+					if (!EditorGUIUtility.editingTextField)
 					{
-						case "Copy":
-							copiedWindowID = activeWindowID;
-							break;
+						switch (evt.commandName)
+						{
+							case "Copy":
+								copiedWindowID = activeWindowID;
+								break;
 
-						case "Paste":
+							case "Paste":
 
-							Rect pos = Editor.FuncCallPoses[copiedWindowID];
-							FuncCall fc = Editor.GPUGraph.UIDToFuncCall[copiedWindowID];
+								Rect pos = Editor.FuncCallPoses[copiedWindowID];
+								FuncCall fc = Editor.GPUGraph.UIDToFuncCall[copiedWindowID];
 
-							FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs);
-							Editor.GPUGraph.CreateFuncCall(copy);
-							Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
-																		pos.width, pos.height));
+								FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs);
+								Editor.GPUGraph.CreateFuncCall(copy);
+								Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
+																			pos.width, pos.height));
 
-							if (reconnectingOutput >= 0)
-							{
-								if (copy.Inputs.Length > 0)
+								if (reconnectingOutput >= 0)
+								{
+									if (copy.Inputs.Length > 0)
+									{
+										unsavedChanges = true;
+										if (autoUpdatePreview)
+											UpdatePreview();
+
+										copy.Inputs[0] = new FuncInput(reconnectingOutput);
+									}
+									reconnectingOutput = -1;
+								}
+								else if (reconnectingInput >= 0)
 								{
 									unsavedChanges = true;
 									if (autoUpdatePreview)
 										UpdatePreview();
 
-									copy.Inputs[0] = new FuncInput(reconnectingOutput);
+									FuncCall rI = Editor.GPUGraph.UIDToFuncCall[reconnectingInput];
+									rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
+
+									reconnectingInput = -2;
 								}
-								reconnectingOutput = -1;
-							}
-							else if (reconnectingInput >= 0)
-							{
-								unsavedChanges = true;
-								if (autoUpdatePreview)
-									UpdatePreview();
+								else if (reconnectingInput == -1)
+								{
+									unsavedChanges = true;
+									if (autoUpdatePreview)
+										UpdatePreview();
 
-								FuncCall rI = Editor.GPUGraph.UIDToFuncCall[reconnectingInput];
-								rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
+									Editor.GPUGraph.Output = new FuncInput(copy);
+									reconnectingInput = -2;
+								}
 
-								reconnectingInput = -2;
-							}
-							else if (reconnectingInput == -1)
-							{
-								unsavedChanges = true;
-								if (autoUpdatePreview)
-									UpdatePreview();
-
-								Editor.GPUGraph.Output = new FuncInput(copy);
-								reconnectingInput = -2;
-							}
-
-							Repaint();
-							break;
+								Repaint();
+								break;
+						}
 					}
 					break;
 
 				case EventType.KeyDown:
 					switch (evt.keyCode)
 					{
-						case KeyCode.Delete:
 						case KeyCode.Backspace:
-							if (activeWindowID >= 0 && Editor.FuncCallPoses.ContainsKey(activeWindowID))
+						case KeyCode.Delete:
+							if (!EditorGUIUtility.editingTextField &&
+								activeWindowID >= 0 &&
+								Editor.FuncCallPoses.ContainsKey(activeWindowID))
 							{
 								Editor.FuncCallPoses.Remove(activeWindowID);
 								Editor.GPUGraph.RemoveFuncCall(activeWindowID);
