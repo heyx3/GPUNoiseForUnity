@@ -304,6 +304,11 @@ namespace GPUNoise.Editor
 						}
 					}
 
+					if (activeWindowID == -2)
+					{
+						EditorGUIUtility.editingTextField = false;
+					}
+
 					break;
 					
 				case EventType.ContextClick:

@@ -38,9 +38,6 @@ namespace GPUNoise
 		}
 
 
-		//TODO: Two Funcs for getting the UV.x and UV.y, and another Func that gets a shader parameter.
-
-
 		//Need a standard way to hash float, float2, and float3.
 		public static string DefaultHash1 =
 	"frac(sin(x * 78.233) * 43758.5453)";
