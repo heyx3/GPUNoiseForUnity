@@ -23,7 +23,7 @@ namespace GPUNoise.Editor
 		/// <summary>
 		/// The full path to the graph file.
 		/// </summary>
-		public string FilePath = "C:/MyGraph." + GraphUtils.Extension;
+		public string FilePath = "C:/MyGraph." + GraphEditorUtils.Extension;
 
 		/// <summary>
 		/// The graph for the shader.
@@ -42,7 +42,7 @@ namespace GPUNoise.Editor
 		public EditorGraph(string filePath, Rect viewRect)
 		{
 			FilePath = filePath;
-			GPUGraph = GraphUtils.LoadGraph(FilePath);
+			GPUGraph = GraphEditorUtils.LoadGraph(FilePath);
 
 			//Position all nodes coming out of the graph output.
 			List<long> usedNodes = PositionNodesFromRoot(viewRect, -1);
@@ -130,7 +130,7 @@ namespace GPUNoise.Editor
 
 		public bool Resave()
 		{
-			return GraphUtils.SaveGraph(GPUGraph, FilePath);
+			return GraphEditorUtils.SaveGraph(GPUGraph, FilePath);
 		}
 	}
 }

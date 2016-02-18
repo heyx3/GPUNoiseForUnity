@@ -75,7 +75,7 @@ namespace GPUNoise.Editor
 		{
 			wantsMouseMove = true;
 
-			GraphPaths = GPUNoise.Applications.GraphUtils.GetAllGraphsInProject();
+			GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 			Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
 			graphSelections = GraphPaths.Select(selector).ToArray();
@@ -165,11 +165,11 @@ namespace GPUNoise.Editor
 				if (savePath != "")
 				{
 					Graph g = new Graph(new FuncInput(0.5f));
-					if (Applications.GraphUtils.SaveGraph(g, savePath))
+					if (GraphEditorUtils.SaveGraph(g, savePath))
 					{
 						Editor = new EditorGraph(savePath, WindowRect);
 						
-						GraphPaths = GPUNoise.Applications.GraphUtils.GetAllGraphsInProject();
+						GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 						Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
 						graphSelections = GraphPaths.Select(selector).ToArray();
@@ -258,7 +258,13 @@ namespace GPUNoise.Editor
 
 			if (Editor != null)
 			{
+				bool oldAutoUpdate = autoUpdatePreview;
 				autoUpdatePreview = GUILayout.Toggle(autoUpdatePreview, "Auto-Update Preview");
+				if (autoUpdatePreview && !oldAutoUpdate)
+				{
+					UpdatePreview();
+				}
+				
 				if (!autoUpdatePreview)
 				{
 					if (GUILayout.Button("Update Preview"))
@@ -612,8 +618,8 @@ namespace GPUNoise.Editor
 		}
 		private void UpdatePreview()
 		{
-			previewNoise = Applications.GraphUtils.RenderToTexture(Editor.GPUGraph, 256, 256,
-																   "rgb", 1.0f, TextureFormat.RGBAFloat);
+			previewNoise = GraphEditorUtils.GenerateToTexture(Editor.GPUGraph, 256, 256,
+															  "rgb", 1.0f, TextureFormat.RGBAFloat);
 		}
 
 		private struct AddNodeData { public Vector2 Pos; public string Name; }

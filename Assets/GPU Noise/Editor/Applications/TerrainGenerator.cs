@@ -30,7 +30,7 @@ namespace GPUNoise.Applications
 		void OnEnable()
 		{
 			graphPaths.Clear();
-			graphPaths = GraphUtils.GetAllGraphsInProject();
+			graphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
@@ -43,7 +43,7 @@ namespace GPUNoise.Applications
 			selectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
-				Graph g = GraphUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+				Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
 				if (g != null)
 				{
 					gParams = new GraphParamCollection(g);
@@ -65,7 +65,7 @@ namespace GPUNoise.Applications
 				selectedGraphIndex = EditorGUILayout.Popup(selectedGraphIndex, graphNameOptions);
 				if (oldIndex != selectedGraphIndex)
 				{
-					Graph g = GraphUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+					Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
 					if (g == null)
 					{
 						selectedGraphIndex = oldIndex;
@@ -102,14 +102,14 @@ namespace GPUNoise.Applications
 		{
 			Terrain terr = Selection.activeGameObject.GetComponent<Terrain>();
 			TerrainData dat = terr.terrainData;
-			Graph g = GraphUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+			Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
 
 			if (g == null)
 			{
 				return;
 			}
 
-			float[,] heights = GraphUtils.GenerateNoise(g, dat.heightmapWidth, dat.heightmapHeight);
+			float[,] heights = GraphEditorUtils.GenerateToArray(g, dat.heightmapWidth, dat.heightmapHeight);
 			if (heights == null)
 			{
 				return;

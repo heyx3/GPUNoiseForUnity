@@ -8,7 +8,7 @@ using FloatParam = GPUNoise.FloatParamNode.FloatParamData;
 using SliderParam = GPUNoise.SliderParamNode.SliderParamData;
 
 
-namespace GPUNoise.Applications
+namespace GPUNoise
 {
 	/// <summary>
 	/// A collection of all parameters in a Graph.

@@ -34,7 +34,7 @@ namespace GPUNoise.Applications
 		void OnEnable()
 		{
 			graphPaths.Clear();
-			graphPaths = GraphUtils.GetAllGraphsInProject();
+			graphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
@@ -64,7 +64,7 @@ namespace GPUNoise.Applications
 			selectedGraphIndex = EditorGUILayout.Popup(selectedGraphIndex, graphNameOptions);
 			if (oldIndex != selectedGraphIndex)
 			{
-				Graph g = GraphUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+				Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
 				if (g == null)
 				{
 					selectedGraphIndex = oldIndex;
@@ -79,20 +79,24 @@ namespace GPUNoise.Applications
 				string savePath = EditorUtility.SaveFilePanel("Choose where to save the shader.",
 															  Application.dataPath, "MyNoiseShader.shader",
 															  "shader");
-				Graph g = GraphUtils.LoadGraph(graphPaths[selectedGraphIndex]);
-				if (g != null)
+				if (savePath.Length > 0)
 				{
-					string outComponents = "";
-					if (useRed)
-						outComponents += "r";
-					if (useGreen)
-						outComponents += "g";
-					if (useBlue)
-						outComponents += "b";
-					if (useAlpha)
-						outComponents += "a";
+					Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+					if (g != null)
+					{
+						string outComponents = "";
+						if (useRed)
+							outComponents += "r";
+						if (useGreen)
+							outComponents += "g";
+						if (useBlue)
+							outComponents += "b";
+						if (useAlpha)
+							outComponents += "a";
 
-					GraphUtils.SaveShader(g, savePath, shaderName, outComponents, unusedColor);
+						GraphEditorUtils.SaveShader(g, savePath, shaderName,
+													outComponents, unusedColor);
+					}
 				}
 			}
 

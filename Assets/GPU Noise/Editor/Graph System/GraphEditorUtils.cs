@@ -1,20 +1,16 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using UnityEditor;
-using GPUNoise;
 
 
-namespace GPUNoise.Applications
+namespace GPUNoise
 {
-	/// <summary>
-	/// Provides support for saving/loading things like Graphs and shaders.
-	/// </summary>
-	public static class GraphUtils
+	public static class GraphEditorUtils
 	{
 		/// <summary>
 		/// The standard file extension for Graphs.
@@ -23,14 +19,15 @@ namespace GPUNoise.Applications
 
 
 		/// <summary>
-		/// Gets the full paths for all graphs in the Unity project.
+		/// Gets the full paths for all graphs in this Unity project.
 		/// </summary>
 		public static List<string> GetAllGraphsInProject()
 		{
 			DirectoryInfo inf = new DirectoryInfo(Application.dataPath);
-			FileInfo[] files = inf.GetFiles("*." + GraphUtils.Extension, SearchOption.AllDirectories);
+			FileInfo[] files = inf.GetFiles("*." + Extension, SearchOption.AllDirectories);
 			return files.Select(f => f.FullName).ToList();
 		}
+
 
 		/// <summary>
 		/// Loads a graph from the given file.
@@ -133,51 +130,7 @@ namespace GPUNoise.Applications
 
 			return AssetDatabase.LoadAssetAtPath<Shader>(relativePath);
 		}
-
-		/// <summary>
-		/// Renders the given material into the given render target using a full-screen quad.
-		/// Assumes the material uses a shader generated from a Graph.
-		/// Optionally copies the resulting texture data into a Texture2D for further processing.
-		/// </summary>
-		public static void RenderToTexture(RenderTexture rendTarget, Material mat, Texture2D copyTo = null)
-		{
-			//Set up rendering state.
-			RenderTexture activeTarget = RenderTexture.active;
-			RenderTexture.active = rendTarget;
-			mat.SetPass(0);
-
-			//Render a quad using immediate mode.
-			GL.PushMatrix();
-			GL.LoadIdentity();
-			GL.Viewport(new Rect(0, 0, rendTarget.width, rendTarget.height));
-			GL.Begin(GL.TRIANGLE_STRIP);
-			GL.Color(Color.white);
-			GL.TexCoord(new Vector3(0.0f, 0.0f, 0.0f));
-			GL.Vertex3(-1.0f, -1.0f, 0.0f);
-			GL.TexCoord(new Vector3(1.0f, 0.0f, 0.0f));
-			GL.Vertex3(1.0f, -1.0f, 0.0f);
-			GL.TexCoord(new Vector3(0.0f, 1.0f, 0.0f));
-			GL.Vertex3(-1.0f, 1.0f, 0.0f);
-			GL.TexCoord(new Vector3(1.0f, 1.0f, 0.0f));
-			GL.Vertex3(1.0f, 1.0f, 0.0f);
-			GL.End();
-			GL.PopMatrix();
-
-			//Copy the results into the Texture2D.
-			if (copyTo != null)
-			{
-				if (copyTo.width != rendTarget.width || copyTo.height != rendTarget.height)
-				{
-					copyTo.Resize(rendTarget.width, rendTarget.height);
-				}
-				copyTo.ReadPixels(new Rect(0, 0, rendTarget.width, rendTarget.height), 0, 0);
-				copyTo.Apply();
-			}
-
-			//Reset rendering state.
-			RenderTexture.active = activeTarget;
-		}
-
+		
 		/// <summary>
 		/// Generates a texture containing the given graph's noise output.
 		/// If this is being called very often, create a permanent render target and material and
@@ -191,10 +144,10 @@ namespace GPUNoise.Applications
 		/// <param name="defaultColor">
 		/// The color (generally 0-1) of the color components which aren't set by the noise.
 		/// </param>
-		public static Texture2D RenderToTexture(Graph g, int width, int height,
-												string outputComponents = "rgb",
-												float defaultColor = 0.0f,
-												TextureFormat format = TextureFormat.RGBAFloat)
+		public static Texture2D GenerateToTexture(Graph g, int width, int height,
+												  string outputComponents = "rgb",
+												  float defaultColor = 0.0f,
+												  TextureFormat format = TextureFormat.RGBAFloat)
 		{
 			//Generate a shader from the graph and have Unity compile it.
 			string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
@@ -213,7 +166,7 @@ namespace GPUNoise.Applications
 			Material mat = new Material(shader);
 			new GraphParamCollection(g).SetParams(mat);
 
-			RenderToTexture(target, new Material(shader), resultTex);
+			GraphUtils.GenerateToTexture(target, new Material(shader), resultTex);
 
 			//Clean up.
 			target.Release();
@@ -229,9 +182,9 @@ namespace GPUNoise.Applications
 		/// Generates a 2D grid of noise from the given graph.
 		/// If an error occurred, outputs to the Unity debug console and returns "null".
 		/// </summary>
-		public static float[,] GenerateNoise(Graph g, int width, int height)
+		public static float[,] GenerateToArray(Graph g, int width, int height)
 		{
-			Texture2D t = RenderToTexture(g, width, height, "r");
+			Texture2D t = GenerateToTexture(g, width, height, "r");
 			if (t == null)
 			{
 				return null;

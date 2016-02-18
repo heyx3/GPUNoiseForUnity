@@ -37,7 +37,7 @@ namespace GPUNoise.Applications
 		void OnEnable()
 		{
 			graphPaths.Clear();
-			graphPaths = GraphUtils.GetAllGraphsInProject();
+			graphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
@@ -50,7 +50,7 @@ namespace GPUNoise.Applications
 			SelectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
-				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
+				Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
 				if (g != null)
 				{
 					gParams = new GraphParamCollection(g);
@@ -84,7 +84,7 @@ namespace GPUNoise.Applications
 			SelectedGraphIndex = EditorGUILayout.Popup(SelectedGraphIndex, graphNameOptions);
 			if (oldIndex != SelectedGraphIndex)
 			{
-				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
+				Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
 				if (g == null)
 				{
 					SelectedGraphIndex = oldIndex;
@@ -107,86 +107,90 @@ namespace GPUNoise.Applications
 			{
 				string savePath = EditorUtility.SaveFilePanel("Choose where to save the texture.",
 															  Application.dataPath, "MyTex.png", "png");
+				if (savePath.Length > 0)
+				{
+					//Load the graph.
+					Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
+					if (g == null)
+					{
+						return;
+					}
 
-				//Load the graph.
-				Graph g = GraphUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
-				if (g == null)
-				{
-					return;
-				}
+					gParams.OverwriteParamValues(g);
 
-				gParams.OverwriteParamValues(g);
+					//Render the noise to a texture.
+					System.Text.StringBuilder components = new System.Text.StringBuilder();
+					if (UseRed)
+					{
+						components.Append("r");
+					}
+					if (UseGreen)
+					{
+						components.Append("g");
+					}
+					if (UseBlue)
+					{
+						components.Append("b");
+					}
+					if (UseAlpha)
+					{
+						components.Append("a");
+					}
+					Texture2D tex = GraphEditorUtils.GenerateToTexture(g, X, Y,
+																	   components.ToString(),
+																	   UnusedColor);
+					if (tex == null)
+					{
+						return;
+					}
 
-				//Render the noise to a texture.
-				System.Text.StringBuilder components = new System.Text.StringBuilder();
-				if (UseRed)
-				{
-					components.Append("r");
-				}
-				if (UseGreen)
-				{
-					components.Append("g");
-				}
-				if (UseBlue)
-				{
-					components.Append("b");
-				}
-				if (UseAlpha)
-				{
-					components.Append("a");
-				}
-				Texture2D tex = GraphUtils.RenderToTexture(g, X, Y, components.ToString(), UnusedColor);
-				if (tex == null)
-				{
-					return;
-				}
-
-				try
-				{
-					File.WriteAllBytes(savePath, tex.EncodeToPNG());
-				}
-				catch (Exception e)
-				{
-					Debug.LogError("Unable to save texture to file: " + e.Message);
-				}
-
-
-				//Now that we're finished, clean up.
-				AssetDatabase.ImportAsset(PathUtils.GetRelativePath(savePath, "Assets"));
-
-				//Finally, open explorer to show the user the texture.
-				if (Application.platform == RuntimePlatform.WindowsEditor)
-				{
-					System.Diagnostics.Process.Start("explorer.exe",
-													 "/select," +
-													   PathUtils.FixDirectorySeparators(savePath));
-				}
-				else if (Application.platform == RuntimePlatform.OSXEditor)
-				{
 					try
 					{
-						System.Diagnostics.Process proc = new System.Diagnostics.Process();
-						proc.StartInfo.FileName = "open";
-						proc.StartInfo.Arguments = "-n -R \"" +
-													PathUtils.FixDirectorySeparators(savePath) +
-													"\"";
-						proc.StartInfo.UseShellExecute = false;
-						proc.StartInfo.RedirectStandardError = false;
-						proc.StartInfo.RedirectStandardOutput = false;
-						proc.ErrorDataReceived += (s, a) => Debug.Log(a.Data);
-						if (proc.Start())
-						{
-							proc.BeginErrorReadLine();
-							proc.BeginOutputReadLine();
-						}
-						else
-						{
-							Debug.LogError("Error opening Finder to show texture file");
-						}
+						File.WriteAllBytes(savePath, tex.EncodeToPNG());
 					}
 					catch (Exception e)
 					{
-						Debug.LogError("Error opening Finder to show texture file: " + e.Message);
+						Debug.LogError("Unable to save texture to file: " + e.Message);
+					}
+
+
+					//Now that we're finished, clean up.
+					AssetDatabase.ImportAsset(PathUtils.GetRelativePath(savePath, "Assets"));
+
+					//Finally, open explorer to show the user the texture.
+					if (Application.platform == RuntimePlatform.WindowsEditor)
+					{
+						System.Diagnostics.Process.Start("explorer.exe",
+														 "/select," +
+														   PathUtils.FixDirectorySeparators(savePath));
+					}
+					else if (Application.platform == RuntimePlatform.OSXEditor)
+					{
+						try
+						{
+							System.Diagnostics.Process proc = new System.Diagnostics.Process();
+							proc.StartInfo.FileName = "open";
+							proc.StartInfo.Arguments = "-n -R \"" +
+														PathUtils.FixDirectorySeparators(savePath) +
+														"\"";
+							proc.StartInfo.UseShellExecute = false;
+							proc.StartInfo.RedirectStandardError = false;
+							proc.StartInfo.RedirectStandardOutput = false;
+							proc.ErrorDataReceived += (s, a) => Debug.Log(a.Data);
+							if (proc.Start())
+							{
+								proc.BeginErrorReadLine();
+								proc.BeginOutputReadLine();
+							}
+							else
+							{
+								Debug.LogError("Error opening Finder to show texture file");
+							}
+						}
+						catch (Exception e)
+						{
+							Debug.LogError("Error opening Finder to show texture file: " + e.Message);
+						}
 					}
 				}
 			}
