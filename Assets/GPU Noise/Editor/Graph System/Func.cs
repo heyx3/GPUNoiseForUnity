@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using StringBuilder = System.Text.StringBuilder;
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// A shader function that takes floats as input and outputs another float.

@@ -3,11 +3,10 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
-using GPUNoise;
-using GPUNoise.Applications;
+using GPUGraph;
 
 
-namespace GPUNoise.Editor
+namespace GPUGraph.Editor
 {
 	/// <summary>
 	/// The visual representation of a Graph.
@@ -28,7 +27,7 @@ namespace GPUNoise.Editor
 		/// <summary>
 		/// The graph for the shader.
 		/// </summary>
-		public Graph GPUGraph = new Graph(new FuncInput(1.0f));
+		public Graph GGraph = new Graph(new FuncInput(1.0f));
 
 		/// <summary>
 		/// The position of each FuncCall on the visual graph.
@@ -42,13 +41,13 @@ namespace GPUNoise.Editor
 		public EditorGraph(string filePath, Rect viewRect)
 		{
 			FilePath = filePath;
-			GPUGraph = GraphEditorUtils.LoadGraph(FilePath);
+			GGraph = GraphEditorUtils.LoadGraph(FilePath);
 
 			//Position all nodes coming out of the graph output.
 			List<long> usedNodes = PositionNodesFromRoot(viewRect, -1);
 
 			//Position all nodes that aren't actually plugged into the output.
-			foreach (var kvp in GPUGraph.UIDToFuncCall.Where(v => !usedNodes.Contains(v.Key)))
+			foreach (var kvp in GGraph.UIDToFuncCall.Where(v => !usedNodes.Contains(v.Key)))
 			{
 				FuncCallPoses[kvp.Key] = ToR(Mathf.Lerp(viewRect.xMin, viewRect.xMax,
 														UnityEngine.Random.Range(0.0f, 0.7f)),
@@ -62,7 +61,7 @@ namespace GPUNoise.Editor
 
 			//First, store each node by its depth and then by its position along that depth (i.e. breadth).
 			List<List<long>> nodesByDepth = new List<List<long>> { new List<long>() { node } };
-			TraverseDepthFirst(nodesByDepth, GPUGraph.Output, 1);
+			TraverseDepthFirst(nodesByDepth, GGraph.Output, 1);
 
 			//Next, position all those nodes.
 			usedNodes.Capacity = nodesByDepth.Sum(l => l.Count);
@@ -121,7 +120,7 @@ namespace GPUNoise.Editor
 
 			//Now process this node's inputs.
 			int newDepth = inputDepth + 1;
-			FuncCall call = GPUGraph.UIDToFuncCall[input.FuncCallID];
+			FuncCall call = GGraph.UIDToFuncCall[input.FuncCallID];
 			for (int i = 0; i < call.Inputs.Length; ++i)
 			{
 				TraverseDepthFirst(nodesByDepth, call.Inputs[i], newDepth);
@@ -130,7 +129,7 @@ namespace GPUNoise.Editor
 
 		public bool Resave()
 		{
-			return GraphEditorUtils.SaveGraph(GPUGraph, FilePath);
+			return GraphEditorUtils.SaveGraph(GGraph, FilePath);
 		}
 	}
 }

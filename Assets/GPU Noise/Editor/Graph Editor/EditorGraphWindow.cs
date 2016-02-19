@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEditor;
-using GPUNoise;
+using GPUGraph;
 
 
-namespace GPUNoise.Editor
+namespace GPUGraph.Editor
 {
 	public class EditorGraphWindow : EditorWindow
 	{
@@ -127,7 +127,7 @@ namespace GPUNoise.Editor
 			foreach (long uid in keys)
 			{
 				FuncCall call = (uid == -1 ? new FuncCall(-1, null, new FuncInput[0]) :
-											 Editor.GPUGraph.UIDToFuncCall[uid]);
+											 Editor.GGraph.UIDToFuncCall[uid]);
 				Editor.FuncCallPoses[uid] = GUINode(Editor.FuncCallPoses[uid], call);
 			}
 
@@ -219,9 +219,9 @@ namespace GPUNoise.Editor
 			if (Editor != null)
 			{
 				GUILayout.Label("1D Hash:");
-				string oldHash = Editor.GPUGraph.Hash1;
-				Editor.GPUGraph.Hash1 = GUILayout.TextField(Editor.GPUGraph.Hash1);
-				if (oldHash != Editor.GPUGraph.Hash1)
+				string oldHash = Editor.GGraph.Hash1;
+				Editor.GGraph.Hash1 = GUILayout.TextField(Editor.GGraph.Hash1);
+				if (oldHash != Editor.GGraph.Hash1)
 				{
 					unsavedChanges = true;
 					if (autoUpdatePreview)
@@ -231,9 +231,9 @@ namespace GPUNoise.Editor
 				GUILayout.Space(10.0f);
 
 				GUILayout.Label("2D Hash:");
-				oldHash = Editor.GPUGraph.Hash2;
-				Editor.GPUGraph.Hash2 = GUILayout.TextField(Editor.GPUGraph.Hash2);
-				if (oldHash != Editor.GPUGraph.Hash2)
+				oldHash = Editor.GGraph.Hash2;
+				Editor.GGraph.Hash2 = GUILayout.TextField(Editor.GGraph.Hash2);
+				if (oldHash != Editor.GGraph.Hash2)
 				{
 					unsavedChanges = true;
 					if (autoUpdatePreview)
@@ -243,9 +243,9 @@ namespace GPUNoise.Editor
 				GUILayout.Space(10.0f);
 
 				GUILayout.Label("3D Hash:");
-				oldHash = Editor.GPUGraph.Hash3;
-				Editor.GPUGraph.Hash3 = GUILayout.TextField(Editor.GPUGraph.Hash3);
-				if (oldHash != Editor.GPUGraph.Hash3)
+				oldHash = Editor.GGraph.Hash3;
+				Editor.GGraph.Hash3 = GUILayout.TextField(Editor.GGraph.Hash3);
+				if (oldHash != Editor.GGraph.Hash3)
 				{
 					unsavedChanges = true;
 					if (autoUpdatePreview)
@@ -346,10 +346,10 @@ namespace GPUNoise.Editor
 							case "Paste":
 
 								Rect pos = Editor.FuncCallPoses[copiedWindowID];
-								FuncCall fc = Editor.GPUGraph.UIDToFuncCall[copiedWindowID];
+								FuncCall fc = Editor.GGraph.UIDToFuncCall[copiedWindowID];
 
 								FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs);
-								Editor.GPUGraph.CreateFuncCall(copy);
+								Editor.GGraph.CreateFuncCall(copy);
 								Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
 																			pos.width, pos.height));
 
@@ -371,7 +371,7 @@ namespace GPUNoise.Editor
 									if (autoUpdatePreview)
 										UpdatePreview();
 
-									FuncCall rI = Editor.GPUGraph.UIDToFuncCall[reconnectingInput];
+									FuncCall rI = Editor.GGraph.UIDToFuncCall[reconnectingInput];
 									rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
 
 									reconnectingInput = -2;
@@ -382,7 +382,7 @@ namespace GPUNoise.Editor
 									if (autoUpdatePreview)
 										UpdatePreview();
 
-									Editor.GPUGraph.Output = new FuncInput(copy);
+									Editor.GGraph.Output = new FuncInput(copy);
 									reconnectingInput = -2;
 								}
 
@@ -402,7 +402,7 @@ namespace GPUNoise.Editor
 								Editor.FuncCallPoses.ContainsKey(activeWindowID))
 							{
 								Editor.FuncCallPoses.Remove(activeWindowID);
-								Editor.GPUGraph.RemoveFuncCall(activeWindowID);
+								Editor.GGraph.RemoveFuncCall(activeWindowID);
 								
 								unsavedChanges = true;
 								if (autoUpdatePreview)
@@ -448,7 +448,7 @@ namespace GPUNoise.Editor
 				{
 					if (reconnectingOutput >= 0)
 					{
-						Editor.GPUGraph.Output = new FuncInput(reconnectingOutput);
+						Editor.GGraph.Output = new FuncInput(reconnectingOutput);
 
 						unsavedChanges = true;
 						if (autoUpdatePreview)
@@ -462,10 +462,10 @@ namespace GPUNoise.Editor
 						reconnectingInput_Index = 0;
 					}
 				}
-				FuncInput graphOut = Editor.GPUGraph.Output;
+				FuncInput graphOut = Editor.GGraph.Output;
 				if (graphOut.IsAConstantValue)
 				{
-					Editor.GPUGraph.Output = new FuncInput(EditorGUILayout.FloatField(graphOut.ConstantValue));
+					Editor.GGraph.Output = new FuncInput(EditorGUILayout.FloatField(graphOut.ConstantValue));
 					if (autoUpdatePreview)
 						UpdatePreview();
 					unsavedChanges = true;
@@ -474,7 +474,7 @@ namespace GPUNoise.Editor
 				{
 					if (GUILayout.Button("Disconnect"))
 					{
-						Editor.GPUGraph.Output = new FuncInput(0.5f);
+						Editor.GGraph.Output = new FuncInput(0.5f);
 						
 						unsavedChanges = true;
 						if (autoUpdatePreview)
@@ -499,7 +499,7 @@ namespace GPUNoise.Editor
 
 				GUILayout.BeginVertical();
 
-				FuncCall fc = Editor.GPUGraph.UIDToFuncCall[uid];
+				FuncCall fc = Editor.GGraph.UIDToFuncCall[uid];
 				for (int i = 0; i < fc.Inputs.Length; ++i)
 				{
 					GUILayout.BeginHorizontal();
@@ -590,14 +590,14 @@ namespace GPUNoise.Editor
 					{
 						if (reconnectingInput == -1)
 						{
-							Editor.GPUGraph.Output = new FuncInput(uid);
+							Editor.GGraph.Output = new FuncInput(uid);
 							unsavedChanges = true;
 							if (autoUpdatePreview)
 								UpdatePreview();
 						}
 						else
 						{
-							FuncInput[] inputs = Editor.GPUGraph.UIDToFuncCall[reconnectingInput].Inputs;
+							FuncInput[] inputs = Editor.GGraph.UIDToFuncCall[reconnectingInput].Inputs;
 							inputs[reconnectingInput_Index] = new FuncInput(uid);
 							
 							unsavedChanges = true;
@@ -618,7 +618,7 @@ namespace GPUNoise.Editor
 		}
 		private void UpdatePreview()
 		{
-			previewNoise = GraphEditorUtils.GenerateToTexture(Editor.GPUGraph, 256, 256,
+			previewNoise = GraphEditorUtils.GenerateToTexture(Editor.GGraph, 256, 256,
 															  "rgb", 1.0f, TextureFormat.RGBAFloat);
 		}
 
@@ -628,7 +628,7 @@ namespace GPUNoise.Editor
 			AddNodeData dat = (AddNodeData)datObj;
 
 			FuncCall fc = new FuncCall(dat.Name);
-			Editor.GPUGraph.CreateFuncCall(fc);
+			Editor.GGraph.CreateFuncCall(fc);
 			Editor.FuncCallPoses.Add(fc.UID, new Rect(dat.Pos.x, dat.Pos.y, 100.0f, 50.0f));
 			
 			unsavedChanges = true;

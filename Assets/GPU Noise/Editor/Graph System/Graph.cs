@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 using UnityEngine;
 
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// A set of Func calls that output a final float value.

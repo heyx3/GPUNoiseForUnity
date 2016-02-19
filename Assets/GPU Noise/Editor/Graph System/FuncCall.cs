@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using UnityEngine;
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// An invocation of a Func.

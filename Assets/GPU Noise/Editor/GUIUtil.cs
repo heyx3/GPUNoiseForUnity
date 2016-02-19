@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace GPUNoise.Editor
+namespace GPUGraph.Editor
 {
 	public static class GUIUtil
 	{
@@ -60,6 +60,5 @@ namespace GPUNoise.Editor
 			GUI.matrix = matrix;
 			GUI.color = savedColor;
 		}
-
 	}
 }

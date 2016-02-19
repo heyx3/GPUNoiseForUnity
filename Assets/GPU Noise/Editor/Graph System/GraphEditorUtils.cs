@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEditor;
 
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	public static class GraphEditorUtils
 	{
@@ -101,7 +101,7 @@ namespace GPUNoise
 		/// The color (generally 0-1) of the color components which aren't set by the noise.
 		/// </param>
 		public static Shader SaveShader(Graph g, string filePath,
-										string shaderName = "GPU Noise/My Shader",
+										string shaderName = "GPU Noise/My Noise",
 										string outputComponents = "rgb",
 										float defaultColor = 0.0f)
 		{

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEditor;
-using ParamList = System.Collections.Generic.List<GPUNoise.Func.Param>;
+using ParamList = System.Collections.Generic.List<GPUGraph.Func.Param>;
 using StringBuilder = System.Text.StringBuilder;
 
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// Definitions of Func instances and of the shader code used to generate a material with them.

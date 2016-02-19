@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// Provides support for saving/loading things like Graphs and shaders.

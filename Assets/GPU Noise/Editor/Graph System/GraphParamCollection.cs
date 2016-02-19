@@ -4,11 +4,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
-using FloatParam = GPUNoise.FloatParamNode.FloatParamData;
-using SliderParam = GPUNoise.SliderParamNode.SliderParamData;
+using FloatParam = GPUGraph.FloatParamNode.FloatParamData;
+using SliderParam = GPUGraph.SliderParamNode.SliderParamData;
 
 
-namespace GPUNoise
+namespace GPUGraph
 {
 	/// <summary>
 	/// A collection of all parameters in a Graph.

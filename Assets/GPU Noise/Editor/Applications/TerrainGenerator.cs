@@ -7,7 +7,7 @@ using UnityEditor;
 using Assert = UnityEngine.Assertions.Assert;
 
 
-namespace GPUNoise.Applications
+namespace GPUGraph.Applications
 {
 	public class TerrainGenerator : EditorWindow
 	{

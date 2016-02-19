@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using UnityEngine;
 
-namespace GPUNoise
+
+namespace GPUGraph
 {
 	/// <summary>
 	/// A float value for inputting into a Func.

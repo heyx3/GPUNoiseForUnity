@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
-using GPUNoise;
+using GPUGraph;
 
 
-namespace GPUNoise.Applications
+namespace GPUGraph.Applications
 {
 	public class ShaderGenerator : EditorWindow
 	{
