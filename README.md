@@ -126,6 +126,8 @@ The basic system for creating and manipulating graph data.
 
 A graph node is an instance of the `Func` class. Simple nodes (e.x. *WhiteNoise1*, *Lerp*, *Sin*) are actual `Func` instances, while more complex nodes (*UV_x*, *UV_y*, *FloatParam*, and *SliderParam*) are child classes that inherit from `Func`. All node types are defined in *FuncDefinitions.cs*.
 
+The `GraphEditorUtils` class provides various ways to interact with a graph, including `GetAllGraphsInProject()`, `LoadGraph()`, `SaveGraph()`, `SaveShader()`, `GenerateToTexture()`, and `GenerateToArray()`.
+
 If you want to add a new simple node, just go to the declaration of the "Functions" array in `FuncDefinitions` and add your Func to the end of it in the form of actual shader code (take a look at the other nodes for examples), or if it's *really* simple you can use one of the the `MakeSimpleX` functions to generate it. Note that you may add default values for each input, and the function must return a `float`.
 
 If you want to create a more complex node, refer to the bottom of *FuncDefinitions.cs* to see how *UV_x*, *UV_y*, *FloatParam*, and *SliderParam* were implemented.
