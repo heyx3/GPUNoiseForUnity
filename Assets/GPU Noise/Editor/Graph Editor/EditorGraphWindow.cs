@@ -36,8 +36,7 @@ namespace GPUGraph.Editor
 					 reconnectingInput = -2;
 		private int reconnectingInput_Index = 0;
 
-		private int activeWindowID = -1,
-					copiedWindowID = -1;
+		private int activeWindowID = -1;
 
 		private bool unsavedChanges = false;
 
@@ -121,7 +120,6 @@ namespace GPUGraph.Editor
 				reconnectingInput_Index = 0;
 
 				activeWindowID = -1;
-				copiedWindowID = -1;
 			}
 
 			UpdateSubGraphFuncs();
@@ -412,55 +410,7 @@ namespace GPUGraph.Editor
 					{
 						switch (evt.commandName)
 						{
-							case "Copy":
-								copiedWindowID = activeWindowID;
-								break;
-
-							case "Paste":
-
-								Rect pos = Editor.FuncCallPoses[copiedWindowID];
-								FuncCall fc = Editor.GGraph.UIDToFuncCall[copiedWindowID];
-
-								FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs);
-								Editor.GGraph.CreateFuncCall(copy);
-								Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
-																			pos.width, pos.height));
-
-								if (reconnectingOutput >= 0)
-								{
-									if (copy.Inputs.Length > 0)
-									{
-										unsavedChanges = true;
-										if (autoUpdatePreview)
-											UpdatePreview();
-
-										copy.Inputs[0] = new FuncInput(reconnectingOutput);
-									}
-									reconnectingOutput = -1;
-								}
-								else if (reconnectingInput >= 0)
-								{
-									unsavedChanges = true;
-									if (autoUpdatePreview)
-										UpdatePreview();
-
-									FuncCall rI = Editor.GGraph.UIDToFuncCall[reconnectingInput];
-									rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
-
-									reconnectingInput = -2;
-								}
-								else if (reconnectingInput == -1)
-								{
-									unsavedChanges = true;
-									if (autoUpdatePreview)
-										UpdatePreview();
-
-									Editor.GGraph.Output = new FuncInput(copy);
-									reconnectingInput = -2;
-								}
-
-								Repaint();
-								break;
+							//Keeping this here in case we want to react to special events later.
 						}
 					}
 					break;
@@ -468,22 +418,7 @@ namespace GPUGraph.Editor
 				case EventType.KeyDown:
 					switch (evt.keyCode)
 					{
-						case KeyCode.Backspace:
-						case KeyCode.Delete:
-							if (!EditorGUIUtility.editingTextField &&
-								activeWindowID >= 0 &&
-								Editor.FuncCallPoses.ContainsKey(activeWindowID))
-							{
-								Editor.FuncCallPoses.Remove(activeWindowID);
-								Editor.GGraph.RemoveFuncCall(activeWindowID);
-								
-								unsavedChanges = true;
-								if (autoUpdatePreview)
-									UpdatePreview();
-
-								Repaint();
-							}
-							break;
+						//Keeping this here in case we want to react to key-presses later.
 					}
 					break;
 			}
@@ -509,6 +444,7 @@ namespace GPUGraph.Editor
 
 			Rect r = Editor.FuncCallPoses[uid];
 
+			//A UID of -1 indicates this is the graph's output node.
 			if (uid == -1)
 			{
 				GUILayout.BeginVertical();
@@ -566,6 +502,7 @@ namespace GPUGraph.Editor
 
 				GUILayout.EndVertical();
 			}
+			//Any other valid UID represents a normal node.
 			else
 			{
 				GUILayout.BeginHorizontal();
@@ -647,6 +584,8 @@ namespace GPUGraph.Editor
 
 				GUILayout.EndVertical();
 
+				GUILayout.FlexibleSpace();
+
 				GUILayout.BeginVertical();
 
 				//Output button.
@@ -684,6 +623,67 @@ namespace GPUGraph.Editor
 
 				GUILayout.EndVertical();
 
+				GUILayout.EndHorizontal();
+
+				
+				//Delete button.
+				GUILayout.BeginHorizontal();
+				if (GUILayout.Button("Duplicate"))
+				{
+					Rect pos = Editor.FuncCallPoses[uid];
+
+					FuncCall copy = new FuncCall(-1, fc.Calling, fc.Inputs.ToArray());
+					Editor.GGraph.CreateFuncCall(copy);
+					Editor.FuncCallPoses.Add(copy.UID, new Rect(pos.x, pos.y + pos.height,
+																pos.width, pos.height));
+
+					if (reconnectingOutput >= 0)
+					{
+						if (copy.Inputs.Length > 0)
+						{
+							unsavedChanges = true;
+							if (autoUpdatePreview)
+								UpdatePreview();
+
+							copy.Inputs[0] = new FuncInput(reconnectingOutput);
+						}
+						reconnectingOutput = -1;
+					}
+					else if (reconnectingInput >= 0)
+					{
+						unsavedChanges = true;
+						if (autoUpdatePreview)
+							UpdatePreview();
+
+						FuncCall rI = Editor.GGraph.UIDToFuncCall[reconnectingInput];
+						rI.Inputs[reconnectingInput_Index] = new FuncInput(copy);
+
+						reconnectingInput = -2;
+					}
+					else if (reconnectingInput == -1)
+					{
+						unsavedChanges = true;
+						if (autoUpdatePreview)
+							UpdatePreview();
+
+						Editor.GGraph.Output = new FuncInput(copy);
+						reconnectingInput = -2;
+					}
+
+					Repaint();
+				}
+				GUILayout.FlexibleSpace();
+				if (GUILayout.Button("Delete"))
+				{
+					Editor.FuncCallPoses.Remove(uid);
+					Editor.GGraph.RemoveFuncCall(uid);
+								
+					unsavedChanges = true;
+					if (autoUpdatePreview)
+						UpdatePreview();
+
+					Repaint();
+				}
 				GUILayout.EndHorizontal();
 			}
 

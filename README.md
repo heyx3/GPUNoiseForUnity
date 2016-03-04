@@ -89,6 +89,10 @@ The rest of the nodes are not noise functions themselves, but can be very useful
 * FloatParam: A shader parameter that can be set when generating the noise.
 * SliderParam: Another kind of shader parameter.
 
+Finally, you can actually use the output of other graphs as nodes! At the bottom of the node list are your project's graphs, prefixed with "graph_". Any float or slider params they have will be conveniently exposed as inputs.
+
+**Note**: There is no checking for infinite loops with using graphs as nodes. In other words, if graph A calls into graph B, and graph B calls into graph A, actually using/previewing either graph will likely cause an infinite loop, crashing Unity.
+
 Here is an example of how to use the various noise nodes in a simple graph:
 
 ![Grid Noise](https://raw.githubusercontent.com/heyx3/GPUNoiseForUnity/master/Readme%20Images/GridNoise.png)

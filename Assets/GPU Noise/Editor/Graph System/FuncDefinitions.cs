@@ -11,6 +11,8 @@ using StringBuilder = System.Text.StringBuilder;
 
 namespace GPUGraph
 {
+	//TODO: Use the "Functions" array as a starting point, not the actual global array. Instead, each editor window holds its own set of Funcs.
+
 	/// <summary>
 	/// Definitions of Func instances and of the shader code used to generate a material with them.
 	/// </summary>
@@ -636,7 +638,7 @@ namespace GPUGraph
 						return '_';
 					}
 				}).ToArray();
-			Name = new string(graphName);
+			Name = "graph_" + new string(graphName);
 
 			Body = "{\n\treturn " + GraphInstance.Output.GetShaderExpression(GraphInstance) + ";\n}\n";
 

@@ -8,6 +8,7 @@ namespace GPUGraph
 {
 	/// <summary>
 	/// Provides support for saving/loading things like Graphs and shaders.
+	/// This is the only code in the whole GPUGraph system that can be used at run-time!
 	/// </summary>
 	public static class GraphUtils
 	{
