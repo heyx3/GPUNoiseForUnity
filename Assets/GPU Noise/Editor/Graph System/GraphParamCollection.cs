@@ -13,6 +13,7 @@ namespace GPUGraph
 	/// <summary>
 	/// A collection of all parameters in a Graph.
 	/// </summary>
+	[Serializable]
 	public struct GraphParamCollection
 	{
 		public List<FloatParam> FloatParams;

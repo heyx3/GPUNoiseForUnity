@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 using System.Runtime.Serialization;
 using UnityEngine;
 using UnityEditor;
@@ -393,6 +395,8 @@ namespace GPUGraph
 			new FloatParamNode(),
 			new SliderParamNode(),
 
+			//SubGraphNode instances are dynamically added to the end of this list when the editor window is opened up.
+
 			#endregion
 		};
 
@@ -593,6 +597,83 @@ namespace GPUGraph
 			shaderText.Append("\t\t\t\tfloat ");
 			shaderText.Append(dat.VarName);
 			shaderText.AppendLine(";");
+		}
+	}
+	public class SubGraphNode : Func
+	{
+		public string GraphPath { get; private set; }
+		public Graph GraphInstance { get; private set; }
+
+
+		public SubGraphNode(string path)
+			: base("Graph", new ParamList(), "{ return 0.0f; }")
+		{
+			GraphPath = path;
+			UpdateData();
+		}
+
+		public void UpdateData()
+		{
+			GraphInstance = GraphEditorUtils.LoadGraph(GraphPath);
+
+			if (GraphInstance == null)
+			{
+				GraphInstance = GraphEditorUtils.LoadGraph(GraphPath);
+			}
+			GraphParamCollection graphParams = new GraphParamCollection(GraphInstance);
+
+			
+			//To generate a function name, use the graph's name
+			//    with invalid characters replaced by an underscore.
+			char[] graphName = Path.GetFileNameWithoutExtension(GraphPath).Select(c =>
+				{
+					if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+					{
+						return c;
+					}
+					else
+					{
+						return '_';
+					}
+				}).ToArray();
+			Name = new string(graphName);
+
+			Body = "{\n\treturn " + GraphInstance.Output.GetShaderExpression(GraphInstance) + ";\n}\n";
+
+			//The inputs into this node are the parameters for the graph it calls into.
+			Params = new ParamList();
+			foreach (FloatParamNode.FloatParamData fpd in graphParams.FloatParams)
+				Params.Add(new Param(fpd.VarName, fpd.DefaultValue));
+			foreach (SliderParamNode.SliderParamData spd in graphParams.SliderParams)
+				Params.Add(new Param(spd.VarName, Mathf.Lerp(spd.Min, spd.Max, spd.DefaultLerp)));
+		}
+
+
+		public override string GetFunctionDecl()
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.Append("float ");
+			sb.Append(Name);
+			sb.Append("(v2f IN");
+			if (Params.Count > 0)
+			{
+				foreach (Param p in Params)
+				{
+					sb.Append(", float ");
+					sb.Append(p.Name);
+				}
+			}
+			sb.AppendLine(")");
+			sb.AppendLine(Body);
+
+			return sb.ToString();
+		}
+		public override string GetInvocation(ExtraData customDat, string paramList)
+		{
+			string str = Name + "(IN";
+			if (paramList.Length > 0)
+				str += ", " + paramList;
+			return str + ")";
 		}
 	}
 

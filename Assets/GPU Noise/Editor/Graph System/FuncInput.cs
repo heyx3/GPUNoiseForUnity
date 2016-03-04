@@ -43,6 +43,8 @@ namespace GPUGraph
 				else
 				{
 					string str = ConstantValue.ToString();
+
+					//Make sure it's a float value and not an integer.
 					if (!str.Contains('.'))
 					{
 						str += ".0";

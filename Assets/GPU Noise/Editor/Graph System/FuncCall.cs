@@ -98,23 +98,32 @@ namespace GPUGraph
 			string fName = info.GetString("Func");
 			if (!FuncDefinitions.FunctionsByName.ContainsKey(fName))
 			{
-				throw new SerializationException("Function '" + fName + "' not found!");
+				Debug.Log("Function '" + fName + "' not found!");
+				throw new SerializationException();
 			}
 			Calling = FuncDefinitions.FunctionsByName[fName];
 
 			CustomDat = (Func.ExtraData)info.GetValue("CustomData", typeof(Func.ExtraData));
 
-			Inputs = new FuncInput[info.GetInt32("NInputs")];
-			if (Inputs.Length != Calling.Params.Count)
+			int nInputs = info.GetInt32("NInputs"),
+				nToGet = nInputs;
+			if (nInputs != Calling.Params.Count)
 			{
-				throw new SerializationException("Expected function '" + fName + "' to have " +
-												 Inputs.Length + " params, but it has " +
-												 Calling.Params.Count);
+				Debug.LogWarning("Expected node type '" + fName + "' to have " +
+								 nInputs + " params, but it has " + Calling.Params.Count +
+								 ". Delete and recreate the node to fix this.");
+				if (nInputs > Calling.Params.Count)
+					nToGet = Calling.Params.Count;
+				nInputs = Calling.Params.Count;
 			}
+			Inputs = new FuncInput[nInputs];
 
-			for (int i = 0; i < Inputs.Length; ++i)
+			for (int i = 0; i < nInputs; ++i)
 			{
-				Inputs[i] = (FuncInput)info.GetValue("Input" + i.ToString(), typeof(FuncInput));
+				if (i < nToGet)
+					Inputs[i] = (FuncInput)info.GetValue("Input" + i.ToString(), typeof(FuncInput));
+				else
+					Inputs[i] = new FuncInput(Calling.Params[i].DefaultValue);
 			}
 		}
 		public void GetObjectData(SerializationInfo info, StreamingContext context)

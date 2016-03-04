@@ -27,6 +27,7 @@ namespace GPUGraph.Editor
 		public EditorGraph Editor = null;
 
 		private int selectedGraph = -1;
+		private string currentGraphPath = null;
 
 		private List<string> GraphPaths;
 		private GUIContent[] graphSelections;
@@ -74,13 +75,11 @@ namespace GPUGraph.Editor
 		void OnEnable()
 		{
 			wantsMouseMove = true;
-
-			GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
-
-			Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
-			graphSelections = GraphPaths.Select(selector).ToArray();
 			
-			selectedGraph = -1;
+			currentGraphPath = "";
+
+			OnFocus();
+			
 
 			titleContent = new GUIContent("GPUG Editor");
 			minSize = new Vector2(MinLeftSize.x + MinGraphSize.x,
@@ -99,6 +98,73 @@ namespace GPUGraph.Editor
 			}
 			
 			unsavedChanges = false;
+		}
+		void OnFocus()
+		{
+			//Check what graphs are available.
+			GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
+			Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
+			graphSelections = GraphPaths.Select(selector).ToArray();
+
+			//Keep the same graph selected even when the list of graphs changes.
+			selectedGraph = GraphPaths.IndexOf(currentGraphPath);
+
+			//If this graph was deleted, reset the editor.
+			if (selectedGraph == -1)
+			{
+				unsavedChanges = false;
+
+				currentGraphPath = "";
+
+				reconnectingOutput = -1;
+				reconnectingInput = -2;
+				reconnectingInput_Index = 0;
+
+				activeWindowID = -1;
+				copiedWindowID = -1;
+			}
+
+			UpdateSubGraphFuncs();
+		}
+
+		private void UpdateSubGraphFuncs()
+		{
+			List<Func> funcs = FuncDefinitions.Functions.ToList();
+
+			//Update or remove any already-existing sub-graph nodes.
+			List<bool> usedPaths = new List<bool>(GraphPaths.Select(s => false));
+			for (int i = 0; i < funcs.Count; ++i)
+			{
+				SubGraphNode sgn = funcs[i] as SubGraphNode;
+				if (sgn != null)
+				{
+					int indexOf = GraphPaths.IndexOf(sgn.GraphPath);
+					if (indexOf < 0)
+					{
+						FuncDefinitions.FunctionsByName.Remove(sgn.Name);
+						funcs.RemoveAt(i);
+						i -= 1;
+					}
+					else
+					{
+						usedPaths[indexOf] = true;
+						sgn.UpdateData();
+					}
+				}
+			}
+
+			//Add new sub-graph nodes.
+			for (int i = 0; i < usedPaths.Count; ++i)
+			{
+				if (!usedPaths[i])
+				{
+					SubGraphNode sgn = new SubGraphNode(GraphPaths[i]);
+					funcs.Add(sgn);
+					FuncDefinitions.FunctionsByName.Add(sgn.Name, sgn);
+				}
+			}
+
+			FuncDefinitions.Functions = funcs.ToArray();
 		}
 
 		void OnGUI()
@@ -147,6 +213,8 @@ namespace GPUGraph.Editor
 				if (ConfirmLoseUnsavedChanges())
 				{
 					Editor = new EditorGraph(GraphPaths[selectedGraph], WindowRect);
+					currentGraphPath = GraphPaths[selectedGraph];
+					UpdateSubGraphFuncs();
 				}
 				else
 				{
@@ -180,6 +248,7 @@ namespace GPUGraph.Editor
 							if (graphSelections[i].text == Path.GetFileNameWithoutExtension(savePath))
 							{
 								selectedGraph = i;
+								currentGraphPath = savePath;
 								break;
 							}
 						}
@@ -324,6 +393,10 @@ namespace GPUGraph.Editor
 						GenericMenu popupMenu = new GenericMenu();
 						foreach (Func fu in FuncDefinitions.Functions)
 						{
+							//Don't let the user make a recursive call to this graph!
+							if (fu is SubGraphNode && ((SubGraphNode)fu).GraphPath == currentGraphPath)
+								continue;
+
 							AddNodeData dat = new AddNodeData();
 							dat.Pos = evt.mousePosition + new Vector2(-leftSpace, 0.0f);
 							dat.Name = fu.Name;

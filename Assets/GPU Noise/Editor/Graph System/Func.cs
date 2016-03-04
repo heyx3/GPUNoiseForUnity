@@ -258,7 +258,7 @@ namespace GPUGraph
 		/// <summary>
 		/// Gets the full shader function this Func represents.
 		/// </summary>
-		public string GetFunctionDecl()
+		public virtual string GetFunctionDecl()
 		{
 			System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
