@@ -57,6 +57,9 @@ All the nodes this graph currently contains are listed here. Note that all noise
 * WorleyNoise1: generates random points on a grid and outputs noise based on how far away each pixel is from the nearest point.
 * WorleyNoise2: the two-dimensional version of WorleyNoise1.
 * WorleyNoise3: the three-dimensional version of WorleyNoise1.
+* MultiOctavePerlin1: combines multiple layers of Perlin noise at different frequencies.
+* MultiOctavePerlin2: the two-dimensional version of MultiOctavePerlin1.
+* MultiOctavePerlin3: the three-dimensional version of MultiOctavePerlin1.
 
 The rest of the nodes are not noise functions themselves, but can be very useful.
 * Fract: gets the fractional part of an input.

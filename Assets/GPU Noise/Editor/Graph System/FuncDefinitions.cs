@@ -443,6 +443,40 @@ namespace GPUGraph
 					#undef MIN3
 					#undef MIN9
 					 }"),
+			new Func(@"float MultiOctavePerlin1(float fX, float persistence = 0.5, float startScale)
+					 {
+					     float scale = startScale,
+							   weight = 0.5;
+					     float outNoise = 0.0;
+					#define OCTAVE(offset) outNoise += weight * PerlinNoise1((fX + offset) * scale); scale /= persistence; weight *= persistence;
+						 OCTAVE(0.0) OCTAVE(1.4231) OCTAVE(31.2312) OCTAVE(44.212)
+					#undef OCTAVE
+						 return outNoise;
+					 }"),
+			new Func(@"float MultiOctavePerlin2(float fX, float fY, float persistence = 0.5, float startScaleX, float startScaleY)
+					 {
+					     float2 f = float2(fX, fY),
+								scale = float2(startScaleX, startScaleY);
+						 float weight = 0.5;
+					     float outNoise = 0.0;
+						 float2 temp;
+					#define OCTAVE(offset) temp = (f + offset) * scale; outNoise += weight * PerlinNoise2(temp.x, temp.y); scale /= persistence; weight *= persistence;
+						 OCTAVE(0.0) OCTAVE(1.4231) OCTAVE(31.2312) OCTAVE(44.212)
+					#undef OCTAVE
+						 return outNoise;
+					 }"),
+			new Func(@"float MultiOctavePerlin3(float fX, float fY, float fZ, float persistence = 0.5, float startScaleX, float startScaleY, float startScaleZ)
+					 {
+					     float3 f = float3(fX, fY, fZ),
+								scale = float3(startScaleX, startScaleY, startScaleZ);
+						 float weight = 0.5;
+					     float outNoise = 0.0;
+						 float3 temp;
+					#define OCTAVE(offset) temp = (f + offset) * scale; outNoise += weight * PerlinNoise3(temp.x, temp.y, temp.z); scale /= persistence; weight *= persistence;
+						 OCTAVE(0.0) OCTAVE(1.4231) OCTAVE(31.2312) OCTAVE(44.212)
+					#undef OCTAVE
+						 return outNoise;
+					 }"),
 			MakeSimple1("Fract", "frac(f)"),
 			MakeSimple1("Ceil", "ceil(f)"),
 			MakeSimple1("Floor", "floor(f)"),
