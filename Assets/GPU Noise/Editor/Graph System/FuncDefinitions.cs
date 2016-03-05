@@ -360,6 +360,89 @@ namespace GPUGraph
 									         lerpVal.z);
 						 return 0.5 + (0.5 * outVal);
 					 }"),
+			new Func(@"float WorleyNoise1(float fX, float cellVariance = 0.5)
+					 {
+					     float cellThis = floor(fX),
+							   cellLess = cellThis - 1.0,
+							   cellMore = cellThis + 1.0;
+					     
+					#define VAL(var) abs((var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue1(var))) - fX)
+					     return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
+					#undef VAL
+					 }"),
+			new Func(@"float WorleyNoise2(float fX, float fY, float cellVarianceX = 0.5, float cellVarianceY = 0.5)
+					 {
+					     float2 f = float2(fX, fY),
+								cellVariance = float2(cellVarianceX, cellVarianceY);
+					     const float3 zon = float3(0.0, 1.0, -1.0);
+					     float2 cellMidXY = floor(f),
+								cellMinXY = cellMidXY + zon.zz,
+								cellMidXMinY = cellMidXY + zon.xz,
+								cellMaxXMinY = cellMidXY + zon.yz,
+								cellMinXMidY = cellMidXY + zon.zx,
+								cellMaxXMidY = cellMidXY + zon.yx,
+								cellMinXMaxY = cellMidXY + zon.zy,
+								cellMidXMaxY = cellMidXY + zon.xy,
+								cellMaxXY = cellMidXY + zon.yy;
+					#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue2(var)))
+					#define MIN3(a, b, c) min(a, min(b, c))
+						return MIN3(MIN3(VAL(cellMinXY), VAL(cellMidXMinY), VAL(cellMaxXMinY)),
+									MIN3(VAL(cellMinXMidY), VAL(cellMidXY), VAL(cellMaxXMidY)),
+									MIN3(VAL(cellMinXMaxY), VAL(cellMidXMaxY), VAL(cellMaxXY)));
+					#undef VAL
+					#undef MIN3
+					 }"),
+			new Func(@"float WorleyNoise3(float fX, float fY, float fZ, float cellVarianceX = 0.5, float cellVarianceY = 0.5, float cellVarianceZ = 0.5)
+					 {
+					     float3 f = float3(fX, fY, fZ),
+								cellVariance = float3(cellVarianceX, cellVarianceY, cellVarianceZ);
+					     float3 cellyyy = floor(f);
+
+					     const float3 c = float3(-1.0, 0.0, 1.0);
+					#define MAKE_VAL(swizzle) float3 cell##swizzle = cellyyy + c.swizzle;
+						 MAKE_VAL(xxx)
+						 MAKE_VAL(xxy)
+						 MAKE_VAL(xxz)
+						 MAKE_VAL(xyx)
+						 MAKE_VAL(xyy)
+						 MAKE_VAL(xyz)
+						 MAKE_VAL(xzx)
+						 MAKE_VAL(xzy)
+						 MAKE_VAL(xzz)
+						 MAKE_VAL(yxx)
+						 MAKE_VAL(yxy)
+						 MAKE_VAL(yxz)
+						 MAKE_VAL(yyx)
+						 MAKE_VAL(yyz)
+						 MAKE_VAL(yzx)
+						 MAKE_VAL(yzy)
+						 MAKE_VAL(yzz)
+						 MAKE_VAL(zxx)
+						 MAKE_VAL(zxy)
+						 MAKE_VAL(zxz)
+						 MAKE_VAL(zyx)
+						 MAKE_VAL(zyy)
+						 MAKE_VAL(zyz)
+						 MAKE_VAL(zzx)
+						 MAKE_VAL(zzy)
+						 MAKE_VAL(zzz)
+					#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue3(cell##swizzle)))
+					#define MIN3(a, b, c) min(a, min(b, c))
+					#define MIN9(a, b, c, d, e, f, g, h, i) MIN3(MIN3(a, b, c), MIN3(d, e, f), MIN3(g, h, i))
+						 return MIN3(MIN9(VAL(xxx), VAL(xxy), VAL(xxz),
+						 				  VAL(xyx), VAL(xyy), VAL(xyz),
+						 				  VAL(xzx), VAL(xzy), VAL(xzz)),
+						 			 MIN9(VAL(yxx), VAL(yxy), VAL(yxz),
+						 				  VAL(yyx), VAL(yyy), VAL(yyz),
+						 				  VAL(yzx), VAL(yzy), VAL(yzz)),
+									 MIN9(VAL(zxx), VAL(zxy), VAL(zxz),
+						 				  VAL(zyx), VAL(zyy), VAL(zyz),
+						 				  VAL(zzx), VAL(zzy), VAL(zzz)));
+					#undef MAKE_VAL
+					#undef VAL
+					#undef MIN3
+					#undef MIN9
+					 }"),
 			MakeSimple1("Fract", "frac(f)"),
 			MakeSimple1("Ceil", "ceil(f)"),
 			MakeSimple1("Floor", "floor(f)"),
