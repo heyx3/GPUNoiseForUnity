@@ -106,6 +106,14 @@ namespace GPUGraph
 			nodes.Remove(n);
 			uidToNode.Remove(n.UID);
 			n.Owner = null;
+
+			//Remove any connections to the node.
+			if (!Output.IsAConstant && Output.NodeID == n.UID)
+				Output = new NodeInput(0.5f);
+			foreach (Node n2 in nodes)
+				for (int i = 0; i < n2.Inputs.Count; ++i)
+					if (!n2.Inputs[i].IsAConstant && n.UID == n2.Inputs[i].NodeID)
+						n2.Inputs[i] = new NodeInput(n2.GetInputDefaultValue(i));
 		}
 
 		/// <summary>
@@ -199,7 +207,7 @@ namespace GPUGraph
 				v2f vert(appdata_t IN)
 				{
 					v2f OUT;
-					OUT.vertex = sign(IN.vertex);
+					OUT.vertex = (IN.vertex);
 					OUT.texcoord = IN.texcoord;
 					OUT.color = IN.color;
 

@@ -19,6 +19,9 @@ namespace GPUGraph.Editor
 		}
 		public void OnGUI()
 		{
+			GUILayout.Space(15.0f);
+
+
 			if (Parent == null)
 			{
 				GUILayout.Label("The graph editor has been closed!");

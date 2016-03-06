@@ -54,10 +54,13 @@ namespace GPUGraph
 
 		/// <summary>
 		/// The inputs into this node.
+		/// Anyone outside this class should never modify it!
+		/// Any child classes should take care that "InputNames" and "InputDefaultVals"
+		///     always have the same number of elements as this list.
 		/// </summary>
 		public List<NodeInput> Inputs = new List<NodeInput>();
-		private List<string> inputNames = new List<string>();
-		private List<float> inputDefaultVals = new List<float>();
+		protected List<string> InputNames = new List<string>();
+		protected List<float> InputDefaultVals = new List<float>();
 
 
 		/// <summary>
@@ -74,18 +77,18 @@ namespace GPUGraph
 		public abstract string PrettyName { get; }
 
 
-		public Node(Rect pos, List<NodeInput> inputs, List<string> _inputNames, List<float> _inputDefaultVals)
+		public Node(Rect pos, List<NodeInput> inputs, List<string> inputNames, List<float> inputDefaultVals)
 		{
 			Pos = pos;
 			Inputs = inputs;
-			inputNames = _inputNames;
-			inputDefaultVals = _inputDefaultVals;
+			InputNames = inputNames;
+			InputDefaultVals = inputDefaultVals;
 		}
 		protected Node() { }
 
 
-		public string GetInputName(int index) { return inputNames[index]; }
-		public float GetInputDefaultValue(int index) { return inputDefaultVals[index]; }
+		public string GetInputName(int index) { return InputNames[index]; }
+		public float GetInputDefaultValue(int index) { return InputDefaultVals[index]; }
 
 		/// <summary>
 		/// Generates a new node identical to this one, including the UID,
@@ -98,8 +101,8 @@ namespace GPUGraph
 			n.Owner = newOwner;
 			n.Pos = Pos;
 			n.Inputs = Inputs.ToList();
-			n.inputNames = inputNames.ToList();
-			n.inputDefaultVals = inputDefaultVals.ToList();
+			n.InputNames = InputNames.ToList();
+			n.InputDefaultVals = InputDefaultVals.ToList();
 			if (addToOwner)
 				newOwner.AddNode(this);
 			return n;
@@ -188,7 +191,7 @@ namespace GPUGraph
 			{
 				GUILayout.BeginHorizontal();
 
-				GUILayout.Label(inputNames[i]);
+				GUILayout.Label(InputNames[i]);
 
 				//Button to select input.
 				string buttStr = (isSelected == i ? "x" : "X");
@@ -219,7 +222,7 @@ namespace GPUGraph
 
 					if (GUILayout.Button("Disconnect"))
 					{
-						Inputs[i] = new NodeInput(inputDefaultVals[i]);
+						Inputs[i] = new NodeInput(InputDefaultVals[i]);
 
 						result = GUIResults.Other;
 					}
@@ -290,8 +293,8 @@ namespace GPUGraph
 			for (int i = 0; i < Inputs.Count; ++i)
 			{
 				info.AddValue("Input" + i.ToString(), Inputs[i], typeof(NodeInput));
-				info.AddValue("InputName" + i.ToString(), inputNames[i]);
-				info.AddValue("InputDefaultVal" + i.ToString(), inputDefaultVals[i]);
+				info.AddValue("InputName" + i.ToString(), InputNames[i]);
+				info.AddValue("InputDefaultVal" + i.ToString(), InputDefaultVals[i]);
 			}
 		}
 		public Node(SerializationInfo info, StreamingContext context)
@@ -307,8 +310,8 @@ namespace GPUGraph
 			for (int i = 0; i < nIns; ++i)
 			{
 				Inputs.Add((NodeInput)info.GetValue("Input" + i.ToString(), typeof(NodeInput)));
-				inputNames.Add(info.GetString("InputName" + i.ToString()));
-				inputDefaultVals.Add(info.GetSingle("InputDefaultVal" + i.ToString()));
+				InputNames.Add(info.GetString("InputName" + i.ToString()));
+				InputDefaultVals.Add(info.GetSingle("InputDefaultVal" + i.ToString()));
 			}
 		}
 

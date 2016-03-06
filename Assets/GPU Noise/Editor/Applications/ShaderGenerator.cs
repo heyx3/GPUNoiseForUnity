@@ -65,9 +65,11 @@ namespace GPUGraph.Applications
 			if (oldIndex != selectedGraphIndex)
 			{
 				Graph g = new Graph(graphPaths[selectedGraphIndex]);
-				if (g.Load().Length == 0)
+				string err = g.Load();
+				if (err.Length > 0)
 				{
 					selectedGraphIndex = oldIndex;
+					Debug.LogError("Error reading graph: " + err);
 				}
 			}
 

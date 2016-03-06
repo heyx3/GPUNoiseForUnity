@@ -14,7 +14,7 @@ namespace GPUGraph
 	public struct GraphParamCollection
 	{
 		public List<ParamNode_Float> FloatParams;
-
+		public List<ParamNode_Texture2D> Tex2DParams;
 
 
 		/// <summary>
@@ -23,10 +23,15 @@ namespace GPUGraph
 		public GraphParamCollection(Graph g)
 		{
 			FloatParams = new List<ParamNode_Float>();
+			Tex2DParams = new List<ParamNode_Texture2D>();
 
 			foreach (Node n in g.Nodes)
+			{
 				if (n is ParamNode_Float)
 					FloatParams.Add((ParamNode_Float)n);
+				else if (n is ParamNode_Texture2D)
+					Tex2DParams.Add((ParamNode_Texture2D)n);
+			}
 		}
 		/// <summary>
 		/// Gets all parameters from the given collection and recreates them for the given graph.
@@ -39,11 +44,23 @@ namespace GPUGraph
 				int fn2Index = c.FloatParams.FindIndex(fn2 => fn2.Name == fn.Name);
 				if (fn2Index == -1)
 				{
-					Debug.LogError("Couldn't find an original value for var '" + fn.Name + "'");
+					Debug.LogError("Couldn't find an original value for scalar var '" + fn.Name + "'");
 				}
 				else
 				{
 					fn.DefaultValue = c.FloatParams[fn2Index].DefaultValue;
+				}
+			}
+			foreach (ParamNode_Texture2D tn in Tex2DParams)
+			{
+				int tn2Index = c.Tex2DParams.FindIndex(tn2 => tn2.Name == tn.Name);
+				if (tn2Index == -1)
+				{
+					Debug.LogError("Couldn't find an original value for Tex2D var '" + tn.Name + "'");
+				}
+				else
+				{
+					tn.DefaultVal = c.Tex2DParams[tn2Index].DefaultVal;
 				}
 			}
 		}
@@ -65,6 +82,14 @@ namespace GPUGraph
 					gParams.FloatParams[i].DefaultValue = fn.DefaultValue;
 				}
 			}
+			foreach (ParamNode_Texture2D tn in Tex2DParams)
+			{
+				int i = gParams.Tex2DParams.FindIndex(gTP => gTP.Name == tn.Name);
+				if (i >= 0)
+				{
+					gParams.Tex2DParams[i].DefaultVal = tn.DefaultVal;
+				}
+			}
 		}
 		/// <summary>
 		/// Sets the given material to use these parameters, with their default values.
@@ -75,7 +100,8 @@ namespace GPUGraph
 			{
 				if (!m.HasProperty(dat.Name))
 				{
-					Debug.LogWarning("Couldn't find property '" + dat.Name + "'");
+					Debug.LogWarning("Couldn't find property '" + dat.Name +
+										"'; Unity may have optimized it out");
 				}
 				else
 				{
@@ -83,6 +109,18 @@ namespace GPUGraph
 							   (dat.IsSlider ?
 									Mathf.Lerp(dat.SliderMin, dat.SliderMax, dat.DefaultValue) :
 									dat.DefaultValue));
+				}
+			}
+			foreach (ParamNode_Texture2D dat in Tex2DParams)
+			{
+				if (!m.HasProperty(dat.Name))
+				{
+					Debug.LogWarning("Couldn't find property '" + dat.Name +
+										"'; Unity may have optimized it out");
+				}
+				else
+				{
+					m.SetTexture(dat.Name, dat.DefaultVal);
 				}
 			}
 		}
@@ -119,6 +157,19 @@ namespace GPUGraph
 				
 				changed = (changed || Node.AreFloatsDifferent(oldVal, fn.DefaultValue));
 				
+				GUILayout.EndHorizontal();
+			}
+			foreach (ParamNode_Texture2D tn in Tex2DParams)
+			{
+				GUILayout.BeginHorizontal();
+
+				GUILayout.Label(StringUtils.PrettifyVarName(tn.Name));
+
+				Texture2D oldVal = tn.DefaultVal;
+				tn.DefaultVal = (Texture2D)EditorGUILayout.ObjectField(tn.DefaultVal, typeof(Texture2D));
+
+				changed = (oldVal != tn.DefaultVal);
+
 				GUILayout.EndHorizontal();
 			}
 

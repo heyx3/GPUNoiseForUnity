@@ -124,8 +124,13 @@ namespace GPUGraph.Editor
 		}
 		void OnFocus()
 		{
+			//Regenerate the node selection window if necessary.
 			if (nodeOptionWindow == null)
+			{
 				nodeOptionWindow = EditorWindow.GetWindow<NodeOptionChooser>();
+				nodeOptionWindow.Parent = this;
+				Focus();
+			}
 
 
 			//Check what graphs are available.
@@ -292,6 +297,10 @@ namespace GPUGraph.Editor
 						if (err.Length > 0)
 						{
 							Debug.LogError("Unable to reload graph: " + err);
+						}
+						else
+						{
+							UpdatePreview();
 						}
 					}
 				}
@@ -682,6 +691,9 @@ namespace GPUGraph.Editor
 
 					case Node.GUIResults.Delete:
 						Grph.RemoveNode(Grph.GetNode(windowID));
+
+						reconnectingInput = -2;
+						reconnectingOutput = -1;
 
 						if (!unsavedStr.Contains("deleted node"))
 							unsavedStr += "deleted node, ";

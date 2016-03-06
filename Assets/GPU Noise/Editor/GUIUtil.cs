@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+
 
 namespace GPUGraph
 {
@@ -59,6 +61,19 @@ namespace GPUGraph
 			// We're done.  Restore the GUI matrix and GUI color to whatever they were before.
 			GUI.matrix = matrix;
 			GUI.color = savedColor;
+		}
+
+
+		public static int IndexOf<T>(this IEnumerable<T> en, Predicate<T> p)
+		{
+			int i = 0;
+			foreach (T t in en)
+			{
+				if (p(t))
+					return i;
+				i += 1;
+			}
+			return -1;
 		}
 	}
 }

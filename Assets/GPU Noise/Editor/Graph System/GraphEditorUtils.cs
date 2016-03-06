@@ -109,7 +109,7 @@ namespace GPUGraph
 			Material mat = new Material(shader);
 			c.SetParams(mat);
 
-			GraphUtils.GenerateToTexture(target, new Material(shader), resultTex);
+			GraphUtils.GenerateToTexture(target, mat, resultTex);
 
 			//Clean up.
 			target.Release();
