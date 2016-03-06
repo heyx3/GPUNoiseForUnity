@@ -70,7 +70,7 @@ namespace GPUGraph
 				outCode.Append(", ");
 				outCode.Append(SliderMax);
 				outCode.Append(")) = ");
-				outCode.Append(Mathf.Lerp(SliderMin, SliderMax, DefaultValue));
+				outCode.Append(Mathf.Lerp(SliderMin, SliderMax, DefaultValue).ToCodeString());
 			}
 			else
 			{

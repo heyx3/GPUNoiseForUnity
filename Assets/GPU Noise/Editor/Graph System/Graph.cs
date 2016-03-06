@@ -50,10 +50,15 @@ namespace GPUGraph
 		public IEnumerable<Node> Nodes { get { return nodes; } }
 
 
-		public Graph(string filePath)
+		/// <summary>
+		/// Creates a graph for the given file path/GUID.
+		/// </summary>
+		public Graph(string file, bool isGUID = false)
 			: this()
 		{
-			FilePath = filePath;
+			if (isGUID)
+				file = UnityEditor.AssetDatabase.GUIDToAssetPath(file);
+			FilePath = file;
 		}
 		public Graph()
 		{
@@ -81,17 +86,22 @@ namespace GPUGraph
 			foreach (Node n in g.nodes)
 				g.uidToNode.Add(n.UID, n);
 
-			return this;
+			return g;
 		}
 
-		public void AddNode(Node n)
+		public void AddNode(Node n, bool generateNewUID = true)
 		{
 			if (n.Owner != null)
 			{
 				n.Owner.RemoveNode(n);
 			}
 
-			n.UID = NextUID;
+			if (generateNewUID)
+			{
+				n.UID = NextUID;
+				NextUID += 1;
+			}
+
 			n.Owner = this;
 			if (!nodes.Contains(n))
 			{
@@ -99,7 +109,7 @@ namespace GPUGraph
 				uidToNode.Add(n.UID, n);
 			}
 
-			NextUID += 1;
+			n.OnAddedToGraph();
 		}
 		public void RemoveNode(Node n)
 		{
@@ -347,6 +357,11 @@ namespace GPUGraph
 			OutputPos = g.OutputPos;
 			nodes = g.nodes;
 			uidToNode = g.uidToNode;
+			
+			foreach (Node n in nodes)
+				n.Owner = this;
+			foreach (Node n in nodes)
+				n.OnGraphLoaded();
 
 			return "";
 		}
@@ -402,6 +417,7 @@ namespace GPUGraph
 			{
 				n.Owner = this;
 				uidToNode.Add(n.UID, n);
+				n.OnAddedToGraph();
 			}
 		}
 	}

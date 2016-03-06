@@ -11,7 +11,7 @@ using Option = GPUGraph.NodeTree_Element_Option;
 
 namespace GPUGraph
 {
-	//TODO: ParamNode_Texture3D and Cube (http://docs.unity3d.com/432/Documentation/Components/SL-Properties.html), SubGraphNode.
+	//TODO: ParamNode_Texture3D and Cube (http://docs.unity3d.com/432/Documentation/Components/SL-Properties.html).
 	//TODO: Optionally have more than one output. Use for texture nodes and TexCoordNode.
 
 
@@ -115,11 +115,6 @@ namespace GPUGraph
 		public static List<NodeTree_Element> GenerateList()
 		{
 			return new List<NodeTree_Element>() {
-				new Option((g, r) => new TexCoordNode(r, true), "Tex Coord X", "UV.x"),
-				new Option((g, r) => new TexCoordNode(r, false), "Tex Coord Y", "UV.y"),
-				new Option((g, r) => new ParamNode_Float(r, "MyVar"), "Scalar Parameter"),
-				new Option((g, r) => new ParamNode_Texture2D(r, "MyTex"),
-						   "Tex2D Parameter", "Gets the Red value of a texture"),
 				new Category("Noise",
 					new Option((g, r) => new NoiseNode(r, NoiseNode.NoiseTypes.White, 3),
 							   "White Noise", "Fast, completely chaotic noise"),
@@ -147,7 +142,7 @@ namespace GPUGraph
 							   "Smootherstep", "Like \"Smoothstep\" but even more pushed outwards"),
 					new Option((g, r) => new SimpleNode(r, "lerp(destMin, destMax, (srcVal - srcMin) / (srcMax - srcMin))", "Remap",
 														new P("destMin", 0.0f), new P("destMax", 1.0f),
-														new P("srcMin", -1.0f), new P("srcMax", -1.0f),
+														new P("srcMin", -1.0f), new P("srcMax", 1.0f),
 														new P("srcVal")),
 							   "Remap", "Remaps a value from a source range to a destination range")),
 				new Category("Basic",
@@ -160,7 +155,7 @@ namespace GPUGraph
 					new Option((g, r) => new SimpleNode(r, "f1 / f2", "Divide", new P("f1"), new P("f2")),
 							   "Divide", "Divides the first value by the second")),
 				new Category("Trig",
-					Option.OneVarFunc("sine", "Sin", "A sine wave"),
+					Option.OneVarFunc("sin", "Sin", "A sine wave"),
 					Option.OneVarFunc("cos", "Cos", "A cosine wave"),
 					Option.OneVarFunc("tan", "Tan", "Tangent"),
 					Option.OneVarFunc("acos", "Inverse Cos", "Inverse of the cosine wave"),
@@ -185,6 +180,12 @@ namespace GPUGraph
 					Option.TwoVarFunc("min", "Min", "Gets the smallest of two values"),
 					Option.ThreeVarFunc("clamp", "Clamp", "Keeps a value between a min and a max",
 										"f", float.NaN, "low", 0.0f, "high", 1.0f)),
+				new Option((g, r) => new TexCoordNode(r, true), "Tex Coord X", "UV.x"),
+				new Option((g, r) => new TexCoordNode(r, false), "Tex Coord Y", "UV.y"),
+				new Option((g, r) => new ParamNode_Float(r, "MyVar"), "Scalar Parameter"),
+				new Option((g, r) => new ParamNode_Texture2D(r, "MyTex"),
+						   "Tex2D Parameter", "Gets the Red value of a texture"),
+				new Option((g, r) => new SubGraphNode(r), "Sub-graph", "Get the output of another graph"),
 			};
 		}
 	}

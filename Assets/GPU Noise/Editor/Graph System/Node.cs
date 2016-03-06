@@ -119,6 +119,18 @@ namespace GPUGraph
 		protected abstract Node MakeClone();
 
 		/// <summary>
+		/// Called when this node's owner/uid is set.
+		/// </summary>
+		public virtual void OnAddedToGraph() { }
+		/// <summary>
+		/// Called after this node's owner is done loading from a file.
+		/// This is better than a method with OnDeserializedAttribute
+		///     because this method is only called *after* the graph itself is fully loaded.
+		/// </summary>
+		public virtual void OnGraphLoaded() { }
+
+
+		/// <summary>
 		/// Called right before the graph generates a shader.
 		/// Special nodes can take this opportunity to modify the graph however they want.
 		/// Returns any new nodes that have been added to the graph.
@@ -314,16 +326,5 @@ namespace GPUGraph
 				InputDefaultVals.Add(info.GetSingle("InputDefaultVal" + i.ToString()));
 			}
 		}
-
-		/// <summary>
-		/// Called after this object was deserialized in its constructor "Node(SerializationInfo, StreamingContext)".
-		/// </summary>
-		[OnDeserialized]
-		protected virtual void FinalizeDeserialization(StreamingContext context) { }
-		/// <summary>
-		/// Called after this object was serialized in its "GetObjectData()" method.
-		/// </summary>
-		[OnSerialized]
-		protected virtual void FinalizeSerialization(StreamingContext context) { }
 	}
 }

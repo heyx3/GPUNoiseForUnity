@@ -95,7 +95,7 @@ namespace GPUGraph
 			n.Add("x");
 			if (nDimensions > 1)
 				n.Add("y");
-			if (nDimensions >= 2)
+			if (nDimensions > 2)
 				n.Add("z");
 
 			//Scale and weight.

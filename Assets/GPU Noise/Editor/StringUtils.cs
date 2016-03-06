@@ -114,4 +114,46 @@ public static class StringUtils
 			i -= 1;
 		return str.Substring(i + 1, str.Length - i - 1);
 	}
+
+	/// <summary>
+	/// Gets this float as a code-parseable string.
+	/// In other words, if this float's default string representation is scientific notation,
+	///		this method automatically fixes that.
+	/// </summary>
+	public static string ToCodeString(this float f)
+	{
+		string str = f.ToString();
+
+		int i = str.IndexOf("E");
+		if (i >= 0)
+		{
+			if (str[i + 1] == '-')
+			{
+				return "0.0";
+			}
+			else
+			{
+				if (str[0] == '-')
+				{
+					return "-99999999999.0";
+				}
+				else
+				{
+					return "9999999999.0";
+				}
+			}
+		}
+		else
+		{
+			//Make sure it's parsed as a float value and not an integer.
+			if (!str.Contains("."))
+			{
+				return str + ".0";
+			}
+			else
+			{
+				return str;
+			}
+		}
+	}
 }

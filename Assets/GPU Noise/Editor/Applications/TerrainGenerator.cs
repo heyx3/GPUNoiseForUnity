@@ -84,7 +84,10 @@ namespace GPUGraph.Applications
 				GUILayout.Space(15.0f);
 
 				//Graph params.
-				gParams.ParamEditorGUI();
+				if (graphPaths.Count > 0)
+				{
+					gParams.ParamEditorGUI();
+				}
 				
 				GUILayout.Space(15.0f);
 
@@ -97,9 +100,17 @@ namespace GPUGraph.Applications
 				GUILayout.Space(15.0f);
 
 				//Button to generate heightmap.
-				if (GUILayout.Button("Generate Heightmap"))
+				if (graphPaths.Count > 0)
 				{
-					Generate();
+					if (GUILayout.Button("Generate Heightmap"))
+					{
+						Generate();
+					}
+				}
+				else
+				{
+					GUILayout.Space(15.0f);
+					GUILayout.Label("No graph files detected in the project!");
 				}
 			}
 		}

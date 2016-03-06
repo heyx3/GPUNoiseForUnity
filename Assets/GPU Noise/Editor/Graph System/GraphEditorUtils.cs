@@ -21,11 +21,17 @@ namespace GPUGraph
 		/// <summary>
 		/// Gets the full paths for all graphs in this Unity project.
 		/// </summary>
-		public static List<string> GetAllGraphsInProject()
+		public static List<string> GetAllGraphsInProject(string excludeGraph = null,
+														 bool makeRelativeToAssets = false)
 		{
 			DirectoryInfo inf = new DirectoryInfo(Application.dataPath);
 			FileInfo[] files = inf.GetFiles("*." + Extension, SearchOption.AllDirectories);
-			return files.Select(f => f.FullName).ToList();
+			return files
+					.Select(f => (makeRelativeToAssets ?
+									StringUtils.GetRelativePath(f.FullName, "Assets") :
+									f.FullName))
+					.Where(f => (f != excludeGraph))
+					.ToList();
 		}
 
 
