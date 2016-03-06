@@ -42,16 +42,16 @@ namespace GPUGraph.Applications
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
 
-			this.titleContent = new GUIContent("Tex Gen");
-			this.minSize = new Vector2(200.0f, 250.0f);
+			this.titleContent = new GUIContent("Texture Gen");
+			this.minSize = new Vector2(200.0f, 270.0f);
 
 			gParams = new GraphParamCollection();
 
 			SelectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
-				Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
-				if (g != null)
+				Graph g = new Graph(graphPaths[SelectedGraphIndex]);
+				if (g.Load().Length == 0)
 				{
 					gParams = new GraphParamCollection(g);
 				}
@@ -60,10 +60,12 @@ namespace GPUGraph.Applications
 
 		void OnGUI()
 		{
+			GUILayout.Space(10.0f);
+
 			X = EditorGUILayout.IntField("Width", X);
 			Y = EditorGUILayout.IntField("Height", Y);
 			
-			EditorGUILayout.Space();
+			GUILayout.Space(15.0f);
 			
 
 			UseRed = GUILayout.Toggle(UseRed, "Use Red?");
@@ -76,16 +78,18 @@ namespace GPUGraph.Applications
 			}
 			
 			UnusedColor = EditorGUILayout.FloatField("Unused color value", UnusedColor);
+			
+			GUILayout.Space(15.0f);
 
-			EditorGUILayout.Space();
 
-
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Graph:");
 			int oldIndex = SelectedGraphIndex;
 			SelectedGraphIndex = EditorGUILayout.Popup(SelectedGraphIndex, graphNameOptions);
 			if (oldIndex != SelectedGraphIndex)
 			{
-				Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
-				if (g == null)
+				Graph g = new Graph(graphPaths[SelectedGraphIndex]);
+				if (g.Load().Length == 0)
 				{
 					SelectedGraphIndex = oldIndex;
 				}
@@ -94,13 +98,14 @@ namespace GPUGraph.Applications
 					gParams = new GraphParamCollection(g);
 				}
 			}
+			GUILayout.EndHorizontal();
 
-			EditorGUILayout.Space();
+			GUILayout.Space(10.0f);
 
 
 			gParams.ParamEditorGUI();
 
-			EditorGUILayout.Space();
+			GUILayout.Space(10.0f);
 
 
 			if (GUILayout.Button("Generate Texture"))
@@ -110,13 +115,11 @@ namespace GPUGraph.Applications
 				if (savePath.Length > 0)
 				{
 					//Load the graph.
-					Graph g = GraphEditorUtils.LoadGraph(graphPaths[SelectedGraphIndex]);
-					if (g == null)
+					Graph g = new Graph(graphPaths[SelectedGraphIndex]);
+					if (g.Load().Length > 0)
 					{
 						return;
 					}
-
-					gParams.OverwriteParamValues(g);
 
 					//Render the noise to a texture.
 					System.Text.StringBuilder components = new System.Text.StringBuilder();
@@ -136,8 +139,8 @@ namespace GPUGraph.Applications
 					{
 						components.Append("a");
 					}
-					Texture2D tex = GraphEditorUtils.GenerateToTexture(g, X, Y,
-																	   components.ToString(),
+					Texture2D tex = GraphEditorUtils.GenerateToTexture(g, new GraphParamCollection(g, gParams),
+																	   X, Y, components.ToString(),
 																	   UnusedColor);
 					if (tex == null)
 					{
@@ -155,14 +158,14 @@ namespace GPUGraph.Applications
 
 
 					//Now that we're finished, clean up.
-					AssetDatabase.ImportAsset(PathUtils.GetRelativePath(savePath, "Assets"));
+					AssetDatabase.ImportAsset(StringUtils.GetRelativePath(savePath, "Assets"));
 
 					//Finally, open explorer to show the user the texture.
 					if (Application.platform == RuntimePlatform.WindowsEditor)
 					{
 						System.Diagnostics.Process.Start("explorer.exe",
 														 "/select," +
-														   PathUtils.FixDirectorySeparators(savePath));
+														   StringUtils.FixDirectorySeparators(savePath));
 					}
 					else if (Application.platform == RuntimePlatform.OSXEditor)
 					{
@@ -171,7 +174,7 @@ namespace GPUGraph.Applications
 							System.Diagnostics.Process proc = new System.Diagnostics.Process();
 							proc.StartInfo.FileName = "open";
 							proc.StartInfo.Arguments = "-n -R \"" +
-														PathUtils.FixDirectorySeparators(savePath) +
+														StringUtils.FixDirectorySeparators(savePath) +
 														"\"";
 							proc.StartInfo.UseShellExecute = false;
 							proc.StartInfo.RedirectStandardError = false;

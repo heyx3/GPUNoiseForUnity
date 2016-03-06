@@ -1,0 +1,222 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+
+using P = GPUGraph.SimpleNode.Param;
+using Category = GPUGraph.NodeTree_Element_Category;
+using Option = GPUGraph.NodeTree_Element_Option;
+
+
+namespace GPUGraph
+{
+	/// <summary>
+	/// A tree of node types to choose from.
+	/// Each element is either an option or a branch leading to more elements of the same category.
+	/// </summary>
+	public abstract class NodeTree_Element
+	{
+		/// <summary>
+		/// Draws this element as a selectable option in an editor window.
+		/// Returns the element that was selected, or "null" if nothing was selected.
+		/// </summary>
+		public abstract NodeTree_Element_Option OnGUI();
+	}
+
+
+	public class NodeTree_Element_Category : NodeTree_Element
+	{
+		public string Title;
+		public NodeTree_Element[] SubItems;
+
+		public NodeTree_Element_Category(string title, params NodeTree_Element[] subItems)
+		{
+			Title = title;
+			SubItems = subItems;
+		}
+
+		private bool foldout = false;
+		public override NodeTree_Element_Option OnGUI()
+		{
+			NodeTree_Element_Option option = null;
+
+			foldout = EditorGUILayout.Foldout(foldout, Title);
+			if (foldout)
+			{
+				foreach (NodeTree_Element el in SubItems)
+				{
+					NodeTree_Element_Option temp = el.OnGUI();
+					if (temp != null)
+						option = temp;
+				}
+			}
+
+			return option;
+		}
+	}
+	public class NodeTree_Element_Option : NodeTree_Element
+	{
+		public static NodeTree_Element_Option OneVarFunc(string func, string title, string tooltip,
+														 string var = "f", float defVal = float.NaN)
+		{
+			return new Option((g, r) => new SimpleNode(r, func + "(" + var + ")", title, new P(var, defVal)),
+							  title, tooltip);
+		}
+		public static NodeTree_Element_Option TwoVarFunc(string func, string title, string tooltip,
+														 string var1 = "x", float defVal1 = float.NaN,
+														 string var2 = "y", float defVal2 = float.NaN)
+		{
+			return new Option((g, r) => new SimpleNode(r, func + "(" + var1 + ", " + var2 + ")", title,
+													   new P(var1, defVal1), new P(var2, defVal2)),
+							  title, tooltip);
+		}
+		public static NodeTree_Element_Option ThreeVarFunc(string func, string title, string tooltip,
+														   string var1 = "x", float defVal1 = float.NaN,
+														   string var2 = "y", float defVal2 = float.NaN,
+														   string var3 = "t", float defVal3 = float.NaN)
+		{
+			return new Option((g, r) => new SimpleNode(r, func + "(" + var1 + ", " + var2 + ", " + var3 + ")", title,
+													   new P(var1, defVal1), new P(var2, defVal2), new P(var3, defVal3)),
+							  title, tooltip);
+		}
+
+		public Func<Graph, Rect, Node> NodeFactory;
+		public string Name, Tooltip;
+
+		public NodeTree_Element_Option(Func<Graph, Rect, Node> nodeFactory,
+									   string name, string tooltip = "")
+		{
+			NodeFactory = nodeFactory;
+			Name = name;
+			Tooltip = tooltip;
+		}
+
+		public override NodeTree_Element_Option OnGUI()
+		{
+			if (GUILayout.Button(new GUIContent(Name, Tooltip)))
+			{
+				return this;
+			}
+			return null;
+		}
+	}
+
+
+	public static class NodeOptionsGenerator
+	{
+		/// <summary>
+		/// Returns the root of the option list.
+		/// </summary>
+		public static List<NodeTree_Element> GenerateList()
+		{
+			return new List<NodeTree_Element>() {
+				new Option((g, r) => new TexCoordNode(r, true), "Tex Coord X", "UV.x"),
+				new Option((g, r) => new TexCoordNode(r, false), "Tex Coord Y", "UV.y"),
+				new Option((g, r) => new ParamNode_Float(r, "MyVar"), "Scalar Parameter"),
+				new Category("Noise 1D",
+					Option.OneVarFunc("WhiteNoise1", "White Noise", "Fast, completely chaotic noise", "x"),
+					Option.OneVarFunc("GridNoise1", "Grid Noise", "White noise that's spread out into blocks", "x"),
+					Option.OneVarFunc("LinearNoise1", "Linear Noise", "Low-quality but fast coherent noise", "x"),
+					Option.OneVarFunc("SmoothNoise1", "Smooth Noise", "Medium-quality, fairly fast coherent noise", "x"),
+					Option.OneVarFunc("SmootherNoise1", "Smoother Noise", "High-quality but slow coherent noise", "x"),
+					Option.OneVarFunc("PerlinNoise1", "Perlin Noise", "Beautiful but very slow coherent noise", "x"),
+					Option.OneVarFunc("WorleyNoise1", "Worley Noise", "Generates noise that looks like Voroni diagrams", "x")),
+				new Category("Noise 2D",
+					new Option((g, r) => new SimpleNode(r, "WhiteNoise2(float2(x, y))", "White Noise",
+														new P("x"), new P("y")),
+							   "White Noise", "Fast, completely chaotic noise"),
+					new Option((g, r) => new SimpleNode(r, "GridNoise2(float2(x, y))", "Grid Noise",
+														new P("x"), new P("y")),
+							   "Grid Noise", "White noise that's spread out into blocks"),
+					new Option((g, r) => new SimpleNode(r, "LinearNoise2(float2(x, y))", "Linear Noise",
+														new P("x"), new P("y")),
+							   "Linear Noise", "Low-quality but fast coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "SmoothNoise2(float2(x, y))", "Smooth Noise",
+														new P("x"), new P("y")),
+							   "Smooth Noise", "Medium-quality, fairly fast coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "SmootherNoise2(float2(x, y))", "Smoother Noise",
+														new P("x"), new P("y")),
+							   "Smoother Noise", "High-quality but slow coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "PerlinNoise2(float2(x, y))", "Perlin Noise",
+														new P("x"), new P("y")),
+							   "Perlin Noise", "Beautiful but very slow coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "WorleyNoise2(float2(x, y))", "Worley Noise",
+														new P("x"), new P("y")),
+								"Worley Noise", "Generates noise that looks like Voroni diagrams")),
+				new Category("Noise 3D",
+					new Option((g, r) => new SimpleNode(r, "WhiteNoise3(float3(x, y, z))", "White Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "White Noise", "Fast, completely chaotic noise"),
+					new Option((g, r) => new SimpleNode(r, "GridNoise3(float3(x, y, z))", "Grid Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "Grid Noise", "White noise that's spread out into blocks"),
+					new Option((g, r) => new SimpleNode(r, "LinearNoise3(float3(x, y, z))", "Linear Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "Linear Noise", "Low-quality but fast coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "SmoothNoise3(float3(x, y, z))", "Smooth Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "Smooth Noise", "Medium-quality, fairly fast coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "SmootherNoise3(float3(x, y, z))", "Smoother Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "Smoother Noise", "High-quality but slow coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "PerlinNoise3(float3(x, y, z))", "Perlin Noise",
+														new P("x"), new P("y"), new P("z")),
+							   "Perlin Noise", "Beautiful but very slow coherent noise"),
+					new Option((g, r) => new SimpleNode(r, "WorleyNoise3(float3(x, y, z))", "Worley Noise",
+														new P("x"), new P("y"), new P("z")),
+								"Worley Noise", "Generates noise that looks like Voroni diagrams")),
+				new Category("Interpolation",
+					Option.TwoVarFunc("step", "Step", "Returns 0 if X is less than Y and 1 if X is more than Y",
+									  "y", 0.5f, "x"),
+					Option.ThreeVarFunc("lerp", "Lerp", "Linearly interpolates between a and b based on t",
+										"a", float.NaN, "b", float.NaN, "t"),
+					Option.ThreeVarFunc("smoothstep", "Smoothstep", "Like \"Lerp\" but pushed out to the edges of the range",
+										"a", 0.0f, "b", 1.0f, "t"),
+					new Option((g, r) => new SimpleNode(r, "smoothstep(x, y, smoothstep(0.0, 1.0, t))", "Smoothstep",
+														new P("x", 0.0f), new P("y", 0.0f), new P("t")),
+							   "Smootherstep", "Like \"Smoothstep\" but even more pushed outwards"),
+					new Option((g, r) => new SimpleNode(r, "lerp(destMin, destMax, (srcVal - srcMin) / (srcMax - srcMin))", "Remap",
+														new P("destMin", 0.0f), new P("destMax", 1.0f),
+														new P("srcMin", -1.0f), new P("srcMax", -1.0f),
+														new P("srcVal")),
+							   "Remap", "Remaps a value from a source range to a destination range")),
+				new Category("Trig",
+					Option.OneVarFunc("sine", "Sin", "A sine wave"),
+					Option.OneVarFunc("cos", "Cos", "A cosine wave"),
+					Option.OneVarFunc("tan", "Tan", "Tangent"),
+					Option.OneVarFunc("acos", "Inverse Cos", "Inverse of the cosine wave"),
+					Option.OneVarFunc("asin", "Inverse Sin", "Inverse of the sine wave"),
+					Option.OneVarFunc("atan", "Inverse Tan", "Inverse of \"tan\""),
+					Option.TwoVarFunc("atan2", "Inverse Tan 2", "Inverse of \"tan\" that takes individual x and y",
+									  "y", float.NaN, "x")),
+				new Category("Numeric",
+					Option.OneVarFunc("frac", "Fractional Part", "The fractional part of a value"),
+					Option.OneVarFunc("trunc", "Integer Part", "The integer part of a value"),
+					Option.OneVarFunc("ceil", "Ceiling", "Rounds a value up towards positive infinity"),
+					Option.OneVarFunc("floor", "Floor", "Rounds a value down towards negative infinity"),
+					Option.OneVarFunc("round", "Round to Integer", "Rounds a value to the nearest integer"),
+					Option.OneVarFunc("sign", "Sign", "Returns -1, 0, or 1 depending on the value's sign")),
+				new Category("Basic",
+					new Option((g, r) => new SimpleNode(r, "f1 + f2", "Add", new P("f1"), new P("f2")),
+							   "Add", "Adds two values together"),
+					new Option((g, r) => new SimpleNode(r, "f1 - f2", "Subtract", new P("f1"), new P("f2")),
+							   "Subtract", "Subtracts the second value from the first"),
+					new Option((g, r) => new SimpleNode(r, "f1 * f2", "Multiply", new P("f1"), new P("f2")),
+							   "Multiply", "Multiplies two values together"),
+					new Option((g, r) => new SimpleNode(r, "f1 / f2", "Divide", new P("f1"), new P("f2")),
+							   "Divide", "Divides the first value by the second")),
+				new Category("Other",
+					Option.TwoVarFunc("pow", "Pow", "Raises a value to an exponent",
+									  "value", float.NaN, "exponent", 1.0f),
+					Option.OneVarFunc("abs", "Abs", "Absolute value"),
+					Option.OneVarFunc("sqrt", "Square Root", "Square root"),
+					Option.OneVarFunc("log", "Logarithm", "Logarithm base e"),
+					Option.TwoVarFunc("max", "Max", "Gets the largest of two values"),
+					Option.TwoVarFunc("min", "Min", "Gets the smallest of two values"),
+					Option.ThreeVarFunc("clamp", "Clamp", "Keeps a value between a min and a max",
+										"f", float.NaN, "low", 0.0f, "high", 1.0f)),
+			};
+		}
+	}
+}

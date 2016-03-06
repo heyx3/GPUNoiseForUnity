@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace GPUGraph.Editor
+namespace GPUGraph
 {
 	public static class GUIUtil
 	{

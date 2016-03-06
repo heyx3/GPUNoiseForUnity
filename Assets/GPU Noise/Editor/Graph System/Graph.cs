@@ -1,77 +1,155 @@
 ﻿using System;
-using System.IO;
+using System.Text;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 
 
 namespace GPUGraph
 {
-	/// <summary>
-	/// A set of Func calls that output a final float value.
-	/// </summary>
 	[Serializable]
 	public class Graph : ISerializable
 	{
+		public static bool IsValidUID(int uid) { return uid >= 0; }
+
+
 		/// <summary>
-		/// The final output value of this graph.
+		/// The next node added to this graph will be given this ID.
 		/// </summary>
-		public FuncInput Output;
+		public int NextUID = 0;
+		/// <summary>
+		/// The filepath that this graph saves to/is read from.
+		/// </summary>
+		public string FilePath;
 
 		/// <summary>
 		/// The 1D, 2D, and 3D hash functions this graph is using.
 		/// </summary>
 		public string Hash1, Hash2, Hash3;
 
-		public Dictionary<long, FuncCall> UIDToFuncCall { get; private set; }
+		/// <summary>
+		/// The output of this graph.
+		/// </summary>
+		public NodeInput Output;
+		/// <summary>
+		/// The position of the "Output" node in the editor.
+		/// </summary>
+		public Rect OutputPos;
+
+
+		private List<Node> nodes = new List<Node>();
+		private Dictionary<int, Node> uidToNode = new Dictionary<int, Node>();
+
 
 		/// <summary>
-		/// The UID to use for the next FuncCall that's created.
+		/// All nodes currently in this graph.
 		/// </summary>
-		private long nextUID;
+		public IEnumerable<Node> Nodes { get { return nodes; } }
 
 
-		public Graph(FuncInput output = new FuncInput())
+		public Graph(string filePath)
+			: this()
 		{
-			Output = output;
-			nextUID = 0;
-
-			Hash1 = FuncDefinitions.DefaultHash1;
-			Hash2 = FuncDefinitions.DefaultHash2;
-			Hash3 = FuncDefinitions.DefaultHash3;
-
-			UIDToFuncCall = new Dictionary<long, FuncCall>();
+			FilePath = filePath;
+		}
+		public Graph()
+		{
+			Hash1 = ShaderDefs.DefaultHash1;
+			Hash2 = ShaderDefs.DefaultHash2;
+			Hash3 = ShaderDefs.DefaultHash3;
+			Output = new NodeInput(0.5f);
+			OutputPos = new Rect(200.0f, 0.0f, 100.0f, 50.0f);
 		}
 
 
-		/// <summary>
-		/// Adds the given Func call to this graph.
-		/// </summary>
-		public void CreateFuncCall(FuncCall call)
+		public Graph Clone()
 		{
-			long uid = nextUID;
-			nextUID += 1;
+			Graph g = new Graph();
+			g.NextUID = NextUID;
+			g.FilePath = FilePath;
+			g.Output = Output;
+			g.OutputPos = OutputPos;
+			g.Hash1 = Hash1;
+			g.Hash2 = Hash2;
+			g.Hash3 = Hash3;
 
-			call.UID = uid;
-			UIDToFuncCall.Add(uid, call);
+			foreach (Node n in nodes)
+				g.nodes.Add(n.Clone(g, false));
+			foreach (Node n in g.nodes)
+				g.uidToNode.Add(n.UID, n);
+
+			return this;
+		}
+
+		public void AddNode(Node n)
+		{
+			if (n.Owner != null)
+			{
+				n.Owner.RemoveNode(n);
+			}
+
+			n.UID = NextUID;
+			n.Owner = this;
+			if (!nodes.Contains(n))
+			{
+				nodes.Add(n);
+				uidToNode.Add(n.UID, n);
+			}
+
+			NextUID += 1;
+		}
+		public void RemoveNode(Node n)
+		{
+			nodes.Remove(n);
+			uidToNode.Remove(n.UID);
+			n.Owner = null;
 		}
 
 		/// <summary>
-		/// Generates the shader code for this graph.
-		/// The shader assumes a quad with vertices from {-1, -1} to {1, 1}
-		/// and renders this graph's noise into the render target (ignoring camera information).
-		/// If an error occurred, it is output into Unity's debug console and "null" is returned.
+		/// Returns "null" if the given Node uid doesn't exist in this graph.
 		/// </summary>
-		/// <param name="shaderName">The name to go at the top of the shader source.</param>
-		/// <param name="outputComponent">Which components (r, g, b, or a) to output to.</param>
-		/// <param name="defaultColor">
-		/// The color (generally 0-1) of the color components which aren't set by the noise.
-		/// </param>
-		public string GenerateShader(string shaderName, string outputComponents = "rgb",
-									 float defaultColor = 0.0f)
+		public Node GetNode(int uid)
 		{
-			System.Text.StringBuilder sb = new System.Text.StringBuilder();
-		
+			if (uidToNode.ContainsKey(uid))
+			{
+				return uidToNode[uid];
+			}
+			else
+			{
+				return null;
+			}
+		}
+
+
+		public string GenerateShader(string shaderName, string outputs = "rgb", float defaultVal = 0.0f)
+		{
+			//Clone this graph so nodes can pre-process it before generating the shader.
+			Graph g = Clone();
+			return g.GenShad(shaderName, outputs, defaultVal);
+		}
+		private string GenShad(string shaderName, string outputs, float defaultVal)
+		{
+			//Let all nodes do pre-processing.
+			{
+				List<Node> currentNodes = new List<Node>(nodes),
+						   newNodes = new List<Node>();
+				foreach (Node n in currentNodes)
+					newNodes.AddRange(n.OnPreProcess());
+
+				while (newNodes.Count > 0)
+				{
+					List<Node> newerNodes = new List<Node>();
+					foreach (Node n in newNodes)
+						newerNodes.AddRange(n.OnPreProcess());
+					newNodes = newerNodes;
+				}
+			}
+
+
+			StringBuilder sb = new StringBuilder();
 			sb.Append("Shader \"");
 			sb.Append(shaderName);
 			sb.Append("\"");
@@ -79,11 +157,11 @@ namespace GPUGraph
 	{
 		Properties
 		{");
-			foreach (FuncCall fc in UIDToFuncCall.Values)
-				fc.Calling.GetPropertyDeclarations(fc.CustomDat, sb);
+			foreach (Node n in nodes)
+				n.EmitProperties(sb);
 			sb.AppendLine(@"
 		}
-		SubShader
+		Subshader
 		{
 			Tags
 			{
@@ -108,7 +186,7 @@ namespace GPUGraph
 				{
 					float4 vertex	: POSITION;
 					float4 color	: COLOR;
-					float2 texcoord	: TEXCOORD0;
+					float2 texcoord : TEXCOORD0;
 				};
 
 				struct v2f
@@ -121,63 +199,77 @@ namespace GPUGraph
 				v2f vert(appdata_t IN)
 				{
 					v2f OUT;
-					OUT.vertex = IN.vertex;
+					OUT.vertex = sign(IN.vertex);
 					OUT.texcoord = IN.texcoord;
 					OUT.color = IN.color;
 
 					return OUT;
 				}
 
-				//------------Params---------------
+				//--------Generated stuff---------
 				//--------------------------------");
-			foreach (FuncCall fc in UIDToFuncCall.Values)
-				fc.Calling.GetParamDeclarations(fc.CustomDat, sb);
-			sb.AppendLine(@"
+				sb.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
+				sb.AppendLine(ShaderDefs.Functions);
+				sb.AppendLine(@"
 
-				//-----------Func declarations---------
-				//-------------------------------------");
-			//TODO: Add shader parameters to the above code.
-	
-			//Generate declarations for Func stuff.
-			string beginning = FuncDefinitions.ShaderCodeBeginning;
-			beginning = beginning.Replace(FuncDefinitions.Hash1SearchToken, Hash1);
-			beginning = beginning.Replace(FuncDefinitions.Hash2SearchToken, Hash2);
-			beginning = beginning.Replace(FuncDefinitions.Hash3SearchToken, Hash3);
-			sb.AppendLine(beginning);
-			foreach (Func f in FuncDefinitions.Functions)
-			{
-				try
-				{
-					sb.AppendLine(f.GetFunctionDecl());
-				}
-				catch (Exception e)
-				{
-					Debug.LogError("Exception getting function code for '" + f.Name + ": " + e.Message);
-					return null;
-				}
-			}
-
-			//Generate shader body.
-			sb.Append(
-	@"			//----------------End Func declarations-----------
-				//------------------------------------------------
-
+				//-----Node-generated stuff-----
+				//------------------------------");
+				foreach (Node n in nodes)
+					n.EmitDefs(sb);
+				sb.AppendLine(@"
+				
 				fixed4 frag(v2f IN) : COLOR
-				{
-					fixed4 outCol = fixed4(");
-			for (int i = 0; i < 4; ++i)
-			{
-				if (i != 0)
+				{");
+
+					//Emit code for all nodes in proper order.
+					Stack<Node> toProcess = new Stack<Node>();
+					Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
+					if (!Output.IsAConstant)
+					{
+						toProcess.Push(GetNode(Output.NodeID));
+						uidDoneYet.Add(Output.NodeID, false);
+					}
+					while (toProcess.Count > 0)
+					{
+						Node n = toProcess.Peek();
+
+						//If the next node hasn't been processed yet, add its inputs to the stack.
+						if (!uidDoneYet[n.UID])
+						{
+							foreach (NodeInput ni in n.Inputs)
+							{
+								if (!ni.IsAConstant)
+								{
+									if (!uidDoneYet.ContainsKey(ni.NodeID))
+									{
+										toProcess.Push(GetNode(ni.NodeID));
+										uidDoneYet.Add(ni.NodeID, false);
+									}
+								}
+							}
+
+							uidDoneYet[n.UID] = true;
+						}
+						//Otherwise, let the node emit its code and then remove it from the stack.
+						else
+						{
+							toProcess.Pop();
+							n.EmitCode(sb);
+						}
+					}
+
+					sb.Append("float outExpr = ");
+					sb.Append(Output.GetExpression(this));
+					sb.Append(";\n\t\t\t\t\t");
+					sb.Append("return float4(");
+					sb.Append(outputs.Contains('x') || outputs.Contains('r') ? "outExpr" : defaultVal.ToString());
 					sb.Append(", ");
-				sb.Append(defaultColor.ToString());
-			}
-			sb.Append(@");
-					outCol.");
-			sb.Append(outputComponents);
-			sb.Append(" = ");
-			sb.Append(Output.GetShaderExpression(this));
-			sb.Append(@";
-					return outCol;
+					sb.Append(outputs.Contains('y') || outputs.Contains('g') ? "outExpr" : defaultVal.ToString());
+					sb.Append(", ");
+					sb.Append(outputs.Contains('z') || outputs.Contains('b') ? "outExpr" : defaultVal.ToString());
+					sb.Append(", ");
+					sb.Append(outputs.Contains('w') || outputs.Contains('a') ? "outExpr" : defaultVal.ToString());
+					sb.Append(@");
 				}
 			ENDCG
 			}
@@ -186,113 +278,122 @@ namespace GPUGraph
 
 			return sb.ToString();
 		}
-		
+
+
 		/// <summary>
-		/// Gets all params used by this Graph.
+		/// Saves this graph to its file-path.
+		/// Returns an error message, or an empty string if nothing went wrong.
 		/// </summary>
-		public void GetParams(List<FloatParamNode.FloatParamData> outFloatParams,
-							  List<SliderParamNode.SliderParamData> outSliderParams)
+		public string Save()
 		{
-			foreach (FuncCall fc in UIDToFuncCall.Values)
+			IFormatter formatter = new BinaryFormatter();
+			Stream stream = null;
+			try
 			{
-				if (fc.Calling is FloatParamNode)
+				stream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None);
+				formatter.Serialize(stream, this);
+			}
+			catch (Exception e)
+			{
+				return "Error opening/writing to file: " + e.Message;
+			}
+			finally
+			{
+				if (stream != null)
 				{
-					outFloatParams.Add((FloatParamNode.FloatParamData)fc.CustomDat);
-				}
-				else if (fc.Calling is SliderParamNode)
-				{
-					outSliderParams.Add((SliderParamNode.SliderParamData)fc.CustomDat);
+					stream.Close();
 				}
 			}
+
+			return "";
+		}
+		/// <summary>
+		/// Re-loads this graph from its file-path, effectively wiping out any changes to it.
+		/// Returns an error message, or an empty string if nothing went wrong.
+		/// </summary>
+		public string Load()
+		{
+			IFormatter formatter = new BinaryFormatter();
+			Stream s = null;
+			Graph g = null;
+
+			try
+			{
+				s = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+				g = (Graph)formatter.Deserialize(s);
+			}
+			catch (System.Exception e)
+			{
+				return "Error opening/reading file: " + e.Message;
+			}
+			finally
+			{
+				s.Close();
+			}
+
+			NextUID = g.NextUID;
+			Hash1 = g.Hash1;
+			Hash2 = g.Hash2;
+			Hash3 = g.Hash3;
+			Output = g.Output;
+			OutputPos = g.OutputPos;
+			nodes = g.nodes;
+			uidToNode = g.uidToNode;
+
+			return "";
 		}
 
-		/// <summary>
-		/// Removes all references to the given func call from this graph, if it exists.
-		/// Returns whether any references to it actually existed.
-		/// </summary>
-		public bool RemoveFuncCall(FuncCall call) { return RemoveFuncCall(call.UID); }
-		/// <summary>
-		/// Removes all references to the given func call from this graph, if it exists.
-		/// Returns whether any references to it actually existed.
-		/// </summary>
-		public bool RemoveFuncCall(long callUID)
+
+		//Serialization code:
+		public Graph(SerializationInfo info, StreamingContext context)
 		{
-			if (!UIDToFuncCall.Remove(callUID))
-			{
-				return false;
-			}
+			NextUID = info.GetInt32("NextUID");
+			Output = (NodeInput)info.GetValue("Output", typeof(NodeInput));
 
-			//Replace all its outputs with default values.
-			foreach (FuncCall fc in UIDToFuncCall.Values)
-			{
-				for (int i = 0; i < fc.Inputs.Length; ++i)
-				{
-					if (!fc.Inputs[i].IsAConstantValue && fc.Inputs[i].FuncCallID == callUID)
-					{
-						fc.Inputs[i] = new FuncInput(fc.Calling.Params[i].DefaultValue);
-					}
-				}
-			}
-			if (!Output.IsAConstantValue && Output.FuncCallID == callUID)
-			{
-				Output = new FuncInput(0.5f);
-			}
-
-			return true;
-		}
-
-
-		//Serialization support.
-
-		private List<FuncCall> deserializedCalls = new List<FuncCall>();
-		protected Graph(SerializationInfo info, StreamingContext context)
-		{
-			Output = (FuncInput)info.GetValue("Output", typeof(FuncInput));
-			nextUID = info.GetInt64("NextUID");
+			float posX = info.GetSingle("OutputPosX"),
+				  posY = info.GetSingle("OutputPosY"),
+				  sizeX = info.GetSingle("OutputSizeX"),
+				  sizeY = info.GetSingle("OutputSizeY");
+			OutputPos = new Rect(posX, posY, sizeX, sizeY);
 		
 			Hash1 = info.GetString("Hash1");
 			Hash2 = info.GetString("Hash2");
 			Hash3 = info.GetString("Hash3");
 
-			int nCalls = info.GetInt32("NFuncCalls");
-			for (int i = 0; i < nCalls; ++i)
+			int nNodes = info.GetInt32("NNodes");
+			for (int i = 0; i < nNodes; ++i)
 			{
-				deserializedCalls.Add((FuncCall)info.GetValue("FuncCall" + i.ToString(), typeof(FuncCall)));
+				nodes.Add((Node)info.GetValue("Node" + i.ToString(), typeof(Node)));
 			}
-		}
-		[OnDeserialized]
-		private void FinalizeSerializedStuff(StreamingContext context)
-		{
-			UIDToFuncCall = new Dictionary<long, FuncCall>(deserializedCalls.Count);
-			foreach (FuncCall c in deserializedCalls)
-			{
-				if (UIDToFuncCall.ContainsKey(c.UID))
-				{
-					throw new SerializationException("Two FuncCall instances have UID of " + c.UID);
-				}
-				else
-				{
-					UIDToFuncCall.Add(c.UID, c);
-				}
-			}
-			deserializedCalls.Clear();
 		}
 		public void GetObjectData(SerializationInfo info, StreamingContext context)
 		{
-			info.AddValue("Output", Output);
-			info.AddValue("NextUID", nextUID);
+			info.AddValue("NextUID", NextUID);
+			info.AddValue("Output", Output, typeof(NodeInput));
+
+			info.AddValue("OutputPosX", OutputPos.x);
+			info.AddValue("OutputPosY", OutputPos.y);
+			info.AddValue("OutputSizeX", OutputPos.width);
+			info.AddValue("OutputSizeY", OutputPos.height);
 
 			info.AddValue("Hash1", Hash1);
 			info.AddValue("Hash2", Hash2);
 			info.AddValue("Hash3", Hash3);
 
-			info.AddValue("NFuncCalls", UIDToFuncCall.Count);
-		
-			int count = 0;
-			foreach (FuncCall call in UIDToFuncCall.Values)
+			info.AddValue("NNodes", nodes.Count);
+			for (int i = 0; i < nodes.Count; ++i)
 			{
-				info.AddValue("FuncCall" + count.ToString(), call);
-				count += 1;
+				info.AddValue("Node" + i.ToString(), nodes[i], typeof(Node));
+			}
+		}
+		[OnDeserialized]
+		private void FinalizeDeserialization(StreamingContext context)
+		{
+			uidToNode.Clear();
+			foreach (Node n in nodes)
+			{
+				n.Owner = this;
+				uidToNode.Add(n.UID, n);
 			}
 		}
 	}

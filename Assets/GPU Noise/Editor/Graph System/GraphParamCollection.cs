@@ -4,9 +4,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
-using FloatParam = GPUGraph.FloatParamNode.FloatParamData;
-using SliderParam = GPUGraph.SliderParamNode.SliderParamData;
-
 
 namespace GPUGraph
 {
@@ -16,8 +13,8 @@ namespace GPUGraph
 	[Serializable]
 	public struct GraphParamCollection
 	{
-		public List<FloatParam> FloatParams;
-		public List<SliderParam> SliderParams;
+		public List<ParamNode_Float> FloatParams;
+
 
 
 		/// <summary>
@@ -25,10 +22,30 @@ namespace GPUGraph
 		/// </summary>
 		public GraphParamCollection(Graph g)
 		{
-			FloatParams = new List<FloatParam>();
-			SliderParams = new List<SliderParam>();
+			FloatParams = new List<ParamNode_Float>();
 
-			g.GetParams(FloatParams, SliderParams);
+			foreach (Node n in g.Nodes)
+				if (n is ParamNode_Float)
+					FloatParams.Add((ParamNode_Float)n);
+		}
+		/// <summary>
+		/// Gets all parameters from the given collection and recreates them for the given graph.
+		/// </summary>
+		public GraphParamCollection(Graph otherG, GraphParamCollection c)
+			: this(otherG)
+		{
+			foreach (ParamNode_Float fn in FloatParams)
+			{
+				int fn2Index = c.FloatParams.FindIndex(fn2 => fn2.Name == fn.Name);
+				if (fn2Index == -1)
+				{
+					Debug.LogError("Couldn't find an original value for var '" + fn.Name + "'");
+				}
+				else
+				{
+					fn.DefaultValue = c.FloatParams[fn2Index].DefaultValue;
+				}
+			}
 		}
 
 
@@ -40,20 +57,12 @@ namespace GPUGraph
 		{
 			GraphParamCollection gParams = new GraphParamCollection(g);
 			
-			foreach (FloatParam fp in FloatParams)
+			foreach (ParamNode_Float fn in FloatParams)
 			{
-				int i = gParams.FloatParams.FindIndex(gFP => gFP.VarName == fp.VarName);
+				int i = gParams.FloatParams.FindIndex(gFP => gFP.Name == fn.Name);
 				if (i >= 0)
 				{
-					gParams.FloatParams[i].DefaultValue = fp.DefaultValue;
-				}
-			}
-			foreach (SliderParam sp in SliderParams)
-			{
-				int i = gParams.SliderParams.FindIndex(gSP => gSP.VarName == sp.VarName);
-				if (i >= 0)
-				{
-					gParams.SliderParams[i].DefaultLerp = sp.DefaultLerp;
+					gParams.FloatParams[i].DefaultValue = fn.DefaultValue;
 				}
 			}
 		}
@@ -62,35 +71,58 @@ namespace GPUGraph
 		/// </summary>
 		public void SetParams(Material m)
 		{
-			foreach (FloatParam dat in FloatParams)
-				m.SetFloat(dat.VarName, dat.DefaultValue);
-			foreach (SliderParam dat in SliderParams)
-				m.SetFloat(dat.VarName, Mathf.Lerp(dat.Min, dat.Max, dat.DefaultLerp));
+			foreach (ParamNode_Float dat in FloatParams)
+			{
+				if (!m.HasProperty(dat.Name))
+				{
+					Debug.LogWarning("Couldn't find property '" + dat.Name + "'");
+				}
+				else
+				{
+					m.SetFloat(dat.Name,
+							   (dat.IsSlider ?
+									Mathf.Lerp(dat.SliderMin, dat.SliderMax, dat.DefaultValue) :
+									dat.DefaultValue));
+				}
+			}
 		}
 		/// <summary>
 		/// Runs a GUI using EditorGUILayout for these parameters.
 		/// This GUI can be used to modify each parameter's "default value" fields.
+		/// Returns whether any values have been changed.
 		/// </summary>
-		public void ParamEditorGUI()
+		public bool ParamEditorGUI()
 		{
-			foreach (FloatParam fp in FloatParams)
+			bool changed = false;
+
+			foreach (ParamNode_Float fn in FloatParams)
 			{
-				EditorGUILayout.BeginHorizontal();
-				EditorGUILayout.LabelField(FuncDefinitions.PrettifyVarName(fp.VarName));
-				fp.DefaultValue = EditorGUILayout.FloatField(fp.DefaultValue);
-				EditorGUILayout.EndHorizontal();
+				GUILayout.BeginHorizontal();
+				GUILayout.Label(StringUtils.PrettifyVarName(fn.Name));
+				float oldVal = fn.DefaultValue;
+				if (fn.IsSlider)
+				{
+					GUILayout.Label(fn.SliderMin.ToString());
+					fn.DefaultValue = Mathf.InverseLerp(fn.SliderMin, fn.SliderMax,
+													    GUILayout.HorizontalSlider(Mathf.Lerp(fn.SliderMin,
+																							  fn.SliderMax,
+																							  fn.DefaultValue),
+																				   fn.SliderMin,
+																				   fn.SliderMax,
+																				   GUILayout.MinWidth(50.0f)));
+					GUILayout.Label(fn.SliderMax.ToString());
+				}
+				else
+				{
+					fn.DefaultValue = EditorGUILayout.FloatField(fn.DefaultValue);
+				}
+				
+				changed = (changed || Node.AreFloatsDifferent(oldVal, fn.DefaultValue));
+				
+				GUILayout.EndHorizontal();
 			}
 
-			foreach (SliderParam sp in SliderParams)
-			{
-				EditorGUILayout.BeginHorizontal();
-				EditorGUILayout.LabelField(FuncDefinitions.PrettifyVarName(sp.VarName));
-				sp.DefaultLerp = Mathf.InverseLerp(sp.Min, sp.Max,
-												   EditorGUILayout.Slider(Mathf.Lerp(sp.Min, sp.Max,
-																					 sp.DefaultLerp),
-																		  sp.Min, sp.Max));
-				EditorGUILayout.EndHorizontal();
-			}
+			return changed;
 		}
 	}
 }

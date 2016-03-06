@@ -30,63 +30,6 @@ namespace GPUGraph
 
 
 		/// <summary>
-		/// Loads a graph from the given file.
-		/// Returns "null" and prints to the Debug console if there was an error.
-		/// </summary>
-		public static Graph LoadGraph(string filePath)
-		{
-			IFormatter formatter = new BinaryFormatter();
-			Stream s = null;
-			Graph g = null;
-
-			try
-			{
-				s = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-				g = (Graph)formatter.Deserialize(s);
-			}
-			catch (System.Exception e)
-			{
-				UnityEngine.Debug.LogError("Error opening file: " + e.Message);
-			}
-			finally
-			{
-				s.Close();
-			}
-
-			return g;
-		}
-		/// <summary>
-		/// Saves the given graph to the given file, overwriting it if it exists.
-		/// Prints to the Debug console and returns false if there was an error.
-		/// Otherwise, returns true.
-		/// </summary>
-		public static bool SaveGraph(Graph g, string filePath)
-		{
-			IFormatter formatter = new BinaryFormatter();
-			Stream stream = null;
-			bool failed = false;
-			try
-			{
-				stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-				formatter.Serialize(stream, g);
-			}
-			catch (System.Exception e)
-			{
-				failed = true;
-				UnityEngine.Debug.LogError("Error opening/writing to file: " + e.Message);
-			}
-			finally
-			{
-				if (stream != null)
-				{
-					stream.Close();
-				}
-			}
-
-			return !failed;
-		}
-
-		/// <summary>
 		/// Saves the shader for the given graph to the given file with the given name.
 		/// Also forces Unity to immediately recognize and compile the shader
 		///     so that it can be immediately used after calling this function.
@@ -105,7 +48,7 @@ namespace GPUGraph
 										string outputComponents = "rgb",
 										float defaultColor = 0.0f)
 		{
-			string relativePath = PathUtils.GetRelativePath(filePath, "Assets");
+			string relativePath = StringUtils.GetRelativePath(filePath, "Assets");
 
 			try
 			{
@@ -144,7 +87,7 @@ namespace GPUGraph
 		/// <param name="defaultColor">
 		/// The color (generally 0-1) of the color components which aren't set by the noise.
 		/// </param>
-		public static Texture2D GenerateToTexture(Graph g, int width, int height,
+		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c, int width, int height,
 												  string outputComponents = "rgb",
 												  float defaultColor = 0.0f,
 												  TextureFormat format = TextureFormat.RGBAFloat)
@@ -164,13 +107,13 @@ namespace GPUGraph
 
 			//Create the material and set its parameters.
 			Material mat = new Material(shader);
-			new GraphParamCollection(g).SetParams(mat);
+			c.SetParams(mat);
 
 			GraphUtils.GenerateToTexture(target, new Material(shader), resultTex);
 
 			//Clean up.
 			target.Release();
-			if (!AssetDatabase.DeleteAsset(PathUtils.GetRelativePath(shaderPath, "Assets")))
+			if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
 			{
 				Debug.LogError("Unable to delete temp file: " + shaderPath);
 			}
@@ -182,9 +125,9 @@ namespace GPUGraph
 		/// Generates a 2D grid of noise from the given graph.
 		/// If an error occurred, outputs to the Unity debug console and returns "null".
 		/// </summary>
-		public static float[,] GenerateToArray(Graph g, int width, int height)
+		public static float[,] GenerateToArray(Graph g, GraphParamCollection c, int width, int height)
 		{
-			Texture2D t = GenerateToTexture(g, width, height, "r");
+			Texture2D t = GenerateToTexture(g, c, width, height, "r");
 			if (t == null)
 			{
 				return null;

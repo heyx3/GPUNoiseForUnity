@@ -64,8 +64,8 @@ namespace GPUGraph.Applications
 			selectedGraphIndex = EditorGUILayout.Popup(selectedGraphIndex, graphNameOptions);
 			if (oldIndex != selectedGraphIndex)
 			{
-				Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
-				if (g == null)
+				Graph g = new Graph(graphPaths[selectedGraphIndex]);
+				if (g.Load().Length == 0)
 				{
 					selectedGraphIndex = oldIndex;
 				}
@@ -81,8 +81,8 @@ namespace GPUGraph.Applications
 															  "shader");
 				if (savePath.Length > 0)
 				{
-					Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
-					if (g != null)
+					Graph g = new Graph(graphPaths[selectedGraphIndex]);
+					if (g.Load().Length == 0)
 					{
 						string outComponents = "";
 						if (useRed)

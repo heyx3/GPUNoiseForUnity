@@ -43,8 +43,8 @@ namespace GPUGraph.Applications
 			selectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
-				Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
-				if (g != null)
+				Graph g = new Graph(graphPaths[selectedGraphIndex]);
+				if (g.Load().Length == 0)
 				{
 					gParams = new GraphParamCollection(g);
 				}
@@ -53,6 +53,8 @@ namespace GPUGraph.Applications
 
 		void OnGUI()
 		{
+			GUILayout.Space(10.0f);
+
 			if (Selection.activeGameObject == null ||
 				Selection.activeGameObject.GetComponent<Terrain>() == null)
 			{
@@ -61,12 +63,14 @@ namespace GPUGraph.Applications
 			else
 			{
 				//Graph selection.
+				GUILayout.BeginHorizontal();
+				GUILayout.Label("Graph:");
 				int oldIndex = selectedGraphIndex;
 				selectedGraphIndex = EditorGUILayout.Popup(selectedGraphIndex, graphNameOptions);
 				if (oldIndex != selectedGraphIndex)
 				{
-					Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
-					if (g == null)
+					Graph g = new Graph(graphPaths[selectedGraphIndex]);
+					if (g.Load().Length == 0)
 					{
 						selectedGraphIndex = oldIndex;
 					}
@@ -75,21 +79,22 @@ namespace GPUGraph.Applications
 						gParams = new GraphParamCollection(g);
 					}
 				}
+				GUILayout.EndHorizontal();
 
-				EditorGUILayout.Space();
+				GUILayout.Space(15.0f);
 
 				//Graph params.
 				gParams.ParamEditorGUI();
-
-				EditorGUILayout.Space();
+				
+				GUILayout.Space(15.0f);
 
 				//Other params.
 				EditorGUILayout.BeginHorizontal();
 				EditorGUILayout.LabelField("Height scale:");
 				heightScale = EditorGUILayout.FloatField(heightScale);
 				EditorGUILayout.EndHorizontal();
-
-				EditorGUILayout.Space();
+				
+				GUILayout.Space(15.0f);
 
 				//Button to generate heightmap.
 				if (GUILayout.Button("Generate Heightmap"))
@@ -102,14 +107,18 @@ namespace GPUGraph.Applications
 		{
 			Terrain terr = Selection.activeGameObject.GetComponent<Terrain>();
 			TerrainData dat = terr.terrainData;
-			Graph g = GraphEditorUtils.LoadGraph(graphPaths[selectedGraphIndex]);
+			Graph g = new Graph(graphPaths[selectedGraphIndex]);
 
-			if (g == null)
+			string err = g.Load();
+			if (err.Length > 0)
 			{
+				Debug.LogError("Error loading graph: " + err);
 				return;
 			}
 
-			float[,] heights = GraphEditorUtils.GenerateToArray(g, dat.heightmapWidth, dat.heightmapHeight);
+			float[,] heights = GraphEditorUtils.GenerateToArray(g, new GraphParamCollection(g, gParams),
+																dat.heightmapWidth,
+																dat.heightmapHeight);
 			if (heights == null)
 			{
 				return;

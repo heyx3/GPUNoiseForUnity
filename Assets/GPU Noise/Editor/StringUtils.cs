@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Some extra helper methods to complement the Path class.
 /// </summary>
-public static class PathUtils
+public static class StringUtils
 {
 	/// <summary>
 	/// Turns the given full path into a relative one starting just above the given directory.
@@ -57,5 +57,61 @@ public static class PathUtils
 		sb.Replace('/', Path.DirectorySeparatorChar);
 		sb.Replace('\\', Path.DirectorySeparatorChar);
 		return sb.ToString();
+	}
+
+	/// <summary>
+	/// If the given string ends in a number, increments that number.
+	/// Otherwise, appends a "2" to it.
+	/// </summary>
+	public static string IncrementNumberPostfix(string str)
+	{
+		StringBuilder number = new StringBuilder();
+		int i;
+		for (i = str.Length - 1; i >= 0; --i)
+		{
+			if (str[i] < '0' || str[i] > '9')
+				break;
+			number.Append(str[i]);
+		}
+
+		if (number.Length == 0)
+			return str + "2";
+		else
+			return str.Substring(0, i + 1) + (int.Parse(number.ToString())).ToString();
+	}
+
+	/// <summary>
+	/// Turns the given variable name into a nice display name.
+	/// </summary>
+	public static string PrettifyVarName(string name)
+	{
+		StringBuilder sb = new StringBuilder(name);
+		for (int i = 0; i < sb.Length; ++i)
+		{
+			if (sb[i] == '_')
+			{
+				sb[i] = ' ';
+
+				//Make the next letter uppercase.
+				if (i + 1 < sb.Length && sb[i + 1] >= 'a' && sb[i + 1] <= 'z')
+				{
+					sb[i + 1] -= (char)('a' - 'A');
+				}
+			}
+		}
+
+		return sb.ToString().Trim();
+	}
+
+	/// <summary>
+	/// Finds the last instance of the given char and removes it
+	///     along with everything that came before it.
+	/// </summary>
+	public static string RemoveEverythingBefore(this string str, char c)
+	{
+		int i = str.Length - 1;
+		while (i >= 0 && str[i] != c)
+			i -= 1;
+		return str.Substring(i + 1, str.Length - i - 1);
 	}
 }
