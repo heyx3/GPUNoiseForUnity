@@ -75,7 +75,14 @@ namespace GPUGraph
 		}
 
 
-		public override string PrettyName { get { return "Sub-Graph"; } }
+		public override string PrettyName
+		{
+			get
+			{
+				return "Sub-Graph: " +
+						System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(GraphGUID));
+			}
+		}
 
 
 		public SubGraphNode(Rect pos)
@@ -217,6 +224,7 @@ namespace GPUGraph
 			{
 				//Offset all the UID's so there's no conflicts with the rest of the graph.
 				n.UID = baseUID + n.UID;
+				Owner.NextUID = Mathf.Max(Owner.NextUID, n.UID + 1);
 				for (int i = 0; i < n.Inputs.Count; ++i)
 					if (!n.Inputs[i].IsAConstant)
 						n.Inputs[i] = new NodeInput(n.Inputs[i].NodeID + baseUID);
@@ -279,6 +287,10 @@ namespace GPUGraph
 					}
 				}
 			}
+
+			//Remove the float params.
+			foreach (Node n in floatParams)
+				Owner.RemoveNode(n);
 
 			//Replace any references to this node with references to the output of the sub-graph.
 			NodeInput gOut = (g.Output.IsAConstant ?
