@@ -40,7 +40,11 @@ namespace GPUGraph
 		/// <summary>
 		/// Creates a new node that calls a function with a constant number of inputs.
 		/// </summary>
-		/// <param name="expr">An expression using the given inputs.</param>
+		/// <param name="expr">
+		/// An expression using the given inputs.
+		/// NOTE: in the expression, an input should be surrounded by apostrophes
+		///     to distinguish it from the rest of the code.
+		/// </param>
 		/// <param name="inputs">The inputs used by the given expression.</param>
 		public SimpleNode(Rect pos, string expr, string name, params Param[] inputs)
 			: base(pos,
@@ -67,7 +71,7 @@ namespace GPUGraph
 			outCode.Append(" = (");
 			string expr = Expr;
 			for (int i = 0; i < Inputs.Count; ++i)
-				expr = expr.Replace(GetInputName(i), Inputs[i].GetExpression(Owner));
+				expr = expr.Replace("'" + GetInputName(i) + "'", Inputs[i].GetExpression(Owner));
 			outCode.Append(expr);
 			outCode.AppendLine(");");
 		}

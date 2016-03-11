@@ -507,21 +507,21 @@ namespace GPUGraph.Editor
 						case KeyCode.Plus:
 						case KeyCode.KeypadPlus:
 							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "f1 + f2", "Add",
+											    "'f1' + 'f2'", "Add",
 											    new SimpleNode.Param("f1", 0.0f),
 											    new SimpleNode.Param("f2", 0.0f));
 							break;
 						case KeyCode.Minus:
 						case KeyCode.KeypadMinus:
 							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "f1 - f2", "Subtract",
+											    "'f1' - 'f2'", "Subtract",
 												new SimpleNode.Param("f1", 0.0f),
 												new SimpleNode.Param("f2", 0.0f));
 							break;
 						case KeyCode.Asterisk:
 						case KeyCode.KeypadMultiply:
 							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "f1 * f2", "Multiply",
+											    "'f1' * 'f2'", "Multiply",
 												new SimpleNode.Param("f1", 1.0f),
 												new SimpleNode.Param("f2", 1.0f));
 							break;
@@ -529,7 +529,7 @@ namespace GPUGraph.Editor
 						case KeyCode.Backslash:
 						case KeyCode.KeypadDivide:
 							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "f1 / f2", "Divide",
+											    "'f1' / 'f2'", "Divide",
 												new SimpleNode.Param("f1", float.NaN),
 												new SimpleNode.Param("f2", 1.0f));
 							break;

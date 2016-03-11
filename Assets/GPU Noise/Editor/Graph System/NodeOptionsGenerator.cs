@@ -64,14 +64,14 @@ namespace GPUGraph
 		public static NodeTree_Element_Option OneVarFunc(string func, string title, string tooltip,
 														 string var = "f", float defVal = float.NaN)
 		{
-			return new Option((g, r) => new SimpleNode(r, func + "(" + var + ")", title, new P(var, defVal)),
+			return new Option((g, r) => new SimpleNode(r, func + "('" + var + "')", title, new P(var, defVal)),
 							  title, tooltip);
 		}
 		public static NodeTree_Element_Option TwoVarFunc(string func, string title, string tooltip,
 														 string var1 = "x", float defVal1 = float.NaN,
 														 string var2 = "y", float defVal2 = float.NaN)
 		{
-			return new Option((g, r) => new SimpleNode(r, func + "(" + var1 + ", " + var2 + ")", title,
+			return new Option((g, r) => new SimpleNode(r, func + "('" + var1 + "', '" + var2 + "')", title,
 													   new P(var1, defVal1), new P(var2, defVal2)),
 							  title, tooltip);
 		}
@@ -80,7 +80,7 @@ namespace GPUGraph
 														   string var2 = "y", float defVal2 = float.NaN,
 														   string var3 = "t", float defVal3 = float.NaN)
 		{
-			return new Option((g, r) => new SimpleNode(r, func + "(" + var1 + ", " + var2 + ", " + var3 + ")", title,
+			return new Option((g, r) => new SimpleNode(r, func + "('" + var1 + "', '" + var2 + "', '" + var3 + "')", title,
 													   new P(var1, defVal1), new P(var2, defVal2), new P(var3, defVal3)),
 							  title, tooltip);
 		}
@@ -137,22 +137,25 @@ namespace GPUGraph
 										"a", float.NaN, "b", float.NaN, "t"),
 					Option.ThreeVarFunc("smoothstep", "Smoothstep", "Like \"Lerp\" but pushed out to the edges of the range",
 										"a", 0.0f, "b", 1.0f, "t"),
-					new Option((g, r) => new SimpleNode(r, "smoothstep(x, y, smoothstep(0.0, 1.0, t))", "Smoothstep",
+					new Option((g, r) => new SimpleNode(r, "smoothstep('x', 'y', smoothstep(0.0, 1.0, 't'))",
+														"Smoothstep",
 														new P("x", 0.0f), new P("y", 0.0f), new P("t")),
 							   "Smootherstep", "Like \"Smoothstep\" but even more pushed outwards"),
-					new Option((g, r) => new SimpleNode(r, "lerp(destMin, destMax, (srcVal - srcMin) / (srcMax - srcMin))", "Remap",
+					new Option((g, r) => new SimpleNode(r, "lerp('destMin', 'destMax', " +
+																 "('srcVal' - 'srcMin') / ('srcMax' - 'srcMin'))",
+														"Remap",
 														new P("destMin", 0.0f), new P("destMax", 1.0f),
 														new P("srcMin", -1.0f), new P("srcMax", 1.0f),
 														new P("srcVal")),
 							   "Remap", "Remaps a value from a source range to a destination range")),
 				new Category("Basic",
-					new Option((g, r) => new SimpleNode(r, "f1 + f2", "Add", new P("f1"), new P("f2")),
+					new Option((g, r) => new SimpleNode(r, "'f1' + 'f2'", "Add", new P("f1"), new P("f2")),
 							   "Add", "Adds two values together"),
-					new Option((g, r) => new SimpleNode(r, "f1 - f2", "Subtract", new P("f1"), new P("f2")),
+					new Option((g, r) => new SimpleNode(r, "'f1' - 'f2'", "Subtract", new P("f1"), new P("f2")),
 							   "Subtract", "Subtracts the second value from the first"),
-					new Option((g, r) => new SimpleNode(r, "f1 * f2", "Multiply", new P("f1"), new P("f2")),
+					new Option((g, r) => new SimpleNode(r, "'f1' * 'f2'", "Multiply", new P("f1"), new P("f2")),
 							   "Multiply", "Multiplies two values together"),
-					new Option((g, r) => new SimpleNode(r, "f1 / f2", "Divide", new P("f1"), new P("f2")),
+					new Option((g, r) => new SimpleNode(r, "'f1' / 'f2'", "Divide", new P("f1"), new P("f2")),
 							   "Divide", "Divides the first value by the second")),
 				new Category("Trig",
 					Option.OneVarFunc("sin", "Sin", "A sine wave"),
