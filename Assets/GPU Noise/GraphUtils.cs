@@ -23,25 +23,19 @@ namespace GPUGraph
 					rendTex.Release();
 
 				//Find a valid texture format.
-				RenderTextureFormat rtFMT = RenderTextureFormat.RFloat;
-				TextureFormat fmt = TextureFormat.RFloat;
+				RenderTextureFormat rtFMT = RenderTextureFormat.ARGBFloat;
+				TextureFormat fmt = TextureFormat.RGBAFloat;
 				if (!SystemInfo.SupportsRenderTextureFormat(rtFMT) ||
 					!SystemInfo.SupportsTextureFormat(fmt))
 				{
-					rtFMT = RenderTextureFormat.R8;
-					fmt = TextureFormat.R16;
+					rtFMT = RenderTextureFormat.ARGB32;
+					fmt = TextureFormat.RGBA32;
 					if (!SystemInfo.SupportsRenderTextureFormat(rtFMT) ||
 						!SystemInfo.SupportsTextureFormat(fmt))
 					{
-						rtFMT = RenderTextureFormat.ARGB32;
-						fmt = TextureFormat.ARGB32;
-						if (!SystemInfo.SupportsRenderTextureFormat(rtFMT) ||
-							!SystemInfo.SupportsTextureFormat(fmt))
-						{
-							Debug.LogError("Platform doesn't support RFloat, R8/R16, or ARGB32 texture formats." +
-										   "Rewrite \"GraphUtils.SetUpRendTex\" to use a different format.");
-							return;
-						}
+						Debug.LogError("Platform doesn't support ARGBFloat or ARGB32 texture formats." +
+									   "Rewrite \"GraphUtils.SetUpRendTex\" to use a different format.");
+						return;
 					}
 				}
 
