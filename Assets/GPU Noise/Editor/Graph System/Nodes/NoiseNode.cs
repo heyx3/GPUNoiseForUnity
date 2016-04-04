@@ -17,6 +17,7 @@ namespace GPUGraph
 	{
 		public enum NoiseTypes
 		{
+			//TODO: Add Blue, Pink, Brown.
 			White, Blocky, Linear, Smooth, Smoother, Perlin, Worley
 		}
 
@@ -24,7 +25,7 @@ namespace GPUGraph
 		{
 			switch (type)
 			{
-				case NoiseTypes.White: return "WhiteNoise" + nDimensions;
+				case NoiseTypes.White: return "hashValue" + nDimensions;
 				case NoiseTypes.Blocky: return "GridNoise" + nDimensions;
 				case NoiseTypes.Linear: return "LinearNoise" + nDimensions;
 				case NoiseTypes.Smooth: return "SmoothNoise" + nDimensions;
