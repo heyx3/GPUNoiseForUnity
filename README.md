@@ -23,45 +23,33 @@ Here is an example of a graph that generates pure white noise:
 
 In the above image, note the various aspects of the graph editor:
 
-* On the top-left is the graph beind edited. This dropdown box lists all the .gpug files in your Unity project.
+* On the far left is a window for choosing nodes to place down in the graph.
+* On the right is the graph itself.
+* On the top-left of the graph window is the specific graph file being edited. This dropdown box lists all the .gpug files in your Unity project.
 * Below that is the button for creating a new graph.
 * Below the "New Graph" button is a lot of empty space. When you have unsaved changes in your graph, you will instead see "Save Changes" and "Discard Changes" buttons here.
 * In the middle-left of the window are the "hash" functions. The basis for all GPU noise is a function for hashing floats into a pseudo-random value between 0 and 1. You may customize the hash for 1D, 2D, and 3D float vectors if you wish.
 * Below the hash functions is the preview window, which shows what would happen if you rendered your noise graph to a 2D texture. You can check the "Auto-Update Preview" box to automatically update the preview every time the graph is edited.
 * On the right of these UI elements, separated by a solid black bar, is the graph area. This displays all your nodes. The right-most node, "Output", represents the final output of the graph.
 
-In order to add a new node, right-click in the graph area and select the node you want to create. A node's inputs are on the left side, and its output is on the right side. Note that some nodes have no inputs at all. Each input is either the output of a different node or a constant value entered in a text box.
+In order to add a new node, click the button for the node you want to place, then left-click in the graph to place it. Right-click in the graph to cancel. A node's inputs are on the left side, and its output is on the right side. Note that some nodes have no inputs at all. Each input to a node is either the output of a different node or a constant value entered in a text box.
 
 # Nodes
 
-All the nodes this graph currently contains are listed here. Note that all noise nodes return a value between 0 and 1. See below this list for visual examples of some of the noise functions:
+All the nodes this graph currently contains are listed here. Note that all noise nodes return a value between 0 and 1. See below this list for visual examples of some of the noise functions.
 
-* WhiteNoise1: takes a single float and hashes it to get a pseudo-random value.
-* WhiteNoise2: the two-dimensional version of WhiteNoise1 (takes two floats instead of one).
-* WhiteNoise3: the three-dimensional version of WhiteNoise1 (takes three floats instead of one).
-* GridNoise1: takes a single float, `floor`s it, and hashes the floored value. This creates a blocky noise value.
-* GridNoise2: the two-dimensional version of GridNoise1.
-* GridNoise3: the three-dimensional version of GridNoise1.
-* LinearNoise1: takes a single float, `floor`s and `ceil`s it, and `lerp`s between the hashes of those two values. This creates a smoother version of GridNoise at a higher performance cost.
-* LinearNoise2: the two-dimensional version of LinearNoise1.
-* LinearNoise3: the three-dimensional version of LinearNoise1.
-* SmoothNoise1: a smoother version of LinearNoise1, at a higher performance cost.
-* SmoothNoise2: the two-dimensional version of SmoothNoise1.
-* SmoothNoise3: the three-dimensional version of SmoothNoise1.
-* SmootherNoise1: a smoother version of SmoothNoise1, at a higher performance cost.
-* SmootherNoise2: the two-dimensional version of SmootherNoise1.
-* SmootherNoise3: the three-dimensional version of SmootherNoise1.
-* PerlinNoise1: a high-quality alternative to SmootherNoise1, with a higher performance cost.
-* PerlinNoise2: the two-dimensional version of PerlinNoise1.
-* PerlinNoise3: the three-dimensional version of PerlinNoise1.
-* WorleyNoise1: generates random points on a grid and outputs noise based on how far away each pixel is from the nearest point.
-* WorleyNoise2: the two-dimensional version of WorleyNoise1.
-* WorleyNoise3: the three-dimensional version of WorleyNoise1.
-* MultiOctavePerlin1: combines multiple layers of Perlin noise at different frequencies.
-* MultiOctavePerlin2: the two-dimensional version of MultiOctavePerlin1.
-* MultiOctavePerlin3: the three-dimensional version of MultiOctavePerlin1.
-
-The rest of the nodes are not noise functions themselves, but can be very useful.
+* Noise: Exposes a wide variety of 1D, 2D, or 3D noise with a scale/weight value for convenience when combining multiple octaves of noise.
+    * White noise: a pseudo-random value.
+    * Grid noise: gets white noise for the `floor`ed seed value. Creates 1x1 square blocks of noise.
+    * Linear noise: Like Grid noise but with a linear interpolation between values instead of solid blocks.
+    * Smooth noise: Like Linear noise but smoother and a bit more expensive.
+    * Smoother noise: Like Smooth noise but smoother and a bit more expensive.
+    * Perlin noise: Like Smoother noise but better, with fewer blocky artifacts, and more expensive.
+    * Worley noise: Generates random points on a grid and outputs noise based on how far away each pixel is from the nearest point.
+* UV: The X or Y coordinate (from 0 to 1) of the pixel in the render texture currently being generated.
+* Float Parameter: A shader parameter that can be set when generating the noise.
+* Tex2D Parameter: A texture parameter that can be set when generating the noise.
+* Sub-graph: Outputs the result of another graph file.
 * Fract: gets the fractional part of an input.
 * Ceil: gets the next integer value after the input.
 * Floor: gets the integer value just before the input.
@@ -90,22 +78,8 @@ The rest of the nodes are not noise functions themselves, but can be very useful
 * Lerp: Linearly interpolates between the first and second inputs using the third input.
 * Smoothstep: Like `Lerp` but with a smooth, third-order curve instead of a line.
 * Remap: Remaps a value from the "source" min and max to the "destination" min and max.
-* UV_X: The X coordinate (from 0 to 1) of the pixel in the render texturecurrently being generated.
-* UV_Y: The Y coordinate (from 0 to 1) of the pixel in the render texture currently being generated.
-* FloatParam: A shader parameter that can be set when generating the noise.
-* SliderParam: Another kind of shader parameter.
-
-Finally, you can actually use the output of other graphs as nodes! At the bottom of the node list are your project's graphs, prefixed with "graph_". Any float or slider params they have will be conveniently exposed as inputs.
 
 **Note**: There is no checking for infinite loops with using graphs as nodes. In other words, if graph A calls into graph B, and graph B calls into graph A, actually using/previewing either graph will likely cause an infinite loop, crashing Unity.
-
-Here is an example of how to use the various noise nodes in a simple graph:
-
-![Grid Noise](https://raw.githubusercontent.com/heyx3/GPUNoiseForUnity/master/Readme%20Images/GridNoise.png)
-![Linear Noise](https://raw.githubusercontent.com/heyx3/GPUNoiseForUnity/master/Readme%20Images/LinearNoise.png)
-![Smooth Noise](https://raw.githubusercontent.com/heyx3/GPUNoiseForUnity/master/Readme%20Images/SmoothNoise.png)
-![Perlin Noise](https://raw.githubusercontent.com/heyx3/GPUNoiseForUnity/master/Readme%20Images/PerlinNoise.png)
-
 
 # Applications
 
@@ -113,44 +87,47 @@ Several example applications are built into the editor; they are all accessible 
 
 ## <a name="GenerateShader"></a>Shader Generator
 
-This tool generates a shader that outputs the graph's noise. You could then create a material that uses this shader (and has custom values for each of the parameter nodes in the graph) and use it to generate noise via the `GPUGraph.GraphUtils` class.
+This tool generates a shader that outputs the graph's noise. You could then create a material that uses this shader (and has custom values for each of the parameter nodes in the graph) and use it in the editor or at runtime to generate noise via the `GPUGraph.GraphUtils` and `GPUGraph.GraphEditorUtils` classes.
 
 ## Texture Generator
 
-This tool generates a 2D texture file using a graph's noise.
+This tool generates a 2D texture file using a graph.
 
 ## Terrain Generator
 
-This tool uses a graph's noise to generate a heightmap for whatever terrain object is currently selected in the scene view.
+This tool uses a graph to generate a heightmap for whichever terrain object is currently selected in the scene view.
 
 
 # Code
 
-There are three categories of code in the project:
+Code is organized in the following folder hierarchy:
+
+* **Graph System**: The code for representing a graph.
+    * **Nodes**: Specific kinds of nodes that can be placed in a graph.
+    * **Editor**: The Unity editor window for creating/modifying graphs.
+* **Applications**: The above-metioned sample utilities: texture, shader, and terrain generators.
 
 ## Graph System
 
 *namespace: GPUGraph*
 
-The basic system for creating and manipulating graph data.
+The basic system for creating and manipulating graph data. This system uses C#'s built-in serialization system to save/load graphs to/from a file.
 
-A graph node is an instance of the `Func` class. Simple nodes (e.x. *WhiteNoise1*, *Lerp*, *Sin*) are actual `Func` instances, while more complex nodes (*UV_x*, *UV_y*, *FloatParam*, and *SliderParam*) are child classes that inherit from `Func`. All node types are defined in *FuncDefinitions.cs*.
+A graph node is an instance of a class inheriting from `Node`. class. A node is given a unique UID by the graph it is added to, which is used when serializing/deserializing node references. It also has a rectangle representing its visual position in the graph editor.
 
-The `GraphEditorUtils` class provides various ways to interact with a graph, including `GetAllGraphsInProject()`, `LoadGraph()`, `SaveGraph()`, `SaveShader()`, `GenerateToTexture()`, and `GenerateToArray()`.
+A node's inputs are stored as a list of `NodeInput` instances. Each `NodeInput` is either a constant float (in which case `IsAConstant` returns `true` and `ConstantValue` is well-defined) or it is the output of another node (in which case `IsAConstant` returns `false` and `NodeID` contains the UID of the node whose output is being read).
 
-If you want to add a new simple node, just go to the declaration of the "Functions" array in `FuncDefinitions` and add your Func to the end of it in the form of actual shader code (take a look at the other nodes for examples), or if it's *really* simple you can use one of the the `MakeSimpleX` functions to generate it. Note that you may add default values for each input, and the function must return a `float`.
+Graphs are represented by the `Graph` class, which has a collection of nodes, the file path of the graph, the 1D/2D/3D hashing functions, and the final output of the graph (a `NodeInput` instance). It exposes `Save()` and `Load()` methods.
 
-If you want to create a more complex node, refer to the bottom of *FuncDefinitions.cs* to see how *UV_x*, *UV_y*, *FloatParam*, and *SliderParam* were implemented.
+The `GraphEditorUtils` class provides various ways to interact with a graph in the editor, including `GetAllGraphsInProject()`, `SaveShader()`, `GenerateToTexture()`, and `GenerateToArray()`. The `GraphEditor` class provides various ways to interact with a graph at *run-time* (after it's already been generated into a shader/material in the editor), including `GenerateToTexture()` and `GenerateToArray()`.
 
-## Graph Editor
-
-*namespace: GPUGraph.Editor*
-
-The editor for the graph is split into two classes:
-
-* `EditorGraph`: The graph itself, plus the file-name. When an instance is created, the positions of each node are automatically generated.
-* `EditorGraphWindow`: The `EditorWindow` class that contains all the Unity GUI code for rendering/modifying the graph.
-
+The number of `Node` child classes is actually fairly small:
+* `SimpleNode` handles any kind of one-line expression, including all the built-in shader functions like `sin`, `lerp`, `abs`, etc. The vast majority of nodes are instances of `SimpleNode`.
+* `NoiseNode` is a noise generation node. It can be "White", "Blocky", "Linear", "Smooth", "Smoother", "Perlin", or "Worley". Note that "Worley" has special editing options that the other noise types don't need. It can also be 1D, 2D, or 3D.
+* `TexCoordNode` represents the UV coordinates of the texture the graph noise is being rendered into. This is generally how you get the seed values for a noise function. It can output either the X or the Y coordinate.
+* `ParamNode_Float` is a float parameter represented as either a text box or a slider.
+* `ParamNode_Texture2D` is a 2D texture parameter.
+* `SubGraphNode` allows graphs to be used inside other graphs. 
 ## Applications
 
 *namespace: GPUGraph.Applications*
@@ -160,9 +137,8 @@ The various built-in utilities mentioned above: *ShaderGenerator*, *TextureGener
 ## Other
 
 There are also a few general-purpose scripts that exist outside these folders/namespaces:
-* `GraphUtils`: As mentioned before, this class lets you generate noise data into a buffer on the GPU (i.e. a texture) or the CPU (i.e. an array).
-* `PathUtils`: Helper functions for file paths.
-* `GUIUtil`: Provides primitive-drawing functions for use in the Unity editor GUI system.
+* `StringUtil`: Helper functions for path/string manipulation.
+* `GUIUtil`: Provides primitive-drawing functions for use in the graph editor window.
 
 
 # License
