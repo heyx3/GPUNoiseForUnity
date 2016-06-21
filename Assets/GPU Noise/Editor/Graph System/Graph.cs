@@ -70,10 +70,10 @@ namespace GPUGraph
 		}
 
 
-		public Graph Clone()
+		public Graph Clone(int idOffset = 0)
 		{
 			Graph g = new Graph();
-			g.NextUID = NextUID;
+			g.NextUID = NextUID + idOffset;
 			g.FilePath = FilePath;
 			g.Output = Output;
 			g.OutputPos = OutputPos;
@@ -82,7 +82,7 @@ namespace GPUGraph
 			g.Hash3 = Hash3;
 
 			foreach (Node n in nodes)
-				g.nodes.Add(n.Clone(g, false));
+				g.nodes.Add(n.Clone(g, false, idOffset));
 			foreach (Node n in g.nodes)
 				g.uidToNode.Add(n.UID, n);
 
@@ -142,72 +142,148 @@ namespace GPUGraph
 		}
 
 
+        /// <summary>
+        /// Inserts code for this graph into the given strings,
+        ///     and outputs an expression that evaluates to the output of this graph.
+        /// </summary>
+        /// <param name="idOffset">
+        /// Offsets the ids of the nodes in this graph
+        ///     so that they do not conflict with the ID's of any other nodes in other graphs used by this shader.
+        /// This offset should be larger than any ID of a node in any other graph.
+        /// </param>
+        /// <param name="isFirstGraph">
+        /// Indicates whether this is the first time that
+        ///     generated code from a Graph is being inserted into this shader.
+        /// If true, certain function definitions will be included into the shader code.
+        /// </param>
+        public string InsertShaderCode(StringBuilder shaderProperties, StringBuilder shaderCGDefines,
+                                       StringBuilder shaderBody,
+                                       int idOffset, bool isFirstGraph)
+        {
+            //Clone this graph so nodes can pre-process it before generating the shader code.
+            Graph g = Clone(idOffset);
+            return g.InsertShad(shaderProperties, shaderCGDefines, shaderBody, isFirstGraph);
+        }
+        private string InsertShad(StringBuilder properties, StringBuilder cgProperties,
+                                  StringBuilder body, bool addDefines)
+        {
+            //Let all nodes do pre-processing.
+            {
+                List<Node> currentNodes = new List<Node>(nodes),
+                           newNodes = new List<Node>();
+                foreach (Node n in currentNodes)
+                    newNodes.AddRange(n.OnPreProcess());
+
+                while (newNodes.Count > 0)
+                {
+                    List<Node> newerNodes = new List<Node>();
+                    foreach (Node n in newNodes)
+                        newerNodes.AddRange(n.OnPreProcess());
+                    newNodes = newerNodes;
+                }
+            }
+
+            //Emit properties in no particular order.
+            foreach (Node n in nodes)
+            {
+                n.EmitProperties(properties);
+                n.EmitDefs(cgProperties);
+            }
+
+            if (addDefines)
+            {
+                cgProperties.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
+                cgProperties.AppendLine(ShaderDefs.Functions);
+            }
+
+            //Emit code for all nodes in proper order.
+            Stack<Node> toProcess = new Stack<Node>();
+            Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
+            if (!Output.IsAConstant)
+            {
+                toProcess.Push(GetNode(Output.NodeID));
+                uidDoneYet.Add(Output.NodeID, false);
+            }
+            while (toProcess.Count > 0)
+            {
+                Node n = toProcess.Peek();
+
+                //If the next node hasn't been processed yet, add its inputs to the stack.
+                if (!uidDoneYet[n.UID])
+                {
+                    foreach (NodeInput ni in n.Inputs)
+                    {
+                        if (!ni.IsAConstant)
+                        {
+                            if (!uidDoneYet.ContainsKey(ni.NodeID))
+                            {
+                                toProcess.Push(GetNode(ni.NodeID));
+                                uidDoneYet.Add(ni.NodeID, false);
+                            }
+                        }
+                    }
+
+                    uidDoneYet[n.UID] = true;
+                }
+                //Otherwise, let the node emit its code and then remove it from the stack.
+                else
+                {
+                    toProcess.Pop();
+                    n.EmitCode(body);
+                }
+            }
+
+            return Output.GetExpression(this);
+        }
+
 		public string GenerateShader(string shaderName, string outputs = "rgb", float defaultVal = 0.0f)
 		{
-			//Clone this graph so nodes can pre-process it before generating the shader.
-			Graph g = Clone();
-			return g.GenShad(shaderName, outputs, defaultVal);
-		}
-		private string GenShad(string shaderName, string outputs, float defaultVal)
-		{
-			//Let all nodes do pre-processing.
-			{
-				List<Node> currentNodes = new List<Node>(nodes),
-						   newNodes = new List<Node>();
-				foreach (Node n in currentNodes)
-					newNodes.AddRange(n.OnPreProcess());
+            //Get the core parts of the shader code.
+            StringBuilder properties = new StringBuilder(),
+                          cgProperties = new StringBuilder(),
+                          body = new StringBuilder();
+            string outExpr = InsertShaderCode(properties, cgProperties, body, 0, true);
 
-				while (newNodes.Count > 0)
-				{
-					List<Node> newerNodes = new List<Node>();
-					foreach (Node n in newNodes)
-						newerNodes.AddRange(n.OnPreProcess());
-					newNodes = newerNodes;
-				}
-			}
+            StringBuilder shader = new StringBuilder();
+            shader.Append("Shader \"");
+            shader.Append(shaderName);
+            shader.Append("\"");
+            shader.AppendLine(@"
+    {
+        Properties
+        {");
+            shader.AppendLine(properties.ToString());
+            shader.AppendLine(@"
+        }
+        SubShader
+        {
+            Tags
+            {
+                ""RenderType"" = ""Opaque""
+                ""PreviewType"" = ""Plane""
+            }
 
+            Cull Off
+            Lighting Off
+            ZWrite Off
+            Fog { Mode Off }
+            Blend One Zero
 
-			StringBuilder sb = new StringBuilder();
-			sb.Append("Shader \"");
-			sb.Append(shaderName);
-			sb.Append("\"");
-			sb.AppendLine(@"
-	{
-		Properties
-		{");
-			foreach (Node n in nodes)
-				n.EmitProperties(sb);
-			sb.AppendLine(@"
-		}
-		Subshader
-		{
-			Tags
-			{
-				""RenderType"" = ""Opaque""
-				""PreviewType"" = ""Plane""
-			}
+            Pass
+            {
+            CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+                #include ""UnityCG.cginc""
 
-			Cull Off
-			Lighting Off
-			ZWrite Off
-			Fog { Mode Off }
-			Blend One Zero
+                struct appdata_t
+                {
+                    float4 vertex    : POSITION;
+                    float4 color     : COLOR;
+                    float2 texcoord  : TEXCOORD0;
+                };
 
-			Pass
-			{
-			CGPROGRAM
-				#pragma vertex vert
-				#pragma fragment frag
-				#include ""UnityCG.cginc""
-
-				struct appdata_t
-				{
-					float4 vertex	: POSITION;
-					float4 color	: COLOR;
-					float2 texcoord : TEXCOORD0;
-				};
-
-				struct v2f
+                struct v2f
 				{
 					float4 vertex	: SV_POSITION;
 					fixed4 color	: COLOR;
@@ -224,79 +300,41 @@ namespace GPUGraph
 					return OUT;
 				}
 
-				//--------Generated stuff---------
+				//--------GPUG/Node stuff---------
 				//--------------------------------");
-				sb.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
-				sb.AppendLine(ShaderDefs.Functions);
-				sb.AppendLine(@"
+            shader.AppendLine(cgProperties.ToString());
+            shader.AppendLine(@"
+                //--------------------------------
+                //--------------------------------
 
-				//-----Node-generated stuff-----
-				//------------------------------");
-				foreach (Node n in nodes)
-					n.EmitDefs(sb);
-				sb.AppendLine(@"
-				
-				fixed4 frag(v2f IN) : COLOR
-				{");
+                fixed4 frag(v2f IN) : COLOR
+				{
+                    //------------GPUG/Node stuff------------
+                    //--------------------------------------");
+            shader.AppendLine(body.ToString());
+            shader.Append(@"
+                    //---------------------------------------
+                    //---------------------------------------
 
-					//Emit code for all nodes in proper order.
-					Stack<Node> toProcess = new Stack<Node>();
-					Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
-					if (!Output.IsAConstant)
-					{
-						toProcess.Push(GetNode(Output.NodeID));
-						uidDoneYet.Add(Output.NodeID, false);
-					}
-					while (toProcess.Count > 0)
-					{
-						Node n = toProcess.Peek();
-
-						//If the next node hasn't been processed yet, add its inputs to the stack.
-						if (!uidDoneYet[n.UID])
-						{
-							foreach (NodeInput ni in n.Inputs)
-							{
-								if (!ni.IsAConstant)
-								{
-									if (!uidDoneYet.ContainsKey(ni.NodeID))
-									{
-										toProcess.Push(GetNode(ni.NodeID));
-										uidDoneYet.Add(ni.NodeID, false);
-									}
-								}
-							}
-
-							uidDoneYet[n.UID] = true;
-						}
-						//Otherwise, let the node emit its code and then remove it from the stack.
-						else
-						{
-							toProcess.Pop();
-							n.EmitCode(sb);
-						}
-					}
-
-					sb.Append("float outExpr = ");
-					sb.Append(Output.GetExpression(this));
-					sb.Append(";\n\t\t\t\t\t");
-					sb.Append("return float4(");
-					sb.Append(outputs.Contains('x') || outputs.Contains('r') ? "outExpr" : defaultVal.ToString());
-					sb.Append(", ");
-					sb.Append(outputs.Contains('y') || outputs.Contains('g') ? "outExpr" : defaultVal.ToString());
-					sb.Append(", ");
-					sb.Append(outputs.Contains('z') || outputs.Contains('b') ? "outExpr" : defaultVal.ToString());
-					sb.Append(", ");
-					sb.Append(outputs.Contains('w') || outputs.Contains('a') ? "outExpr" : defaultVal.ToString());
-					sb.Append(@");
-				}
-			ENDCG
-			}
-		}
-	}");
-
-			return sb.ToString();
-		}
-
+                    float OUT_expr = ");
+            shader.Append(outExpr);
+            shader.AppendLine(@";
+                    return float4(");
+            shader.Append(outputs.Contains('x') || outputs.Contains('r') ? "OUT_expr" : defaultVal.ToString());
+            shader.Append(", ");
+            shader.Append(outputs.Contains('y') || outputs.Contains('g') ? "OUT_expr" : defaultVal.ToString());
+            shader.Append(", ");
+            shader.Append(outputs.Contains('z') || outputs.Contains('b') ? "OUT_expr" : defaultVal.ToString());
+            shader.Append(", ");
+            shader.Append(outputs.Contains('w') || outputs.Contains('a') ? "OUT_expr" : defaultVal.ToString());
+            shader.Append(@");
+                }
+            ENDCG
+            }
+        }
+    }");
+            return shader.ToString();
+        }
 
 		/// <summary>
 		/// Saves this graph to its file-path.

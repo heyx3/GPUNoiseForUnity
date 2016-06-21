@@ -94,15 +94,20 @@ namespace GPUGraph
 		/// Generates a new node identical to this one, including the UID,
 		/// but with a different graph owner.
 		/// </summary>
-		public Node Clone(Graph newOwner, bool addToOwner)
+		public Node Clone(Graph newOwner, bool addToOwner, int idOffset = 0)
 		{
 			Node n = MakeClone();
-			n.UID = UID;
+			n.UID = UID + idOffset;
 			n.Owner = newOwner;
 			n.Pos = Pos;
 			n.Inputs = Inputs.ToList();
 			n.InputNames = InputNames.ToList();
 			n.InputDefaultVals = InputDefaultVals.ToList();
+
+			for (int i = 0; i < n.Inputs.Count; ++i)
+				if (!n.Inputs[i].IsAConstant)
+					n.Inputs[i] = new NodeInput(n.Inputs[i].NodeID + idOffset);
+
 			if (addToOwner)
 				newOwner.AddNode(this);
 			return n;
