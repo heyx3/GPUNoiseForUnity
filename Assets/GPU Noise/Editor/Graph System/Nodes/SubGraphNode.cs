@@ -14,6 +14,7 @@ namespace GPUGraph
 	{
 		public string GraphGUID = null;
 
+
 		/// <summary>
 		/// Used for infinite loop detection when loading the sub-graph.
 		/// </summary>
@@ -22,9 +23,10 @@ namespace GPUGraph
 		private List<string> guids = null;
 		private string[] names = null;
 		private int selected = -1;
+        private bool convertParamsToInputs = true;
 
 
-		private string ThisGraphGUID
+        private string ThisGraphGUID
 		{
 			get
 			{
@@ -166,10 +168,19 @@ namespace GPUGraph
 				Graph g = TryLoadGraph();
 				if (g != null)
 				{
-					GraphParamCollection gParams = new GraphParamCollection(g);
-					Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
-					InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
-					InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+                    if (convertParamsToInputs)
+                    {
+					    GraphParamCollection gParams = new GraphParamCollection(g);
+                        Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
+                        InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
+                        InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+                    }
+                    else
+                    {
+                        Inputs.Clear();
+                        InputNames.Clear();
+                        InputDefaultVals.Clear();
+                    }
 				}
 
 				UpdateGraphPaths();
@@ -184,6 +195,7 @@ namespace GPUGraph
 			sgn.GraphGUID = GraphGUID;
 			sgn.guids = guids.ToList();
 			sgn.names = names.ToArray();
+            sgn.convertParamsToInputs = convertParamsToInputs;
 			sgn.selected = selected;
 			return sgn;
 		}
@@ -237,7 +249,7 @@ namespace GPUGraph
 					((SubGraphNode)n).usedPaths.Add(Owner.FilePath);
 				}
 				//Otherwise, see if this is a float parameter.
-				else if (n is ParamNode_Float)
+				else if (convertParamsToInputs && n is ParamNode_Float)
 				{
 					floatParams.Add((ParamNode_Float)n);
 				}
@@ -313,6 +325,32 @@ namespace GPUGraph
 		{
 			bool changed = false;
 
+            {
+                bool oldConverted = convertParamsToInputs;
+                convertParamsToInputs = GUILayout.Toggle(convertParamsToInputs, "Convert params to inputs");
+                if (oldConverted && !convertParamsToInputs)
+                {
+                    Inputs.Clear();
+                    InputNames.Clear();
+                    InputDefaultVals.Clear();
+                }
+                else if (!oldConverted && convertParamsToInputs)
+                {
+                    Graph g = TryLoadGraph();
+                    if (g == null)
+                    {
+                        convertParamsToInputs = false;
+                    }
+                    else
+                    {
+                        GraphParamCollection gParams = new GraphParamCollection(g);
+                        Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
+                        InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
+                        InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+                    }
+                }
+            }
+
 			Vector2 textDims = GUI.skin.label.CalcSize(new GUIContent("Graph:"));
 			EditorGUIUtility.labelWidth = textDims.x;
 			int newIndex = EditorGUILayout.Popup("Graph:", selected, names, GUILayout.MinWidth(100.0f));
@@ -345,10 +383,13 @@ namespace GPUGraph
 		{
 			base.GetObjectData(info, context);
 			info.AddValue("GraphGUID", GraphGUID);
+            info.AddValue("ConvertParamsToInputs", convertParamsToInputs);
 		}
 		public SubGraphNode(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
+            convertParamsToInputs = info.GetBoolean("ConvertParamsToInputs");
+
 			GraphGUID = info.GetString("GraphGUID");
 			UpdateGraphPaths();
 			selected = guids.IndexOf(GraphGUID);

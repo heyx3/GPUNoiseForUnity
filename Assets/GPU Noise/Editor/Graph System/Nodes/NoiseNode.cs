@@ -72,16 +72,14 @@ namespace GPUGraph
 				case NoiseTypes.Perlin:
 					break;
 				case NoiseTypes.Worley:
-					if (currentInputs != null && currentInputs.Count == 7)
-					{
-						ni.Add(currentInputs[5]);
-						ni.Add(currentInputs[6]);
-					}
-					else
-					{
-						ni.Add(new NodeInput(0.5f));
-						ni.Add(new NodeInput(0.5f));
-					}
+                    for (int i = 0; i < nDimensions; ++i)
+                    {
+                        int index = nDimensions + 2 + i;
+                        if (currentInputs == null || currentInputs.Count <= index)
+                            ni.Add(new NodeInput(0.5f));
+                        else
+                            ni.Add(currentInputs[index]);
+                    }
 					break;
 				default: throw new NotImplementedException(t.ToString());
 			}
@@ -115,7 +113,10 @@ namespace GPUGraph
 					break;
 				case NoiseTypes.Worley:
 					n.Add("Cell Variance X");
-					n.Add("Cell Variance Y");
+                    if (nDimensions > 1)
+					    n.Add("Cell Variance Y");
+                    if (nDimensions > 2)
+                        n.Add("Cell Variance Z");
 					break;
 				default: throw new NotImplementedException(t.ToString());
 			}
@@ -145,7 +146,10 @@ namespace GPUGraph
 					break;
 				case NoiseTypes.Worley:
 					n.Add(0.5f);
-					n.Add(0.5f);
+                    if (nDimensions > 1)
+					    n.Add(0.5f);
+                    if (nDimensions > 2)
+                        n.Add(0.5f);
 					break;
 				default: throw new NotImplementedException(t.ToString());
 			}
@@ -233,10 +237,17 @@ namespace GPUGraph
 				case NoiseTypes.Perlin:
 					break;
 				case NoiseTypes.Worley:
-					outCode.Append(", float2(");
-					outCode.Append(Inputs[NDimensions + 2].GetExpression(Owner));
-					outCode.Append(", ");
-					outCode.Append(Inputs[NDimensions + 3].GetExpression(Owner));
+                    outCode.Append(", float");
+                    outCode.Append(NDimensions);
+                    outCode.Append("(");
+                    for (int i = 0; i < NDimensions; ++i)
+                    {
+                        if (i > 0)
+                            outCode.Append(", ");
+
+                        int index = NDimensions + 2 + i;
+                        outCode.Append(Inputs[index].GetExpression(Owner));
+                    }
 					outCode.Append(")");
 					break;
 				default: throw new NotImplementedException(NoiseType.ToString());
