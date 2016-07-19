@@ -12,42 +12,37 @@ namespace GPUGraph
 	/// </summary>
 	public static class GraphUtils
 	{
-		private static RenderTexture rendTex = null;
-		private static Texture2D colTex = null;
+		private static Texture2D colorTex = null;
 		
-		private static void SetUpTextures(int width, int height)
+		private static void SetUpColorTex(int width, int height)
 		{
-			if (rendTex == null || rendTex.width != width || rendTex.height != height)
+			if (colorTex == null)
 			{
-				if (rendTex != null)
-					rendTex.Release();
-
-				//Find a valid texture format.
-				RenderTextureFormat rtFMT = RenderTextureFormat.ARGBFloat;
-				TextureFormat fmt = TextureFormat.RGBAFloat;
-				if (!SystemInfo.SupportsRenderTextureFormat(rtFMT) ||
-					!SystemInfo.SupportsTextureFormat(fmt))
+				//Find the best-possible supported format for this.
+				TextureFormat[] fmts = new TextureFormat[]
+					{ TextureFormat.RFloat, TextureFormat.RGBAFloat,
+					  TextureFormat.RHalf, TextureFormat.RGBAHalf,
+					  TextureFormat.BGRA32, TextureFormat.RGBA32, TextureFormat.ARGB32 };
+				TextureFormat? fmt = null;
+				for (int i = 0; i < fmts.Length; ++i)
 				{
-					rtFMT = RenderTextureFormat.ARGB32;
-					fmt = TextureFormat.RGBA32;
-					if (!SystemInfo.SupportsRenderTextureFormat(rtFMT) ||
-						!SystemInfo.SupportsTextureFormat(fmt))
+					if (SystemInfo.SupportsTextureFormat(fmts[i]))
 					{
-						Debug.LogError("Platform doesn't support ARGBFloat or ARGB32 texture formats." +
-									   "Rewrite \"GraphUtils.SetUpRendTex\" to use a different format.");
-						return;
+						fmt = fmts[i];
+						break;
 					}
 				}
+				if (!fmt.HasValue)
+				{
+					Debug.LogError("Couldn't find a reasonable texture format for GPUG");
+					return;
+				}
 
-				//Create the render texture.
-				rendTex = new RenderTexture(width, height, 16, rtFMT);
-				rendTex.Create();
-
-				//Create the color texture.
-				if (colTex == null)
-					colTex = new Texture2D(width, height, fmt, false);
-				else
-					colTex.Resize(width, height);
+				colorTex = new Texture2D(width, height, fmt.Value, false);
+			}
+			else if (colorTex.width != width || colorTex.height != height)
+			{
+				colorTex.Resize(width, height);
 			}
 		}
 
@@ -100,15 +95,19 @@ namespace GPUGraph
 		/// </summary>
 		public static void GenerateToArray(float[,] outData, Material noiseMat)
 		{
+			RenderTexture rendTex = RenderTexture.GetTemporary(outData.GetLength(0), outData.GetLength(1));
+
 			//Generate the noise.
-			SetUpTextures(outData.GetLength(0), outData.GetLength(1));
-			GenerateToTexture(rendTex, noiseMat, colTex);
+			SetUpColorTex(outData.GetLength(0), outData.GetLength(1));
+			GenerateToTexture(rendTex, noiseMat, colorTex);
 
 			//Read the noise into the array.
-			Color[] cols = colTex.GetPixels();
+			Color[] cols = colorTex.GetPixels();
 			for (int y = 0; y < outData.GetLength(1); ++y)
 				for (int x = 0; x < outData.GetLength(0); ++x)
 					outData[x, y] = cols[x + (outData.GetLength(0) * y)].r;
+
+			RenderTexture.ReleaseTemporary(rendTex);
 		}
 	}
 }
