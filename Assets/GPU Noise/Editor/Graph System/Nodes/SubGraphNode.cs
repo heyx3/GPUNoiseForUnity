@@ -124,7 +124,7 @@ namespace GPUGraph
 				{
 					//See if the number of inputs changed.
 					GraphParamCollection gParams = new GraphParamCollection(g);
-					if (Inputs.Count != gParams.FloatParams.Count)
+					if (convertParamsToInputs && Inputs.Count != gParams.FloatParams.Count)
 					{
 						Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
 						InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
@@ -270,7 +270,7 @@ namespace GPUGraph
 				{
 					for (int j = 0; j < floatParams.Count; ++j)
 					{
-						if (floatParams[j].Name == InputNames[i])
+						if (floatParams[j].Param.Name == InputNames[i])
 						{
 							sortedFloatParams.Add(floatParams[j]);
 							break;
@@ -330,12 +330,14 @@ namespace GPUGraph
                 convertParamsToInputs = GUILayout.Toggle(convertParamsToInputs, "Convert params to inputs");
                 if (oldConverted && !convertParamsToInputs)
                 {
+					changed = true;
                     Inputs.Clear();
                     InputNames.Clear();
                     InputDefaultVals.Clear();
                 }
                 else if (!oldConverted && convertParamsToInputs)
                 {
+					changed = true;
                     Graph g = TryLoadGraph();
                     if (g == null)
                     {

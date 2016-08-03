@@ -185,8 +185,8 @@ namespace GPUGraph
 										"f", float.NaN, "low", 0.0f, "high", 1.0f)),
 				new Option((g, r) => new TexCoordNode(r, true), "Tex Coord X", "UV.x"),
 				new Option((g, r) => new TexCoordNode(r, false), "Tex Coord Y", "UV.y"),
-				new Option((g, r) => new ParamNode_Float(r, "MyVar"), "Scalar Parameter"),
-				new Option((g, r) => new ParamNode_Texture2D(r, "MyTex"),
+				new Option((g, r) => new ParamNode_Float(r, new FloatParamInfo("MyVar")), "Scalar Parameter"),
+				new Option((g, r) => new ParamNode_Texture2D(r, new Texture2DParamInfo("MyTex")),
 						   "Tex2D Parameter", "Gets the Red value of a texture"),
 				new Option((g, r) => new SubGraphNode(r), "Sub-graph", "Get the output of another graph"),
 			};

@@ -89,6 +89,37 @@ namespace GPUGraph
 			return g;
 		}
 
+		/// <summary>
+		/// Simplifies this graph by running its nodes through the pre-processing stage.
+		/// The whole graph will be reduced to its final form (i.e. no "weirdos" like SubGraphNode).
+		/// </summary>
+		public void PreProcess()
+		{
+			List<Node> currentNodes = new List<Node>(nodes),
+					   newNodes = new List<Node>();
+			
+			//Pre-process all nodes currently owned by the graph,
+			//    and keep track of any new ones that were created.
+			foreach (Node n in currentNodes)
+				newNodes.AddRange(n.OnPreProcess());
+
+			//Keep pre-processing the new nodes until no more new nodes are created.
+			int infiniteLoopCounter = 0;
+			while (newNodes.Count > 0)
+			{
+				infiniteLoopCounter += 1;
+				if (infiniteLoopCounter > 500)
+				{
+					throw new Exception("Infinite loop of graph pre-processing!");
+				}
+
+				List<Node> newerNodes = new List<Node>();
+				foreach (Node n in newNodes)
+					newerNodes.AddRange(n.OnPreProcess());
+				newNodes = newerNodes;
+			}
+		}
+
 		public void AddNode(Node n, bool generateNewUID = true)
 		{
 			if (n.Owner != null)
@@ -167,21 +198,7 @@ namespace GPUGraph
         private string InsertShad(StringBuilder properties, StringBuilder cgProperties,
                                   StringBuilder body, bool addDefines)
         {
-            //Let all nodes do pre-processing.
-            {
-                List<Node> currentNodes = new List<Node>(nodes),
-                           newNodes = new List<Node>();
-                foreach (Node n in currentNodes)
-                    newNodes.AddRange(n.OnPreProcess());
-
-                while (newNodes.Count > 0)
-                {
-                    List<Node> newerNodes = new List<Node>();
-                    foreach (Node n in newNodes)
-                        newerNodes.AddRange(n.OnPreProcess());
-                    newNodes = newerNodes;
-                }
-            }
+			PreProcess();
 
             //Emit properties in no particular order.
             foreach (Node n in nodes)
@@ -384,7 +401,8 @@ namespace GPUGraph
 			}
 			finally
 			{
-				s.Close();
+				if (s != null)
+					s.Close();
 			}
 
 			NextUID = g.NextUID;

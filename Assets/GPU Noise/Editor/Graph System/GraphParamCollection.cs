@@ -13,8 +13,8 @@ namespace GPUGraph
 	[Serializable]
 	public struct GraphParamCollection
 	{
-		public List<ParamNode_Float> FloatParams;
-		public List<ParamNode_Texture2D> Tex2DParams;
+		public List<FloatParamInfo> FloatParams;
+		public List<Texture2DParamInfo> Tex2DParams;
 
 
 		/// <summary>
@@ -22,15 +22,18 @@ namespace GPUGraph
 		/// </summary>
 		public GraphParamCollection(Graph g)
 		{
-			FloatParams = new List<ParamNode_Float>();
-			Tex2DParams = new List<ParamNode_Texture2D>();
+			Graph gCopy = g.Clone();
+			gCopy.PreProcess();
 
-			foreach (Node n in g.Nodes)
+			FloatParams = new List<FloatParamInfo>();
+			Tex2DParams = new List<Texture2DParamInfo>();
+
+			foreach (Node n in gCopy.Nodes)
 			{
 				if (n is ParamNode_Float)
-					FloatParams.Add((ParamNode_Float)n);
+					FloatParams.Add(((ParamNode_Float)n).Param);
 				else if (n is ParamNode_Texture2D)
-					Tex2DParams.Add((ParamNode_Texture2D)n);
+					Tex2DParams.Add(((ParamNode_Texture2D)n).Param);
 			}
 		}
 		/// <summary>
@@ -39,64 +42,37 @@ namespace GPUGraph
 		public GraphParamCollection(Graph otherG, GraphParamCollection c)
 			: this(otherG)
 		{
-			foreach (ParamNode_Float fn in FloatParams)
+			//Needed for lambdas.
+			List<FloatParamInfo> myFloatParams = FloatParams;
+			List<Texture2DParamInfo> myTex2DParams = Tex2DParams;
+
+			for (int i = 0; i < FloatParams.Count; ++i)
 			{
-				int fn2Index = c.FloatParams.FindIndex(fn2 => fn2.Name == fn.Name);
-				if (fn2Index == -1)
-				{
-					Debug.LogError("Couldn't find an original value for scalar var '" + fn.Name + "'");
-				}
+				int otherPMIndex = c.FloatParams.FindIndex(param2 => param2.Name == myFloatParams[i].Name);
+				if (otherPMIndex == -1)
+					Debug.LogError("Couldn't find an original value for scalar var '" + FloatParams[i].Name + "'");
 				else
-				{
-					fn.DefaultValue = c.FloatParams[fn2Index].DefaultValue;
-				}
+					FloatParams[i] = new FloatParamInfo(FloatParams[i],
+														c.FloatParams[otherPMIndex].DefaultValue);
 			}
-			foreach (ParamNode_Texture2D tn in Tex2DParams)
+			for (int i = 0; i < Tex2DParams.Count; ++i)
 			{
-				int tn2Index = c.Tex2DParams.FindIndex(tn2 => tn2.Name == tn.Name);
-				if (tn2Index == -1)
-				{
-					Debug.LogError("Couldn't find an original value for Tex2D var '" + tn.Name + "'");
-				}
+				int otherPMIndex = c.Tex2DParams.FindIndex(param2 => param2.Name == myTex2DParams[i].Name);
+				if (otherPMIndex == -1)
+					Debug.LogError("Couldn't find an original value for Tex2D var '" + Tex2DParams[i].Name + "'");
 				else
-				{
-					tn.DefaultVal = c.Tex2DParams[tn2Index].DefaultVal;
-				}
+					Tex2DParams[i] = new Texture2DParamInfo(Tex2DParams[i].Name,
+															c.Tex2DParams[otherPMIndex].DefaultVal);
 			}
 		}
 
 
-		/// <summary>
-		/// For any parameters in this collection that exist in the given graph,
-		/// the graph parameter's default value is overwritten with this collection's parameter's default value.
-		/// </summary>
-		public void OverwriteParamValues(Graph g)
-		{
-			GraphParamCollection gParams = new GraphParamCollection(g);
-			
-			foreach (ParamNode_Float fn in FloatParams)
-			{
-				int i = gParams.FloatParams.FindIndex(gFP => gFP.Name == fn.Name);
-				if (i >= 0)
-				{
-					gParams.FloatParams[i].DefaultValue = fn.DefaultValue;
-				}
-			}
-			foreach (ParamNode_Texture2D tn in Tex2DParams)
-			{
-				int i = gParams.Tex2DParams.FindIndex(gTP => gTP.Name == tn.Name);
-				if (i >= 0)
-				{
-					gParams.Tex2DParams[i].DefaultVal = tn.DefaultVal;
-				}
-			}
-		}
 		/// <summary>
 		/// Sets the given material to use these parameters, with their default values.
 		/// </summary>
 		public void SetParams(Material m)
 		{
-			foreach (ParamNode_Float dat in FloatParams)
+			foreach (FloatParamInfo dat in FloatParams)
 			{
 				if (!m.HasProperty(dat.Name))
 				{
@@ -111,7 +87,7 @@ namespace GPUGraph
 									dat.DefaultValue));
 				}
 			}
-			foreach (ParamNode_Texture2D dat in Tex2DParams)
+			foreach (Texture2DParamInfo dat in Tex2DParams)
 			{
 				if (!m.HasProperty(dat.Name))
 				{
@@ -133,42 +109,46 @@ namespace GPUGraph
 		{
 			bool changed = false;
 
-			foreach (ParamNode_Float fn in FloatParams)
+			for (int i = 0; i < FloatParams.Count; ++i)
 			{
 				GUILayout.BeginHorizontal();
-				GUILayout.Label(StringUtils.PrettifyVarName(fn.Name));
-				float oldVal = fn.DefaultValue;
-				if (fn.IsSlider)
+				GUILayout.Label(StringUtils.PrettifyVarName(FloatParams[i].Name));
+				float oldVal = FloatParams[i].DefaultValue;
+				if (FloatParams[i].IsSlider)
 				{
-					GUILayout.Label(fn.SliderMin.ToString());
-					fn.DefaultValue = Mathf.InverseLerp(fn.SliderMin, fn.SliderMax,
-													    GUILayout.HorizontalSlider(Mathf.Lerp(fn.SliderMin,
-																							  fn.SliderMax,
-																							  fn.DefaultValue),
-																				   fn.SliderMin,
-																				   fn.SliderMax,
-																				   GUILayout.MinWidth(50.0f)));
-					GUILayout.Label(fn.SliderMax.ToString());
+					GUILayout.Label(FloatParams[i].SliderMin.ToString());
+					FloatParams[i] = new FloatParamInfo(FloatParams[i],
+						Mathf.InverseLerp(FloatParams[i].SliderMin, FloatParams[i].SliderMax,
+										  GUILayout.HorizontalSlider(Mathf.Lerp(FloatParams[i].SliderMin,
+																				FloatParams[i].SliderMax,
+																				FloatParams[i].DefaultValue),
+																	 FloatParams[i].SliderMin,
+																	 FloatParams[i].SliderMax,
+																	 GUILayout.MinWidth(50.0f))));
+					GUILayout.Label(FloatParams[i].SliderMax.ToString());
 				}
 				else
 				{
-					fn.DefaultValue = EditorGUILayout.FloatField(fn.DefaultValue);
+					FloatParams[i] = new FloatParamInfo(FloatParams[i],
+														EditorGUILayout.FloatField(FloatParams[i].DefaultValue));
 				}
-				
-				changed = (changed || Node.AreFloatsDifferent(oldVal, fn.DefaultValue));
-				
+
+				changed = (changed || Node.AreFloatsDifferent(oldVal, FloatParams[i].DefaultValue));
+
 				GUILayout.EndHorizontal();
 			}
-			foreach (ParamNode_Texture2D tn in Tex2DParams)
+			for (int i = 0; i < Tex2DParams.Count; ++i)
 			{
 				GUILayout.BeginHorizontal();
 
-				GUILayout.Label(StringUtils.PrettifyVarName(tn.Name));
+				GUILayout.Label(StringUtils.PrettifyVarName(Tex2DParams[i].Name));
 
-				Texture2D oldVal = tn.DefaultVal;
-				tn.DefaultVal = (Texture2D)EditorGUILayout.ObjectField(tn.DefaultVal, typeof(Texture2D));
+				Texture2D oldVal = Tex2DParams[i].DefaultVal;
+				Tex2DParams[i] = new Texture2DParamInfo(Tex2DParams[i].Name,
+						(Texture2D)EditorGUILayout.ObjectField(Tex2DParams[i].DefaultVal,
+															   typeof(Texture2D), false));
 
-				changed = (oldVal != tn.DefaultVal);
+				changed = (oldVal != Tex2DParams[i].DefaultVal);
 
 				GUILayout.EndHorizontal();
 			}

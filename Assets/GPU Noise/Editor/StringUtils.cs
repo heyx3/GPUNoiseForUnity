@@ -32,9 +32,16 @@ public static class StringUtils
 			sb.Replace('\\', Path.DirectorySeparatorChar);
 		}
 		
+		//Get the start of the given folder in the path string.
 		int folderLoc = sb.ToString().IndexOf(Path.DirectorySeparatorChar +
 											  startFolder +
 											  Path.DirectorySeparatorChar);
+		if (folderLoc < 0 && sb.ToString().StartsWith(startFolder + Path.DirectorySeparatorChar))
+		{
+			folderLoc = 0;
+		}
+
+		//If the given folder was found, cut out everything before that.
 		if (folderLoc >= 0)
 		{
 			sb.Remove(0, folderLoc);

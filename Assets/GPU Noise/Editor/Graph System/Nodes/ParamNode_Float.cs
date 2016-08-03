@@ -9,38 +9,65 @@ using UnityEditor;
 
 namespace GPUGraph
 {
+	[Serializable]
+	public struct FloatParamInfo
+	{
+		public string Name;
+
+		public bool IsSlider;
+		public float SliderMin, SliderMax;
+
+		/// <summary>
+		/// If this parameter is a slider, this is actually the t value (between 0 and 1).
+		/// </summary>
+		public float DefaultValue;
+
+		public FloatParamInfo(string name, float defaultVal = 0.0f)
+		{
+			Name = name;
+			DefaultValue = defaultVal;
+			IsSlider = false;
+			SliderMin = 0.0f;
+			SliderMax = 1.0f;
+		}
+		public FloatParamInfo(string name, float sliderMin, float sliderMax, float currentValue)
+		{
+			Name = name;
+
+			IsSlider = true;
+			SliderMin = sliderMin;
+			SliderMax = sliderMax;
+
+			DefaultValue = Mathf.InverseLerp(SliderMin, SliderMax, currentValue);
+		}
+		public FloatParamInfo(FloatParamInfo original, float newDefaultVal)
+		{
+			Name = original.Name;
+			IsSlider = original.IsSlider;
+			SliderMin = original.SliderMin;
+			SliderMax = original.SliderMax;
+			DefaultValue = newDefaultVal;
+		}
+	}
+
+
 	/// <summary>
 	/// A node whose output is the value of a shader parameter.
 	/// </summary>
 	[Serializable]
 	public class ParamNode_Float : Node
 	{
-		public string Name;
-		public float DefaultValue;
-
-		public bool IsSlider;
-		public float SliderMin, SliderMax;
+		public FloatParamInfo Param;
 
 
-		public override string OutputName { get { return Name; } }
+		public override string OutputName { get { return Param.Name; } }
 		public override string PrettyName { get { return "Scalar Param"; } }
 
 
-		public ParamNode_Float(Rect pos, string name, float defaultVal = 0.0f)
+		public ParamNode_Float(Rect pos, FloatParamInfo param)
 			: base(pos, new List<NodeInput>(), new List<string>(), new List<float>())
 		{
-			Name = name;
-			DefaultValue = defaultVal;
-			IsSlider = false;
-		}
-		public ParamNode_Float(Rect pos, string name, float sliderMin, float sliderMax, float defaultLerp = 0.5f)
-			: base(pos, new List<NodeInput>(), new List<string>(), new List<float>())
-		{
-			Name = name;
-			DefaultValue = defaultLerp;
-			IsSlider = true;
-			SliderMin = sliderMin;
-			SliderMax = sliderMax;
+			Param = param;
 		}
 		private ParamNode_Float() { }
 
@@ -48,91 +75,90 @@ namespace GPUGraph
 		protected override Node MakeClone()
 		{
 			ParamNode_Float fl = new ParamNode_Float();
-			fl.Name = Name;
-			fl.DefaultValue = DefaultValue;
-			fl.IsSlider = IsSlider;
-			fl.SliderMin = SliderMin;
-			fl.SliderMax = SliderMax;
+			fl.Param = Param;
 			return fl;
 		}
 
 		public override void EmitProperties(StringBuilder outCode)
 		{
 			outCode.Append("\t\t\t");
-			outCode.Append(Name);
+			outCode.Append(Param.Name);
 			outCode.Append(" (\"");
-			outCode.Append(StringUtils.PrettifyVarName(Name));
+			outCode.Append(StringUtils.PrettifyVarName(Param.Name));
 			outCode.Append("\", ");
-			if (IsSlider)
+			if (Param.IsSlider)
 			{
 				outCode.Append("Range(");
-				outCode.Append(SliderMin);
+				outCode.Append(Param.SliderMin);
 				outCode.Append(", ");
-				outCode.Append(SliderMax);
+				outCode.Append(Param.SliderMax);
 				outCode.Append(")) = ");
-				outCode.Append(Mathf.Lerp(SliderMin, SliderMax, DefaultValue).ToCodeString());
+				outCode.Append(Mathf.Lerp(Param.SliderMin, Param.SliderMax,
+										  Param.DefaultValue).ToCodeString());
 			}
 			else
 			{
 				outCode.Append("Float) = ");
-				outCode.Append(DefaultValue);
+				outCode.Append(Param.DefaultValue);
 			}
 			outCode.AppendLine();
 		}
 		public override void EmitDefs(StringBuilder outCode)
 		{
 			outCode.Append("\t\t\t\tfloat ");
-			outCode.Append(Name);
+			outCode.Append(Param.Name);
 			outCode.AppendLine(";");
 		}
 
 		protected override bool CustomGUI()
 		{
-			string _name = Name;
-			float _defVal = DefaultValue;
-			bool _isSlider = IsSlider;
-			float _min = SliderMin;
-			float _max = SliderMax;
+			string _name = Param.Name;
+			float _defVal = Param.DefaultValue;
+			bool _isSlider = Param.IsSlider;
+			float _min = Param.SliderMin;
+			float _max = Param.SliderMax;
 
-			Name = GUILayout.TextField(Name);
+			Param.Name = GUILayout.TextField(Param.Name);
 
-			if (IsSlider)
+			if (Param.IsSlider)
 			{
 				GUILayout.BeginHorizontal();
 				GUILayout.Label("Min:");
-				SliderMin = EditorGUILayout.FloatField(SliderMin);
+				Param.SliderMin = EditorGUILayout.FloatField(Param.SliderMin);
 				GUILayout.EndHorizontal();
 
 				GUILayout.BeginHorizontal();
 				GUILayout.Label("Max:");
-				SliderMax = EditorGUILayout.FloatField(SliderMax);
+				Param.SliderMax = EditorGUILayout.FloatField(Param.SliderMax);
 				GUILayout.EndHorizontal();
 
 				GUILayout.BeginHorizontal();
 				GUILayout.Label("Default value:");
-				DefaultValue = Mathf.InverseLerp(SliderMin, SliderMax,
-												 GUILayout.HorizontalSlider(Mathf.Lerp(SliderMin, SliderMax,
-																					   DefaultValue),
-																			SliderMin, SliderMax));
+				Param.DefaultValue = Mathf.InverseLerp(Param.SliderMin, Param.SliderMax,
+													   GUILayout.HorizontalSlider(Mathf.Lerp(Param.SliderMin,
+																							 Param.SliderMax,
+														  								     Param.DefaultValue),
+																				  Param.SliderMin,
+																				  Param.SliderMax));
 				GUILayout.EndHorizontal();
 
-				IsSlider = !GUILayout.Button("Remove slider");
+				Param.IsSlider = !GUILayout.Button("Remove slider");
 			}
 			else
 			{
 				GUILayout.BeginHorizontal();
 				GUILayout.Label("Default value:");
-				DefaultValue = EditorGUILayout.FloatField(DefaultValue);
+				Param.DefaultValue = EditorGUILayout.FloatField(Param.DefaultValue);
 				GUILayout.EndHorizontal();
 
-				IsSlider = GUILayout.Button("Make slider");
+				Param.IsSlider = GUILayout.Button("Make slider");
 			}
 
-			return Name != _name ||
-				   AreFloatsDifferent(DefaultValue, _defVal) ||
-				   _isSlider != IsSlider ||
-				   AreFloatsDifferent(_min, SliderMin) ||
-				   AreFloatsDifferent(_max, SliderMax);
+			return Param.Name != _name ||
+				   AreFloatsDifferent(Param.DefaultValue, _defVal) ||
+				   _isSlider != Param.IsSlider ||
+				   AreFloatsDifferent(_min, Param.SliderMin) ||
+				   AreFloatsDifferent(_max, Param.SliderMax);
 		}
 
 
@@ -140,25 +166,25 @@ namespace GPUGraph
 		{
 			base.GetObjectData(info, context);
 
-			info.AddValue("VarName", Name);
-			info.AddValue("DefaultVal", DefaultValue);
-			info.AddValue("IsSlider", IsSlider);
-			if (IsSlider)
+			info.AddValue("VarName", Param.Name);
+			info.AddValue("DefaultVal", Param.DefaultValue);
+			info.AddValue("IsSlider", Param.IsSlider);
+			if (Param.IsSlider)
 			{
-				info.AddValue("SliderMin", SliderMin);
-				info.AddValue("SliderMax", SliderMax);
+				info.AddValue("SliderMin", Param.SliderMin);
+				info.AddValue("SliderMax", Param.SliderMax);
 			}
 		}
 		public ParamNode_Float(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
-			Name = info.GetString("VarName");
-			DefaultValue = info.GetSingle("DefaultVal");
-			IsSlider = info.GetBoolean("IsSlider");
-			if (IsSlider)
+			Param.Name = info.GetString("VarName");
+			Param.DefaultValue = info.GetSingle("DefaultVal");
+			Param.IsSlider = info.GetBoolean("IsSlider");
+			if (Param.IsSlider)
 			{
-				SliderMin = info.GetSingle("SliderMin");
-				SliderMax = info.GetSingle("SliderMax");
+				Param.SliderMin = info.GetSingle("SliderMin");
+				Param.SliderMax = info.GetSingle("SliderMax");
 			}
 		}
 	}

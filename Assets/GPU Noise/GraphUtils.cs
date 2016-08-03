@@ -52,8 +52,14 @@ namespace GPUGraph
 		/// Assumes the material uses a shader generated from a Graph.
 		/// Optionally copies the resulting texture data into a Texture2D for further processing.
 		/// </summary>
+		/// <param name="rendTarget">
+		/// If set to "null", the noise will be rendered onto the screen.
+		/// </param>
 		public static void GenerateToTexture(RenderTexture rendTarget, Material noiseMat, Texture2D copyTo = null)
 		{
+			int width = (rendTarget == null ? Screen.width : rendTarget.width),
+				height = (rendTarget == null ? Screen.height : rendTarget.height);
+
 			//Set up rendering state.
 			RenderTexture activeTarget = RenderTexture.active;
 			RenderTexture.active = rendTarget;
@@ -62,7 +68,7 @@ namespace GPUGraph
 			//Render a quad using immediate mode.
 			GL.PushMatrix();
 			GL.LoadIdentity();
-			GL.Viewport(new Rect(0, 0, rendTarget.width, rendTarget.height));
+			GL.Viewport(new Rect(0, 0, width, height));
 			GL.Begin(GL.TRIANGLE_STRIP);
 			GL.Color(Color.white);
 			GL.TexCoord(new Vector3(0.0f, 0.0f, 0.0f));
@@ -79,11 +85,10 @@ namespace GPUGraph
 			//Copy the results into the Texture2D.
 			if (copyTo != null)
 			{
-				if (copyTo.width != rendTarget.width || copyTo.height != rendTarget.height)
-				{
-					copyTo.Resize(rendTarget.width, rendTarget.height);
-				}
-				copyTo.ReadPixels(new Rect(0, 0, rendTarget.width, rendTarget.height), 0, 0);
+				if (copyTo.width != width || copyTo.height != height)
+					copyTo.Resize(width, height);
+
+				copyTo.ReadPixels(new Rect(0, 0, width, height), 0, 0);
 				copyTo.Apply();
 			}
 

@@ -66,6 +66,9 @@ namespace GPUGraph
 				}
 
 				//Write to the file.
+				DirectoryInfo dir = new DirectoryInfo(Path.GetDirectoryName(filePath));
+				if (!dir.Exists)
+					dir.Create();
 				File.WriteAllText(filePath, shad);
 				
 

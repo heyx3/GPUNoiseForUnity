@@ -75,5 +75,35 @@ namespace GPUGraph
 			}
 			return -1;
 		}
+
+		public static T Accumulate<ElementType, T>(this IEnumerable<ElementType> en,
+												   Func<ElementType, T, T> accumulator,
+												   T initial)
+		{
+			foreach (ElementType el in en)
+				initial = accumulator(el, initial);
+			return initial;
+		}
+		
+		public static IEnumerable<DestT> SelectSome<SrcT, DestT>(this IEnumerable<SrcT> en, Func<SrcT, DestT?> converter)
+			where DestT : struct
+		{
+			foreach (SrcT srcT in en)
+			{
+				DestT? destT = converter(srcT);
+				if (destT.HasValue)
+					yield return destT.Value;
+			}
+		}
+		public static IEnumerable<DestT> SelectSome<SrcT, DestT>(this IEnumerable<SrcT> en, Func<SrcT, DestT> converter)
+			where DestT : class
+		{
+			foreach (SrcT srcT in en)
+			{
+				DestT destT = converter(srcT);
+				if (destT != null)
+					yield return destT;
+			}
+		}
 	}
 }
