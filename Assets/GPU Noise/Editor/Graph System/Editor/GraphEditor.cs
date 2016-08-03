@@ -374,7 +374,10 @@ namespace GPUGraph.Editor
 
 				if (previewNoise != null)
 				{
-					GUILayout.Box(previewNoise);
+					//Flip the image vertically for unity GUI.
+					Rect texR = EditorGUILayout.GetControlRect(GUILayout.Width(previewNoise.width),
+															   GUILayout.Height(previewNoise.height));
+					GUI.DrawTextureWithTexCoords(texR, previewNoise, new Rect(0.0f, 1.0f, 1.0f, -1.0f));
 				}
 			}
 
@@ -506,32 +509,44 @@ namespace GPUGraph.Editor
 					{
 						case KeyCode.Plus:
 						case KeyCode.KeypadPlus:
-							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "'f1' + 'f2'", "Add",
-											    new SimpleNode.Param("f1", 0.0f),
-											    new SimpleNode.Param("f2", 0.0f));
+							if (!EditorGUIUtility.editingTextField)
+							{
+								nd = new SimpleNode(new Rect(localMPos, Vector2.one),
+													"'f1' + 'f2'", "Add",
+													new SimpleNode.Param("f1", 0.0f),
+													new SimpleNode.Param("f2", 0.0f));
+							}
 							break;
 						case KeyCode.Minus:
 						case KeyCode.KeypadMinus:
-							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "'f1' - 'f2'", "Subtract",
-												new SimpleNode.Param("f1", 0.0f),
-												new SimpleNode.Param("f2", 0.0f));
+							if (!EditorGUIUtility.editingTextField)
+							{
+								nd = new SimpleNode(new Rect(localMPos, Vector2.one),
+													"'f1' - 'f2'", "Subtract",
+													new SimpleNode.Param("f1", 0.0f),
+													new SimpleNode.Param("f2", 0.0f));
+							}
 							break;
 						case KeyCode.Asterisk:
 						case KeyCode.KeypadMultiply:
-							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "'f1' * 'f2'", "Multiply",
-												new SimpleNode.Param("f1", 1.0f),
-												new SimpleNode.Param("f2", 1.0f));
+							if (!EditorGUIUtility.editingTextField)
+							{
+								nd = new SimpleNode(new Rect(localMPos, Vector2.one),
+													"'f1' * 'f2'", "Multiply",
+													new SimpleNode.Param("f1", 1.0f),
+													new SimpleNode.Param("f2", 1.0f));
+							}
 							break;
 						case KeyCode.Slash:
 						case KeyCode.Backslash:
 						case KeyCode.KeypadDivide:
-							nd = new SimpleNode(new Rect(localMPos, Vector2.one),
-											    "'f1' / 'f2'", "Divide",
-												new SimpleNode.Param("f1", float.NaN),
-												new SimpleNode.Param("f2", 1.0f));
+							if (!EditorGUIUtility.editingTextField)
+							{
+								nd = new SimpleNode(new Rect(localMPos, Vector2.one),
+													"'f1' / 'f2'", "Divide",
+													new SimpleNode.Param("f1", float.NaN),
+													new SimpleNode.Param("f2", 1.0f));
+							}
 							break;
 					}
 					if (nd != null && !EditorGUIUtility.editingTextField)

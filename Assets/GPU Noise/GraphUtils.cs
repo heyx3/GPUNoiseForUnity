@@ -12,41 +12,6 @@ namespace GPUGraph
 	/// </summary>
 	public static class GraphUtils
 	{
-		private static Texture2D colorTex = null;
-		
-		private static void SetUpColorTex(int width, int height)
-		{
-			if (colorTex == null)
-			{
-				//Find the best-possible supported format for this.
-				TextureFormat[] fmts = new TextureFormat[]
-					{ TextureFormat.RFloat, TextureFormat.RGBAFloat,
-					  TextureFormat.RHalf, TextureFormat.RGBAHalf,
-					  TextureFormat.BGRA32, TextureFormat.RGBA32, TextureFormat.ARGB32 };
-				TextureFormat? fmt = null;
-				for (int i = 0; i < fmts.Length; ++i)
-				{
-					if (SystemInfo.SupportsTextureFormat(fmts[i]))
-					{
-						fmt = fmts[i];
-						break;
-					}
-				}
-				if (!fmt.HasValue)
-				{
-					Debug.LogError("Couldn't find a reasonable texture format for GPUG");
-					return;
-				}
-
-				colorTex = new Texture2D(width, height, fmt.Value, false);
-			}
-			else if (colorTex.width != width || colorTex.height != height)
-			{
-				colorTex.Resize(width, height);
-			}
-		}
-
-		
 		/// <summary>
 		/// Renders the given material into the given render target using a full-screen quad.
 		/// Assumes the material uses a shader generated from a Graph.
@@ -55,7 +20,8 @@ namespace GPUGraph
 		/// <param name="rendTarget">
 		/// If set to "null", the noise will be rendered onto the screen.
 		/// </param>
-		public static void GenerateToTexture(RenderTexture rendTarget, Material noiseMat, Texture2D copyTo = null)
+		public static void GenerateToTexture(RenderTexture rendTarget, Material noiseMat,
+											 Texture2D copyTo = null)
 		{
 			int width = (rendTarget == null ? Screen.width : rendTarget.width),
 				height = (rendTarget == null ? Screen.height : rendTarget.height);
@@ -113,6 +79,40 @@ namespace GPUGraph
 					outData[x, y] = cols[x + (outData.GetLength(0) * y)].r;
 
 			RenderTexture.ReleaseTemporary(rendTex);
+		}
+
+
+		private static Texture2D colorTex = null;
+		private static void SetUpColorTex(int width, int height)
+		{
+			if (colorTex == null)
+			{
+				//Find the best-possible supported format for this.
+				TextureFormat[] fmts = new TextureFormat[]
+					{ TextureFormat.RFloat, TextureFormat.RGBAFloat,
+					  TextureFormat.RHalf, TextureFormat.RGBAHalf,
+					  TextureFormat.BGRA32, TextureFormat.RGBA32, TextureFormat.ARGB32 };
+				TextureFormat? fmt = null;
+				for (int i = 0; i < fmts.Length; ++i)
+				{
+					if (SystemInfo.SupportsTextureFormat(fmts[i]))
+					{
+						fmt = fmts[i];
+						break;
+					}
+				}
+				if (!fmt.HasValue)
+				{
+					Debug.LogError("Couldn't find a reasonable texture format for GPUG");
+					return;
+				}
+
+				colorTex = new Texture2D(width, height, fmt.Value, false);
+			}
+			else if (colorTex.width != width || colorTex.height != height)
+			{
+				colorTex.Resize(width, height);
+			}
 		}
 	}
 }

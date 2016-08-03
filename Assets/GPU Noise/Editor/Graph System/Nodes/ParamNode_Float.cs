@@ -22,6 +22,7 @@ namespace GPUGraph
 		/// </summary>
 		public float DefaultValue;
 
+
 		public FloatParamInfo(string name, float defaultVal = 0.0f)
 		{
 			Name = name;
@@ -38,7 +39,7 @@ namespace GPUGraph
 			SliderMin = sliderMin;
 			SliderMax = sliderMax;
 
-			DefaultValue = Mathf.InverseLerp(SliderMin, SliderMax, currentValue);
+			DefaultValue = 0.0f;
 		}
 		public FloatParamInfo(FloatParamInfo original, float newDefaultVal)
 		{

@@ -31,12 +31,18 @@ namespace GPUGraph
 
 	public class NodeTree_Element_Category : NodeTree_Element
 	{
-		public string Title;
+		public string Title, Tooltip;
 		public NodeTree_Element[] SubItems;
 
 		public NodeTree_Element_Category(string title, params NodeTree_Element[] subItems)
 		{
 			Title = title;
+			SubItems = subItems;
+		}
+		public NodeTree_Element_Category(string title, string tooltip, params NodeTree_Element[] subItems)
+		{
+			Title = title;
+			Tooltip = tooltip;
 			SubItems = subItems;
 		}
 
@@ -47,13 +53,20 @@ namespace GPUGraph
 
 			foldout = EditorGUILayout.Foldout(foldout, Title);
 			if (foldout)
-			{
+			{				
+				GUILayout.BeginHorizontal();
+				GUILayout.Space(25.0f);
+				GUILayout.BeginVertical();
+
 				foreach (NodeTree_Element el in SubItems)
 				{
 					NodeTree_Element_Option temp = el.OnGUI();
 					if (temp != null)
 						option = temp;
 				}
+
+				GUILayout.EndVertical();
+				GUILayout.EndHorizontal();
 			}
 
 			return option;
@@ -98,11 +111,14 @@ namespace GPUGraph
 
 		public override NodeTree_Element_Option OnGUI()
 		{
-			if (GUILayout.Button(new GUIContent(Name, Tooltip)))
-			{
-				return this;
-			}
-			return null;
+			GUILayout.BeginHorizontal();
+			
+			bool pressed = GUILayout.Button(new GUIContent(Name, Tooltip));
+			GUILayout.FlexibleSpace();
+			
+			GUILayout.EndHorizontal();
+
+			return (pressed ? this : null);
 		}
 	}
 
@@ -115,7 +131,7 @@ namespace GPUGraph
 		public static List<NodeTree_Element> GenerateList()
 		{
 			return new List<NodeTree_Element>() {
-				new Category("Noise",
+				new Category("Noise", "Noise-generation functions",
 					new Option((g, r) => new NoiseNode(r, NoiseNode.NoiseTypes.White, 3),
 							   "White Noise", "Fast, completely chaotic noise"),
 					new Option((g, r) => new NoiseNode(r, NoiseNode.NoiseTypes.Blocky, 3),
@@ -130,7 +146,7 @@ namespace GPUGraph
 							   "Perlin Noise", "Beautiful but very slow coherent noise"),
 					new Option((g, r) => new NoiseNode(r, NoiseNode.NoiseTypes.Worley, 2),
 							   "Worley Noise", "Generates noise that looks like Voroni diagrams")),
-				new Category("Interpolation",
+				new Category("Interpolation", "Ways of transitioning from one value to another",
 					Option.TwoVarFunc("step", "Step", "Returns 0 if X is less than Y and 1 if X is more than Y",
 									  "y", 0.5f, "x"),
 					Option.ThreeVarFunc("lerp", "Lerp", "Linearly interpolates between a and b based on t",
@@ -148,7 +164,7 @@ namespace GPUGraph
 														new P("srcMin", -1.0f), new P("srcMax", 1.0f),
 														new P("srcVal")),
 							   "Remap", "Remaps a value from a source range to a destination range")),
-				new Category("Basic",
+				new Category("Basic Math", "Add/subtract/multiply/divide",
 					new Option((g, r) => new SimpleNode(r, "'f1' + 'f2'", "Add", new P("f1"), new P("f2")),
 							   "Add", "Adds two values together"),
 					new Option((g, r) => new SimpleNode(r, "'f1' - 'f2'", "Subtract", new P("f1"), new P("f2")),
@@ -156,7 +172,11 @@ namespace GPUGraph
 					new Option((g, r) => new SimpleNode(r, "'f1' * 'f2'", "Multiply", new P("f1"), new P("f2")),
 							   "Multiply", "Multiplies two values together"),
 					new Option((g, r) => new SimpleNode(r, "'f1' / 'f2'", "Divide", new P("f1"), new P("f2")),
-							   "Divide", "Divides the first value by the second")),
+							   "Divide", "Divides the first value by the second"),
+					Option.TwoVarFunc("pow", "Pow", "Raises a value to an exponent",
+									  "value", float.NaN, "exponent", 1.0f),
+					Option.OneVarFunc("sqrt", "Square Root", "Square root"),
+					Option.OneVarFunc("log", "Logarithm", "Logarithm base e")),
 				new Category("Trig",
 					Option.OneVarFunc("sin", "Sin", "A sine wave"),
 					Option.OneVarFunc("cos", "Cos", "A cosine wave"),
@@ -172,13 +192,8 @@ namespace GPUGraph
 					Option.OneVarFunc("ceil", "Ceiling", "Rounds a value up towards positive infinity"),
 					Option.OneVarFunc("floor", "Floor", "Rounds a value down towards negative infinity"),
 					Option.OneVarFunc("round", "Round to Integer", "Rounds a value to the nearest integer"),
-					Option.OneVarFunc("sign", "Sign", "Returns -1, 0, or 1 depending on the value's sign")),
-				new Category("Other",
-					Option.TwoVarFunc("pow", "Pow", "Raises a value to an exponent",
-									  "value", float.NaN, "exponent", 1.0f),
+					Option.OneVarFunc("sign", "Sign", "Returns -1, 0, or 1 depending on the value's sign"),
 					Option.OneVarFunc("abs", "Abs", "Absolute value"),
-					Option.OneVarFunc("sqrt", "Square Root", "Square root"),
-					Option.OneVarFunc("log", "Logarithm", "Logarithm base e"),
 					Option.TwoVarFunc("max", "Max", "Gets the largest of two values"),
 					Option.TwoVarFunc("min", "Min", "Gets the smallest of two values"),
 					Option.ThreeVarFunc("clamp", "Clamp", "Keeps a value between a min and a max",

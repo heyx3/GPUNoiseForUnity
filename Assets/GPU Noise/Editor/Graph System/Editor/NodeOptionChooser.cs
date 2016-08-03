@@ -15,7 +15,7 @@ namespace GPUGraph.Editor
 		public void OnEnable()
 		{
 			titleContent = new GUIContent("Node Creator");
-			minSize = new Vector2(300.0f, 500.0f);
+			minSize = new Vector2(320.0f, 500.0f);
 		}
 		public void OnGUI()
 		{

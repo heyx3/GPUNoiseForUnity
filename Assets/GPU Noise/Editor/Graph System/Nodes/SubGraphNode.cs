@@ -126,9 +126,7 @@ namespace GPUGraph
 					GraphParamCollection gParams = new GraphParamCollection(g);
 					if (convertParamsToInputs && Inputs.Count != gParams.FloatParams.Count)
 					{
-						Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
-						InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
-						InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+						SetInputsFrom(gParams.FloatParams);
 						return true;
 					}
 				}
@@ -170,10 +168,7 @@ namespace GPUGraph
 				{
                     if (convertParamsToInputs)
                     {
-					    GraphParamCollection gParams = new GraphParamCollection(g);
-                        Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
-                        InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
-                        InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+						SetInputsFrom(new GraphParamCollection(g).FloatParams);
                     }
                     else
                     {
@@ -345,10 +340,7 @@ namespace GPUGraph
                     }
                     else
                     {
-                        GraphParamCollection gParams = new GraphParamCollection(g);
-                        Inputs = gParams.FloatParams.Select(fn => new NodeInput(fn.DefaultValue)).ToList();
-                        InputNames = gParams.FloatParams.Select(fn => fn.Name).ToList();
-                        InputDefaultVals = gParams.FloatParams.Select(fn => fn.DefaultValue).ToList();
+						SetInputsFrom(new GraphParamCollection(g).FloatParams);
                     }
                 }
             }
@@ -378,6 +370,25 @@ namespace GPUGraph
 			outCode.Append("float ");
 			outCode.Append(OutputName);
 			outCode.AppendLine(" = 0.0; //ERROR");
+		}
+
+		private void SetInputsFrom(List<FloatParamInfo> floatParams)
+		{
+			Inputs = floatParams.Select(fn =>
+				{
+					return new NodeInput(fn.IsSlider ?
+										     Mathf.Lerp(fn.SliderMin, fn.SliderMax, fn.DefaultValue) :
+											 fn.DefaultValue);
+				}).ToList();
+
+			InputNames = floatParams.Select(fn => fn.Name).ToList();
+
+			InputDefaultVals = floatParams.Select(fn =>
+				{
+					return (fn.IsSlider ?
+								Mathf.Lerp(fn.SliderMin, fn.SliderMax, fn.DefaultValue) :
+								fn.DefaultValue);
+				}).ToList();
 		}
 
 
