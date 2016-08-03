@@ -112,12 +112,14 @@ namespace GPUGraph
 				//Otherwise, allow the user to change selected graphs.
 				else
 				{
-					int oldGraph = CurrentGraph;
 					GUI.Label(new Rect(position.x, position.y, 50.0f, oneLine), "Graph");
-					CurrentGraph = EditorGUI.Popup(new Rect(position.x + 45.0f, position.y, 150.0f, oneLine),
+					int newGraph = EditorGUI.Popup(new Rect(position.x + 45.0f, position.y, 150.0f, oneLine),
 												   CurrentGraph, AvailableGraphsGUI);
-					if (oldGraph != CurrentGraph)
+					if (CurrentGraph != newGraph)
 					{
+						Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+
+						CurrentGraph = newGraph;
 						graph._GraphFile = AvailableGraphs[CurrentGraph];
 						UpdateGraph(graph);
 					}
@@ -142,19 +144,22 @@ namespace GPUGraph
 				position.y += oneLine + 10.0f;
 
 				//Shader path.
-				string oldPath = graph._ShaderFile;
 				GUI.Label(new Rect(position.x, position.y, 100.0f, oneLine), "Shader File Path");
-				graph._ShaderFile = EditorGUI.TextField(new Rect(position.x + 105.0f, position.y,
-																viewWidth - 200.0f, oneLine),
-													   graph._ShaderFile);
-				if (graph._ShaderFile != oldPath)
+				string newPath = EditorGUI.TextField(new Rect(position.x + 105.0f, position.y,
+															  viewWidth - 200.0f, oneLine),
+													  graph._ShaderFile);
+				if (newPath != graph._ShaderFile)
 				{
-					string dirName = Path.Combine("Assets", Path.GetDirectoryName(oldPath));
+					Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+
+					string dirName = Path.Combine("Assets", Path.GetDirectoryName(graph._ShaderFile));
 					if (!Directory.Exists(Path.Combine(Application.dataPath, dirName)))
 						Directory.CreateDirectory(Path.Combine(Application.dataPath, dirName));
 
-					AssetDatabase.MoveAsset(Path.Combine("Assets", oldPath),
-											Path.Combine("Assets", graph._ShaderFile));
+					AssetDatabase.MoveAsset(Path.Combine("Assets", graph._ShaderFile),
+											Path.Combine("Assets", newPath));
+
+					graph._ShaderFile = newPath;
 				}
 				position.y += oneLine + 20.0f;
 
@@ -172,26 +177,30 @@ namespace GPUGraph
 						GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
 								  graph.FloatParams[i].Key);
 
-						float oldVal = graph.FloatParams[i].Value;
-
+						float newVal;
 						if (graph._FloatParams[i].Value.IsSlider)
 						{
-							graph.FloatParams[i].Value =
-								EditorGUI.Slider(new Rect(position.x + 105.0f + paramIndent, position.y,
-														  50.0f, oneLine),
-												 oldVal,
-												 graph._FloatParams[i].Value.SliderMin,
-												 graph._FloatParams[i].Value.SliderMax);
+							newVal = EditorGUI.Slider(new Rect(position.x + 105.0f + paramIndent,
+															   position.y,
+															   50.0f, oneLine),
+													  graph.FloatParams[i].Value,
+													  graph._FloatParams[i].Value.SliderMin,
+													  graph._FloatParams[i].Value.SliderMax);
 						}
 						else
 						{
-							graph.FloatParams[i].Value =
-								EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent, position.y,
-															  25.0f, oneLine),
-													 oldVal);
+							newVal = EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent,
+																   position.y,
+																   25.0f, oneLine),
+														  graph.FloatParams[i].Value);
 						}
 
-						paramsChanged = paramsChanged || oldVal != graph.FloatParams[i].Value;
+						if (newVal != graph.FloatParams[i].Value)
+						{
+							paramsChanged = true;
+							Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+							graph.FloatParams[i].Value = newVal;
+						}
 
 						position.y += oneLine + 5.0f;
 					}
@@ -209,16 +218,22 @@ namespace GPUGraph
 						GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
 								  graph.Tex2DParams[i].Key);
 
-						Texture2D oldVal = graph.Tex2DParams[i].Value;
-						graph.Tex2DParams[i].Value =
+						Texture2D newVal =
 							(Texture2D)EditorGUI.ObjectField(new Rect(position.x + 105.0f + paramIndent,
 																	  position.y,
-																	  oldVal.width, oldVal.height),
-															 oldVal, typeof(Texture2D), true);
+																	  graph.Tex2DParams[i].Value.width,
+																	  graph.Tex2DParams[i].Value.height),
+															 graph.Tex2DParams[i].Value,
+															 typeof(Texture2D), true);
 
-						paramsChanged = paramsChanged || oldVal != graph.Tex2DParams[i].Value;
+						if (newVal != graph.Tex2DParams[i].Value)
+						{
+							paramsChanged = true;
+							Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+							graph.Tex2DParams[i].Value = newVal;
+						}
 
-						position.y += oldVal.height;
+						position.y += graph.Tex2DParams[i].Value.height;
 					}
 				}
 				position.y += 20.0f;
@@ -233,28 +248,41 @@ namespace GPUGraph
 				if (graph._PreviewTex != null)
 				{
 					GUI.Label(new Rect(position.x, position.y, 90.0f, oneLine), "Preview Scale");
-					graph._PreviewTexScale = EditorGUI.Slider(new Rect(position.x + 90.0f, position.y,
-																	   position.width, oneLine),
-															  graph._PreviewTexScale,
-															  0.1f, 10.0f);
+					float newPreviewTexScale = EditorGUI.Slider(new Rect(position.x + 90.0f, position.y,
+																	     position.width, oneLine),
+															    graph._PreviewTexScale,
+															    0.1f, 10.0f);
 					position.y += oneLine + 10.0f;
 
-					EditorGUI.BeginChangeCheck();
 					const float labelWidth = 78.0f,
 								intBoxWidth = 40.0f;
 					GUI.Label(new Rect(position.x, position.y, labelWidth, oneLine),
 							  "Preview Size");
-					graph._PreviewTexWidth =
+					int newPreviewTexWidth =
 						Math.Max(1, EditorGUI.IntField(new Rect(position.x + labelWidth + 10.0f, position.y,
 																intBoxWidth, oneLine),
 													   graph._PreviewTexWidth));
-					graph._PreviewTexHeight =
+					int newPreviewTexHeight =
 						Math.Max(1, EditorGUI.IntField(new Rect(position.x + labelWidth + intBoxWidth + 20.0f,
 																position.y,
 																intBoxWidth, oneLine),
 													   graph._PreviewTexHeight));
-					if (EditorGUI.EndChangeCheck())
-						UpdatePreviewTex(graph);
+
+					if (newPreviewTexScale != graph._PreviewTexScale ||
+						newPreviewTexWidth != graph._PreviewTexWidth ||
+						newPreviewTexHeight != graph._PreviewTexHeight)
+					{
+						bool updatePreview = (newPreviewTexWidth != graph._PreviewTexWidth ||
+											  newPreviewTexHeight != graph._PreviewTexHeight);
+
+						Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+						graph._PreviewTexScale = newPreviewTexScale;
+						graph._PreviewTexWidth = newPreviewTexWidth;
+						graph._PreviewTexHeight = newPreviewTexHeight;
+
+						if (updatePreview)
+							UpdatePreviewTex(graph);
+					}
 
 					position.y += oneLine + 15.0f;
 
