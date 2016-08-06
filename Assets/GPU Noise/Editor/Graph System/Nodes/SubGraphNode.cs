@@ -15,11 +15,6 @@ namespace GPUGraph
 		public string GraphGUID = null;
 
 
-		/// <summary>
-		/// Used for infinite loop detection when loading the sub-graph.
-		/// </summary>
-		private HashSet<string> usedPaths = new HashSet<string>();
-
 		private List<string> guids = null;
 		private string[] names = null;
 		private int selected = -1;
@@ -202,16 +197,6 @@ namespace GPUGraph
 				return new List<Node>();
 
 
-			//Check for infinite loops.
-			string graphPath = AssetDatabase.GUIDToAssetPath(GraphGUID);
-			usedPaths.Add(Owner.FilePath);
-			if (usedPaths.Contains(graphPath))
-			{
-				Debug.LogError("Infinite loop of sub-graphs detected!");
-				return new List<Node>();
-			}
-
-
 			//Load the sub-graph.
 			Graph g = TryLoadGraph();
 			if (g == null)
@@ -239,12 +224,7 @@ namespace GPUGraph
 				Owner.AddNode(n, false);
 
 				//If this node is another sub-graph, make sure there's no infinite loop.
-				if (n is SubGraphNode)
-				{
-					((SubGraphNode)n).usedPaths.Add(Owner.FilePath);
-				}
-				//Otherwise, see if this is a float parameter.
-				else if (convertParamsToInputs && n is ParamNode_Float)
+				if (convertParamsToInputs && n is ParamNode_Float)
 				{
 					floatParams.Add((ParamNode_Float)n);
 				}

@@ -5,27 +5,7 @@ using UnityEngine;
 
 
 namespace GPUGraph
-{
-	[Serializable]
-	public class FloatParamKVP
-	{
-		public string Key;
-		public float Value;
-
-		public FloatParamKVP() { }
-		public FloatParamKVP(string key, float value) { Key = key; Value = value; }
-	}
-	[Serializable]
-	public class Tex2DParamKVP
-	{
-		public string Key;
-		public Texture2D Value;
-
-		public Tex2DParamKVP() { }
-		public Tex2DParamKVP(string key, Texture2D value) { Key = key; Value = value; }
-	}
-
-	 
+{	 
 	/// <summary>
 	/// Stores a graph at run-time in the form of a Shader/Material.
 	/// Note that modifying parameters is best done with the built-in methods,
@@ -236,5 +216,31 @@ namespace GPUGraph
 
 		#endif
 		#endregion
+	}
+
+	
+	/// <summary>
+	/// A float parameter's name and value.
+	/// </summary>
+	[Serializable]
+	public class FloatParamKVP
+	{
+		public string Key;
+		public float Value;
+
+		public FloatParamKVP() { }
+		public FloatParamKVP(string key, float value) { Key = key; Value = value; }
+	}
+	/// <summary>
+	/// A 2D texture parameter's name and value.
+	/// </summary>
+	[Serializable]
+	public class Tex2DParamKVP
+	{
+		public string Key;
+		public Texture2D Value;
+
+		public Tex2DParamKVP() { }
+		public Tex2DParamKVP(string key, Texture2D value) { Key = key; Value = value; }
 	}
 }

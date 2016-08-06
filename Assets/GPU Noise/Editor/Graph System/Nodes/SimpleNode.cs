@@ -10,7 +10,7 @@ using UnityEditor;
 namespace GPUGraph
 {
 	/// <summary>
-	/// A node whose output can be expressed as a single expression.
+	/// A node whose output can be expressed as a single expression like "sin(x)" or "a + b".
 	/// </summary>
 	[Serializable]
 	public class SimpleNode : Node
