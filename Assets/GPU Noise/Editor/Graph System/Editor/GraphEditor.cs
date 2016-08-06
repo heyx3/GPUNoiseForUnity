@@ -209,8 +209,6 @@ namespace GPUGraph.Editor
 				if (Mathf.Abs(oldPos.x - newPos.x) >= 2.0f ||
 					Mathf.Abs(oldPos.y - newPos.y) >= 2.0f)
 				{
-					Undo.RecordObject(this, "Moving node");
-
 					if (!unsavedStr.Contains("moved node"))
 						unsavedStr += "moved node, ";
 				}
@@ -224,8 +222,6 @@ namespace GPUGraph.Editor
 			if (Mathf.Abs(oldPos.x - newPos.x) >= 2.0f ||
 				Mathf.Abs(oldPos.y - newPos.y) >= 2.0f)
 			{
-				Undo.RecordObject(this, "Moving output");
-
 				if (!unsavedStr.Contains("moved graph output node"))
 					unsavedStr += "moved graph output node, ";
 			}
@@ -532,6 +528,7 @@ namespace GPUGraph.Editor
 					{
 						//switch (evt.commandName)
 						//{
+
 						//}
 					}
 					break;

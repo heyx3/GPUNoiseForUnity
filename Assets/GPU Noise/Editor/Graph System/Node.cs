@@ -9,6 +9,9 @@ using UnityEditor;
 
 namespace GPUGraph
 {
+	//TODO: Color node windows based on sub-type.
+
+
 	/// <summary>
 	/// A shader operation that takes in several floats and outputs a single float.
 	/// Note that this class implements ISerializable,
