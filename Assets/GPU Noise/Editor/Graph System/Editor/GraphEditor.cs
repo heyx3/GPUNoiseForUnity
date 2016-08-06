@@ -20,10 +20,10 @@ namespace GPUGraph.Editor
 
 
 		private static readonly float OutputHeight = 30.0f,
-									  LeftSpace = 256.0f;
+									  NodeChoiceSpace = 170.0f,
+									  OptionsSpace = 256.0f;
 
-		private static readonly Vector2 MinLeftSize = new Vector2(300.0f, 705.0f),
-										MinGraphSize = new Vector2(500.0f, 500.0f);
+		private static readonly Vector2 MinGraphSize = new Vector2(700.0f, 500.0f);
 
 
 		public Graph Grph = null;
@@ -31,8 +31,6 @@ namespace GPUGraph.Editor
 
 		public NodeTree_Element_Option CurrentlyPlacing = null;
 
-
-		private NodeOptionChooser nodeOptionWindow;
 
 		private int selectedGraph = -1;
 
@@ -56,7 +54,12 @@ namespace GPUGraph.Editor
 		private bool autoUpdatePreview = false;
 
 
-		private Rect WindowRect { get { return new Rect(0.0f, 0.0f, position.width - MinLeftSize.x, position.height); } }
+		private Rect WindowRect
+		{
+			get { return new Rect(0.0f, 0.0f,
+								  position.width - NodeChoiceSpace - OptionsSpace,
+								  position.height); }
+		}
 
 		
 		public void SelectOption(NodeTree_Element_Option option)
@@ -95,27 +98,20 @@ namespace GPUGraph.Editor
 
 			Grph = null;
 
-			nodeOptionWindow = EditorWindow.GetWindow<NodeOptionChooser>();
-			nodeOptionWindow.Parent = this;
-
 			OnFocus();
 			
 			titleContent = new GUIContent("GPUG Editor");
-			minSize = new Vector2(MinLeftSize.x + MinGraphSize.x,
-								  Mathf.Max(MinLeftSize.y, MinGraphSize.y));
+			minSize = new Vector2(OptionsSpace + MinGraphSize.x, MinGraphSize.y);
 		}
 		void OnDestroy()
 		{
-			if (nodeOptionWindow != null)
-				nodeOptionWindow.Close();
-
 			if (unsavedStr.Length > 0 &&
 				EditorUtility.DisplayDialog("Unsaved changes",
 											"You have unsaved changes to graph '" +
 												graphSelections[selectedGraph].text +
 												"': " + unsavedStr.Substring(0, unsavedStr.Length - 2) +
 												". Do you want to save them?",
-											"Yes", "No"))
+											"Save", "Discard"))
 			{
 				Grph.Save();
 			}
@@ -124,15 +120,6 @@ namespace GPUGraph.Editor
 		}
 		void OnFocus()
 		{
-			//Regenerate the node selection window if necessary.
-			if (nodeOptionWindow == null)
-			{
-				nodeOptionWindow = EditorWindow.GetWindow<NodeOptionChooser>();
-				nodeOptionWindow.Parent = this;
-				Focus();
-			}
-
-
 			//Check what graphs are available.
 			GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
 			Func<string, GUIContent> selector = (s => new GUIContent(Path.GetFileNameWithoutExtension(s), s));
@@ -161,17 +148,47 @@ namespace GPUGraph.Editor
 
 		void OnGUI()
 		{
+			//Draw the node creation choices.
+			GUILayout.BeginArea(new Rect(0.0f, 0.0f, NodeChoiceSpace, position.height));
+			if (CurrentlyPlacing == null)
+			{
+				GUILayout.Label("Click on an option, then\nclick in the graph to place it.");
+				GUILayout.Label("Mouse over an option to\nget more info about it.");
+				GUILayout.Space(25.0f);
+
+				foreach (NodeTree_Element el in NewNodeOptions)
+				{
+					NodeTree_Element_Option opt = el.OnGUI();
+					if (opt != null)
+					{
+						SelectOption(opt);
+						break;
+					}
+				}
+			}
+			else
+			{
+				GUILayout.Label("Left-click in the graph\nto place " + CurrentlyPlacing.Name);
+				GUILayout.Label("Right-click in the graph\nto cancel its placement");
+			}
+			GUILayout.EndArea();
+
+
 			//Draw the side-bar.
-			GUILayout.BeginArea(new Rect(0, 0, LeftSpace, position.height));
+			GUILayout.BeginArea(new Rect(NodeChoiceSpace, 0, OptionsSpace, position.height));
 			GUILeftArea();
 			GUILayout.EndArea();
-			GUIUtil.DrawLine(new Vector2(LeftSpace + 4.0f, 0.0f), new Vector2(LeftSpace + 4.0f, position.height), 2.0f, Color.black);
+			GUIUtil.DrawLine(new Vector2(NodeChoiceSpace + OptionsSpace + 4.0f, 0.0f),
+							 new Vector2(NodeChoiceSpace + OptionsSpace + 4.0f, position.height),
+							 2.0f, Color.black);
 			if (Grph == null)
 				return;
 
 			//Respond to UI events.
-			Rect graphArea = new Rect(LeftSpace, 0.0f, position.width - LeftSpace, position.height);
-			GUIHandleEvents(graphArea, LeftSpace);
+			Rect graphArea = new Rect(NodeChoiceSpace + OptionsSpace, 0.0f,
+									  position.width - NodeChoiceSpace - OptionsSpace,
+									  position.height);
+			GUIHandleEvents(graphArea, NodeChoiceSpace + OptionsSpace);
 			
 			//Draw the various windows.
 			GUILayout.BeginArea(graphArea);
@@ -231,7 +248,6 @@ namespace GPUGraph.Editor
 					{
 						Debug.LogError("Error loading graph: " + err);
 					}
-					nodeOptionWindow.Repaint();
 				}
 				else
 				{
@@ -408,10 +424,10 @@ namespace GPUGraph.Editor
 				titleContent = new GUIContent(Path.GetFileNameWithoutExtension(Grph.FilePath));
 			}
 		}
-		private void GUIHandleEvents(Rect graphArea, float leftSpace)
+		private void GUIHandleEvents(Rect graphArea, float graphXOffset)
 		{
 			Event evt = Event.current;
-			Vector2 mPos = evt.mousePosition + new Vector2(-leftSpace, 0.0f),
+			Vector2 mPos = evt.mousePosition + new Vector2(-graphXOffset, 0.0f),
 					localMPos = mPos + CamOffset;
 			switch (evt.type)
 			{

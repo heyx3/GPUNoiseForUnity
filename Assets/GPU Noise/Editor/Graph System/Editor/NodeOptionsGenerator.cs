@@ -5,11 +5,11 @@ using UnityEngine;
 using UnityEditor;
 
 using P = GPUGraph.SimpleNode.Param;
-using Category = GPUGraph.NodeTree_Element_Category;
-using Option = GPUGraph.NodeTree_Element_Option;
+using Category = GPUGraph.Editor.NodeTree_Element_Category;
+using Option = GPUGraph.Editor.NodeTree_Element_Option;
 
 
-namespace GPUGraph
+namespace GPUGraph.Editor
 {
 	//TODO: ParamNode_Texture3D and Cube (http://docs.unity3d.com/432/Documentation/Components/SL-Properties.html).
 	//TODO: Add buttons to addition, subtraction, min/max, etc. nodes for an arbitrary number of inputs.
@@ -54,7 +54,7 @@ namespace GPUGraph
 
 			foldout = EditorGUILayout.Foldout(foldout, Title);
 			if (foldout)
-			{				
+			{
 				GUILayout.BeginHorizontal();
 				GUILayout.Space(25.0f);
 				GUILayout.BeginVertical();
