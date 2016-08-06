@@ -294,6 +294,13 @@ namespace GPUGraph
 				}
 			}
 
+			//Occasionally refresh the texture preview.
+			//This lets the window "react" to undo/redo changes.
+			//Have to do it this way because UnityEditor.Undo is a huge PITA.
+			if (UnityEngine.Random.Range(0.0f, 1.0f) > 0.85f)
+				UpdatePreviewTex(graph);
+
+
 			EditorGUI.EndProperty();
 		}
 
@@ -493,6 +500,8 @@ namespace GPUGraph
 			{
 				graph._PreviewTex.Resize(graph._PreviewTexWidth, graph._PreviewTexHeight);
 			}
+
+			graph.UpdateAllParams();
 
 			//TODO: Maybe using the instance's private fields like this is the cause of some display bugs?
 			graph.GenerateToTexture(graph._PreviewTex);

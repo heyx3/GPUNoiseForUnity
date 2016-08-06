@@ -42,6 +42,8 @@ namespace GPUGraph
 		/// A unique identifier in the graph.
 		/// </summary>
 		public int UID = -1;
+
+		
 		/// <summary>
 		/// The graph that owns this instance.
 		/// </summary>

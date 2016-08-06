@@ -179,26 +179,35 @@ namespace GPUGraph.Editor
 			Rect oldPos, newPos;
 			foreach (Node n in Grph.Nodes)
 			{
-				oldPos = n.Pos;
-				newPos = GUINode(new Rect(n.Pos.position - CamOffset, n.Pos.size), n);
+				oldPos = new Rect(n.Pos.position - CamOffset, n.Pos.size);
+				newPos = GUINode(oldPos, n);
 
-				n.Pos = new Rect(newPos.position + CamOffset, newPos.size);
-				if (!unsavedStr.Contains("moved node") &&
-					 (Mathf.Abs(oldPos.x - n.Pos.x) >= 2.0f ||
-					  Mathf.Abs(oldPos.y - n.Pos.y) >= 2.0f))
+				if (Mathf.Abs(oldPos.x - newPos.x) >= 2.0f ||
+					Mathf.Abs(oldPos.y - newPos.y) >= 2.0f)
 				{
-					unsavedStr += "moved node, ";
+					Undo.RecordObject(this, "Moving node");
+
+					if (!unsavedStr.Contains("moved node"))
+						unsavedStr += "moved node, ";
 				}
+				
+				newPos.position += CamOffset;
+				n.Pos = newPos;	
 			}
-			oldPos = Grph.OutputPos;
-			newPos = GUINode(new Rect(Grph.OutputPos.position - CamOffset, Grph.OutputPos.size), null);
-			Grph.OutputPos = new Rect(newPos.position + CamOffset, newPos.size);
-			if (!unsavedStr.Contains("moved graph output node") &&
-				(Mathf.Abs(oldPos.x - Grph.OutputPos.x) >= 2.0f ||
-				 Mathf.Abs(oldPos.y - Grph.OutputPos.y) >= 2.0f))
+
+			oldPos = new Rect(Grph.OutputPos.position - CamOffset, Grph.OutputPos.size);
+			newPos = GUINode(oldPos, null);
+			if (Mathf.Abs(oldPos.x - newPos.x) >= 2.0f ||
+				Mathf.Abs(oldPos.y - newPos.y) >= 2.0f)
 			{
-				unsavedStr += "moved graph output node, ";
+				Undo.RecordObject(this, "Moving output");
+
+				if (!unsavedStr.Contains("moved graph output node"))
+					unsavedStr += "moved graph output node, ";
 			}
+			newPos.position += CamOffset;
+			Grph.OutputPos = newPos;
+
 			EndWindows();
 			GUILayout.EndArea();
 		}
@@ -319,9 +328,10 @@ namespace GPUGraph.Editor
 				GUILayout.Label("1D Hash:");
 				string oldHash = Grph.Hash1;
 				Grph.Hash1 = GUILayout.TextField(Grph.Hash1);
-				if (oldHash != Grph.Hash1 && !unsavedStr.Contains("1D hash func"))
+				if (oldHash != Grph.Hash1)
 				{
-					unsavedStr += "1D hash func, ";
+					if (!unsavedStr.Contains("1D hash func"))
+						unsavedStr += "1D hash func, ";
 					if (autoUpdatePreview)
 						UpdatePreview();
 				}
@@ -331,9 +341,10 @@ namespace GPUGraph.Editor
 				GUILayout.Label("2D Hash:");
 				oldHash = Grph.Hash2;
 				Grph.Hash2 = GUILayout.TextField(Grph.Hash2);
-				if (oldHash != Grph.Hash2 && !unsavedStr.Contains("2D hash func"))
+				if (oldHash != Grph.Hash2)
 				{
-					unsavedStr += "2D hash func, ";
+					if (!unsavedStr.Contains("2D hash func"))
+						unsavedStr += "2D hash func, ";
 					if (autoUpdatePreview)
 						UpdatePreview();
 				}
@@ -343,9 +354,10 @@ namespace GPUGraph.Editor
 				GUILayout.Label("3D Hash:");
 				oldHash = Grph.Hash3;
 				Grph.Hash3 = GUILayout.TextField(Grph.Hash3);
-				if (oldHash != Grph.Hash3 && !unsavedStr.Contains("3D hash func"))
+				if (oldHash != Grph.Hash3)
 				{
-					unsavedStr += "3D hash func, ";
+					if (!unsavedStr.Contains("3D hash func"))
+						unsavedStr += "3D hash func, ";
 					if (autoUpdatePreview)
 						UpdatePreview();
 				}
@@ -495,10 +507,9 @@ namespace GPUGraph.Editor
 					//Keeping this here in case we want to react to special events later.
 					if (!EditorGUIUtility.editingTextField)
 					{
-						Debug.Log(evt.commandName);
-						switch (evt.commandName)
-						{
-						}
+						//switch (evt.commandName)
+						//{
+						//}
 					}
 					break;
 
