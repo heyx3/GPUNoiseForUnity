@@ -171,10 +171,11 @@ namespace GPUGraph
 		/// </summary>
 		public void UpdateAllParams()
 		{
+			Material m = GraphMat;
 			foreach (FloatParamKVP floatParam in FloatParams)
-				graphMat.SetFloat(floatParam.Key, floatParam.Value);
+				m.SetFloat(floatParam.Key, floatParam.Value);
 			foreach (Tex2DParamKVP texParam in Tex2DParams)
-				graphMat.SetTexture(texParam.Key, texParam.Value);
+				m.SetTexture(texParam.Key, texParam.Value);
 		}
 
 		#endregion
