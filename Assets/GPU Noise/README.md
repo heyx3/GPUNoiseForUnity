@@ -144,7 +144,7 @@ If anybody wants to help out with these issues (or contribute to the codebase in
 
     * Find a way to render `GUILayout`/`EditorGUILayout` calls into a texture and then draw a scaled version of the texture.
 
-* Similarly, features like multi-node selection/movement would be nice.
+* Similarly, features like multi-node selection/movement and pressing Ctrl+S to save would be nice.
 
 * The Applications (specifically Texture Generator and Terrain Generator) should show a preview of the generated image.
 

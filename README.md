@@ -92,27 +92,11 @@ This tool generates a 2D texture file using a graph.
 
 This tool uses a graph to generate a heightmap for whichever terrain object is currently selected in the scene view.
 
-# Known Issues
-
-If anybody wants to help out with these issues (or contribute to the codebase in any other way), feel free to send a pull request or email me at manning.w27@gmail.com.
-
-* The editor window's UI is pretty rough; you get what you pay for :P. You can pan the view, but you can't zoom in or out. Adding zoom functionality would probably require one of these two approaches:
-
-    * Using custom GUIStyles for everything and manually lowering/increasing their size with the zoom level
-
-    * Find a way to render `GUILayout`/`EditorGUILayout` calls into a texture and then draw a scaled version of the texture.
-
-* UnityEditor's `Undo` class just didn't seem to work at all with the graph editor window, so I don't use it at all (although I at least got it to work with RuntimeGraph's custom inspector). However, the editor closely tracks any unsaved changes and makes sure to tell you if you're about to discard them.
-
-* There are some bugs with drawing textures in RealtimeGraph's custom Inspector code; sometimes the textures aren't visible. As far as I can tell, this is Unity's problem.
-
-* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same path, "Resources/unity_buitin_extra"). Currently I have a manual check that logs a warning if you try to do that.
-
 # Code
 
-Code is organized in the following system, all inside the "GPU Noise" folder:
+Code is organized in the following way inside the "GPU Noise" folder:
 
-* GraphUtils.cs, RuntimeGraph.cs, SampleGPUGScript.cs: Scripts for using graphs at run-time. Refer to "SampleGPUGScript.cs" for an example.
+* Runtime: Scripts for using graphs at run-time. Take a look at "SampleGPUGScript.cs" for an example.
 * Editor: Scripts for using graphs in the editor.
     * **Graph System**: The code for representing/editing a graph.
         * **Nodes**: Specific kinds of nodes that can be placed in a graph.
@@ -147,6 +131,28 @@ The number of `Node` child classes is actually fairly small:
 *namespace: GPUGraph.Applications*
 
 This folder contains the various built-in utilities mentioned above: *ShaderGenerator*, *TextureGenerator*, and *TerrainGenerator*.
+
+# Known Issues
+
+If anybody wants to help out with these issues (or contribute to the codebase in any other way), feel free to send a pull request or email me at manning.w27@gmail.com.
+
+* When you first click on the editor after creating a new graph, it goes back to a state of not editing anything for some reason.
+
+* The editor window's UI is pretty rough; you get what you pay for :P. You can pan the view, but you can't zoom in or out. Adding zoom functionality would probably require one of these two approaches:
+
+    * Using custom GUIStyles for everything and manually lowering/increasing their size with the zoom level
+
+    * Find a way to render `GUILayout`/`EditorGUILayout` calls into a texture and then draw a scaled version of the texture.
+
+* Similarly, features like multi-node selection/movement and pressing Ctrl+S to save would be nice.
+
+* The Applications (specifically Texture Generator and Terrain Generator) should show a preview of the generated image.
+
+* UnityEditor's `Undo` class just didn't seem to work at all with the graph editor window, so I don't use it at all (although I at least got it to work with RuntimeGraph's custom inspector). However, the editor closely tracks any unsaved changes and makes sure to tell you if you're about to discard them.
+
+* There are some bugs with drawing textures in RealtimeGraph's custom Inspector code; sometimes the textures aren't visible. As far as I can tell, this is Unity's problem.
+
+* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same path, "Resources/unity_buitin_extra"). Currently I have a manual check that logs a warning if you try to do that.
 
 # License
 
