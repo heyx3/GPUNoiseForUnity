@@ -214,16 +214,16 @@ namespace GPUGraph
             }
 
             //Emit code for all nodes in proper order.
-            Stack<Node> toProcess = new Stack<Node>();
+            List<Node> toProcess = new List<Node>();
             Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
             if (!Output.IsAConstant)
             {
-                toProcess.Push(GetNode(Output.NodeID));
+                toProcess.Add(GetNode(Output.NodeID));
                 uidDoneYet.Add(Output.NodeID, false);
             }
             while (toProcess.Count > 0)
             {
-                Node n = toProcess.Peek();
+                Node n = toProcess[toProcess.Count - 1];
 
                 //If the next node hasn't been processed yet, add its inputs to the stack.
                 if (!uidDoneYet[n.UID])
@@ -232,9 +232,16 @@ namespace GPUGraph
                     {
                         if (!ni.IsAConstant)
                         {
-                            if (!uidDoneYet.ContainsKey(ni.NodeID))
+							if (uidDoneYet.ContainsKey(ni.NodeID))
+							{
+								//Move the node up to the top of the stack.
+								Node n2 = GetNode(ni.NodeID);
+								toProcess.Remove(n2);
+								toProcess.Add(n2);
+							}
+							else
                             {
-                                toProcess.Push(GetNode(ni.NodeID));
+                                toProcess.Add(GetNode(ni.NodeID));
                                 uidDoneYet.Add(ni.NodeID, false);
                             }
                         }
@@ -245,7 +252,7 @@ namespace GPUGraph
                 //Otherwise, let the node emit its code and then remove it from the stack.
                 else
                 {
-                    toProcess.Pop();
+                    toProcess.RemoveAt(toProcess.Count - 1);
                     n.EmitCode(body);
                 }
             }
@@ -253,7 +260,88 @@ namespace GPUGraph
             return Output.GetExpression(this);
         }
 
-		public string GenerateShader(string shaderName, string outputs = "rgb", float defaultVal = 0.0f)
+		/// <summary>
+		/// Generates a shader that outputs this graph's noise in the given channels.
+		/// </summary>
+		/// <param name="shaderName">The shader's name in the file.</param>
+		/// <param name="outputs">The channels to output this graph's noise into.</param>
+		/// <param name="defaultVal">
+		/// The value held by channels that didn't receive this graph's noise.
+		/// </param>
+		public string GenerateShader(string shaderName, string outputs, float defaultVal)
+		{
+			return GenerateShader(shaderName, (sb) => { }, (sb) => { },
+				(o, sb) =>
+				{
+					string defaultValStr = defaultVal.ToString();
+
+					sb.Append("return float4(");
+					if (outputs.Contains('x') || outputs.Contains('r'))
+						sb.Append(o);
+					else
+						sb.Append(defaultValStr);
+					sb.Append(", ");
+					if (outputs.Contains('y') || outputs.Contains('g'))
+						sb.Append(o);
+					else
+						sb.Append(defaultValStr);
+					sb.Append(", ");
+					if (outputs.Contains('z') || outputs.Contains('b'))
+						sb.Append(o);
+					else
+						sb.Append(defaultValStr);
+					sb.Append(", ");
+					if (outputs.Contains('w') || outputs.Contains('a'))
+						sb.Append(o);
+					else
+						sb.Append(defaultValStr);
+					sb.AppendLine(");");
+				});
+		}
+		/// <summary>
+		/// Generates a shader that outputs a color based on the graph's noise and a color ramp texture.
+		/// </summary>
+		/// <param name="shaderName">The shader's name in the file.</param>
+		public string GenerateShader(string shaderName, string colorRampParamName)
+		{
+			return GenerateShader(shaderName,
+				(sb) =>
+				{
+					sb.Append("\t\t\t");
+					sb.Append(colorRampParamName);
+					sb.Append(" (\"");
+					sb.Append(StringUtils.PrettifyVarName(colorRampParamName));
+					sb.AppendLine("\", 2D) = \"\" {}");
+				},
+				(sb) =>
+				{
+					sb.Append("\t\t\t\tsampler2D ");
+					sb.Append(colorRampParamName);
+					sb.AppendLine(";");
+				},
+				(o, sb) =>
+				{
+					sb.Append("return tex2D(");
+					sb.Append(colorRampParamName);
+					sb.Append(", float2(");
+					sb.Append(o);
+					sb.AppendLine(", 0.0));");
+				});
+		}
+		/// <summary>
+		/// Generates a shader with customized output.
+		/// </summary>
+		/// <param name="shaderName">The shader's name in the file.</param>
+		/// <param name="addToProperties">Adds any Unity Shaderlab Properties to the given string.</param>
+		/// <param name="addToDefs">Adds any Cg declarations to the given string.</param>
+		/// <param name="returnFragmentColor">
+		/// Outupts shader instructions that return a float4 color
+		///     given the variable holding the graph's noise output.
+		/// </param>
+		public string GenerateShader(string shaderName,
+									 Action<StringBuilder> addToProperties,
+									 Action<StringBuilder> addToDefs,
+									 Action<string, StringBuilder> returnFragmentColor)
 		{
             //Get the core parts of the shader code.
             StringBuilder properties = new StringBuilder(),
@@ -270,6 +358,7 @@ namespace GPUGraph
         Properties
         {");
             shader.AppendLine(properties.ToString());
+			addToProperties(shader);
             shader.AppendLine(@"
         }
         SubShader
@@ -320,6 +409,7 @@ namespace GPUGraph
 				//--------GPUG/Node stuff---------
 				//--------------------------------");
             shader.AppendLine(cgProperties.ToString());
+			addToDefs(shader);
             shader.AppendLine(@"
                 //--------------------------------
                 //--------------------------------
@@ -335,16 +425,9 @@ namespace GPUGraph
 
                     float OUT_expr = ");
             shader.Append(outExpr);
-            shader.AppendLine(@";
-                    return float4(");
-            shader.Append(outputs.Contains('x') || outputs.Contains('r') ? "OUT_expr" : defaultVal.ToString());
-            shader.Append(", ");
-            shader.Append(outputs.Contains('y') || outputs.Contains('g') ? "OUT_expr" : defaultVal.ToString());
-            shader.Append(", ");
-            shader.Append(outputs.Contains('z') || outputs.Contains('b') ? "OUT_expr" : defaultVal.ToString());
-            shader.Append(", ");
-            shader.Append(outputs.Contains('w') || outputs.Contains('a') ? "OUT_expr" : defaultVal.ToString());
-            shader.Append(@");
+            shader.AppendLine(";");
+			returnFragmentColor("OUT_expr", shader);
+			shader.Append(@"
                 }
             ENDCG
             }

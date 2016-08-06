@@ -466,7 +466,8 @@ namespace GPUGraph
 			graph.GraphShader = GPUGraph.GraphEditorUtils.SaveShader(gpuG,
 																	 Path.Combine("Assets", graph._ShaderFile),
 																	 "Hidden/" +
-																		Path.GetFileNameWithoutExtension(graph._ShaderFile));
+																		Path.GetFileNameWithoutExtension(graph._ShaderFile),
+																	 "rgb", 0.0f);
 
 			if (graph.GraphShader == null)
 				return gpuG;

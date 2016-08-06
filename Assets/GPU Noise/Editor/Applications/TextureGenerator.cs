@@ -10,6 +10,7 @@ using GPUGraph;
 
 namespace GPUGraph.Applications
 {
+	[Serializable]
 	public class TextureGenerator : EditorWindow
 	{
 		[MenuItem("GPU Noise/Generate Texture")]
@@ -20,12 +21,10 @@ namespace GPUGraph.Applications
 
 
 		public int X = 512, Y = 512;
-		public bool UseRed = true,
-					UseGreen = true,
-					UseBlue = true,
-					UseAlpha = false;
-		public float UnusedColor = 1.0f;
 		public int SelectedGraphIndex = 0;
+
+		public List<Color> GradientRamp_Colors = null;
+		public List<float> GradientRamp_Times = null;
 
 		private List<string> graphPaths = new List<string>();
 		private GUIContent[] graphNameOptions;
@@ -47,6 +46,9 @@ namespace GPUGraph.Applications
 
 			gParams = new GraphParamCollection();
 
+			GradientRamp_Colors = new List<Color>() { Color.black, Color.white };
+			GradientRamp_Times = new List<float>() { 0.0f, 1.0f };
+
 			SelectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
@@ -66,19 +68,44 @@ namespace GPUGraph.Applications
 			Y = EditorGUILayout.IntField("Height", Y);
 			
 			GUILayout.Space(15.0f);
-			
 
-			UseRed = GUILayout.Toggle(UseRed, "Use Red?");
-			UseGreen = GUILayout.Toggle(UseGreen, "Use Green?");
-			UseBlue = GUILayout.Toggle(UseBlue, "Use Blue?");
-			UseAlpha = GUILayout.Toggle(UseAlpha, "Use Alpha?");
-			if (!UseRed && !UseGreen && !UseBlue && !UseAlpha)
+			GUILayout.Label("Gradient");
+			GUILayout.BeginHorizontal();
+			GUILayout.Space(15.0f);
+			GUILayout.BeginVertical();
+			for (int i = 0; i < GradientRamp_Colors.Count; ++i)
 			{
-				UseRed = true;
+				GUILayout.BeginHorizontal();
+				GradientRamp_Colors[i] = EditorGUILayout.ColorField(GradientRamp_Colors[i]);
+				if (i > 0)
+					GradientRamp_Times[i] = EditorGUILayout.Slider(GradientRamp_Times[i],
+																   0.0f, 1.0f);
+				if (i > 0 && GUILayout.Button("+"))
+				{
+					GradientRamp_Colors.Insert(i, GradientRamp_Colors[i]);
+					GradientRamp_Times.Insert(i, GradientRamp_Times[i] - 0.00000001f);
+				}
+				if (i > 0 && GradientRamp_Colors.Count > 2 && GUILayout.Button("-"))
+				{
+					GradientRamp_Colors.RemoveAt(i);
+					GradientRamp_Times.RemoveAt(i);
+					i -= 1;
+				}
+				GUILayout.EndHorizontal();
+
+				if (i > 0 && GradientRamp_Times[i] < GradientRamp_Times[i - 1])
+				{
+					GradientRamp_Times[i] = GradientRamp_Times[i - 1] + 0.000001f;
+				}
+				else if (i < GradientRamp_Colors.Count - 1 &&
+						 GradientRamp_Times[i] > GradientRamp_Times[i + 1])
+				{
+					GradientRamp_Times[i] = GradientRamp_Times[i + 1] - 0.00001f;
+				}
 			}
-			
-			UnusedColor = EditorGUILayout.FloatField("Unused color value", UnusedColor);
-			
+			GUILayout.EndVertical();
+			GUILayout.EndHorizontal();
+
 			GUILayout.Space(15.0f);
 
 
@@ -102,15 +129,13 @@ namespace GPUGraph.Applications
 
 			GUILayout.Space(10.0f);
 
-
+			//Show some GUI elements for changing the parameters.
 			if (graphPaths.Count > 0)
-			{
 				gParams.ParamEditorGUI();
-			}
 
 			GUILayout.Space(10.0f);
 
-
+			//If a graph is selected, display a button to generate the texture.
 			if (graphPaths.Count > 0)
 			{
 				if (GUILayout.Button("Generate Texture"))
@@ -126,32 +151,20 @@ namespace GPUGraph.Applications
 							return;
 						}
 
-						//Render the noise to a texture.
-						System.Text.StringBuilder components = new System.Text.StringBuilder();
-						if (UseRed)
-						{
-							components.Append("r");
-						}
-						if (UseGreen)
-						{
-							components.Append("g");
-						}
-						if (UseBlue)
-						{
-							components.Append("b");
-						}
-						if (UseAlpha)
-						{
-							components.Append("a");
-						}
+						//Render the gradient ramp to a texture,
+						//    then render the graph's noise to a texture.
+						Gradient grd = new Gradient();
+						grd.SetKeys(GradientRamp_Colors.Select((c, i) =>
+										new GradientColorKey(c, GradientRamp_Times[i])).ToArray(),
+									new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f) });
 						Texture2D tex = GraphEditorUtils.GenerateToTexture(g, new GraphParamCollection(g, gParams),
-																		   X, Y, components.ToString(),
-																		   UnusedColor);
+																		   X, Y, grd);
 						if (tex == null)
 						{
 							return;
 						}
 
+						//Write out the texture as a PNG.
 						try
 						{
 							File.WriteAllBytes(savePath, tex.EncodeToPNG());
