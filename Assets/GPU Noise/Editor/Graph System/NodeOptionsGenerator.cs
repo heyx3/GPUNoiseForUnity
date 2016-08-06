@@ -12,6 +12,7 @@ using Option = GPUGraph.NodeTree_Element_Option;
 namespace GPUGraph
 {
 	//TODO: ParamNode_Texture3D and Cube (http://docs.unity3d.com/432/Documentation/Components/SL-Properties.html).
+	//TODO: Add buttons to addition, subtraction, min/max, etc. nodes for an arbitrary number of inputs.
 	//TODO: Optionally have more than one output. Use for texture nodes and TexCoordNode.
 
 
@@ -198,6 +199,7 @@ namespace GPUGraph
 					Option.TwoVarFunc("min", "Min", "Gets the smallest of two values"),
 					Option.ThreeVarFunc("clamp", "Clamp", "Keeps a value between a min and a max",
 										"f", float.NaN, "low", 0.0f, "high", 1.0f)),
+				new Option((g, r) => new CustomExprNode(r, "$1"), "Custom Expression"),
 				new Option((g, r) => new TexCoordNode(r, true), "Tex Coord X", "UV.x"),
 				new Option((g, r) => new TexCoordNode(r, false), "Tex Coord Y", "UV.y"),
 				new Option((g, r) => new ParamNode_Float(r, new FloatParamInfo("MyVar")), "Scalar Parameter"),

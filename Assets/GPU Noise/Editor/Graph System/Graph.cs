@@ -200,17 +200,17 @@ namespace GPUGraph
         {
 			PreProcess();
 
+            if (addDefines)
+            {
+                cgProperties.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
+                cgProperties.AppendLine(ShaderDefs.Functions);
+            }
+
             //Emit properties in no particular order.
             foreach (Node n in nodes)
             {
                 n.EmitProperties(properties);
                 n.EmitDefs(cgProperties);
-            }
-
-            if (addDefines)
-            {
-                cgProperties.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
-                cgProperties.AppendLine(ShaderDefs.Functions);
             }
 
             //Emit code for all nodes in proper order.
