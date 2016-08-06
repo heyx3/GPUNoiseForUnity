@@ -152,17 +152,24 @@ namespace GPUGraph.Editor
 			GUILayout.BeginArea(new Rect(0.0f, 0.0f, NodeChoiceSpace, position.height));
 			if (CurrentlyPlacing == null)
 			{
-				GUILayout.Label("Click on an option, then\nclick in the graph to place it.");
-				GUILayout.Label("Mouse over an option to\nget more info about it.");
-				GUILayout.Space(25.0f);
-
-				foreach (NodeTree_Element el in NewNodeOptions)
+				if (selectedGraph < 0)
 				{
-					NodeTree_Element_Option opt = el.OnGUI();
-					if (opt != null)
+					GUILayout.Label("No graph is\nselected for editing.");
+				}
+				else
+				{
+					GUILayout.Label("Click on an option, then\nclick in the graph to place it.");
+					GUILayout.Label("Mouse over an option to\nget more info about it.");
+					GUILayout.Space(25.0f);
+
+					foreach (NodeTree_Element el in NewNodeOptions)
 					{
-						SelectOption(opt);
-						break;
+						NodeTree_Element_Option opt = el.OnGUI();
+						if (opt != null)
+						{
+							SelectOption(opt);
+							break;
+						}
 					}
 				}
 			}

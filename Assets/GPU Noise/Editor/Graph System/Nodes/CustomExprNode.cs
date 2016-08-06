@@ -19,7 +19,7 @@ namespace GPUGraph
 		public string Expr = "$1";
 
 
-		public override string PrettyName { get { return "Custom Expr"; } }
+		public override string PrettyName { get { return "Custom Expression"; } }
 
 
 		public CustomExprNode(Rect pos, string expr)

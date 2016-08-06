@@ -23,9 +23,9 @@ namespace GPUGraph
 		public GUIContent[] AvailableGraphsGUI = null;
 		public int CurrentGraph = -1;
 
-		public bool IsFolded = true,
-					IsFloatParamListFolded = true,
-					IsTex2DParamListFolded = true;
+		public bool IsFolded = false,
+					IsFloatParamListFolded = false,
+					IsTex2DParamListFolded = false;
 
 		
 		private const float oneLine = 15.0f;
