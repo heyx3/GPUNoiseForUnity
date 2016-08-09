@@ -4,11 +4,12 @@ using System.Linq;
 using UnityEngine;
 
 
-namespace GPUGraph.Applications
+namespace GPUGraph.Examples
 {
 	/// <summary>
 	/// An example of how to use GPUGraphs at runtime.
-	/// Creates two objects and sets their textures to the output of two different graphs.
+	/// Creates two objects with a given mesh/material
+	///     and sets their textures to the output of two different graphs.
 	/// </summary>
 	public class SampleGPUGScript : MonoBehaviour
 	{
@@ -24,6 +25,7 @@ namespace GPUGraph.Applications
 		void Start()
 		{
 			myTex1 = MyGraph.GenerateToTexture(512, 512, TextureFormat.RGB24);
+			myTex2 = MyGraph2.GenerateToTexture(512, 512, TextureFormat.RGB24);
 
 			GameObject go1 = new GameObject("1");
 			go1.transform.parent = Camera.main.transform;
@@ -34,8 +36,6 @@ namespace GPUGraph.Applications
 			go1.AddComponent<MeshRenderer>().material = DisplayMat;
 			go1.GetComponent<MeshRenderer>().material.mainTexture = myTex1;
 
-
-			myTex2 = MyGraph2.GenerateToTexture(512, 512, TextureFormat.RGB24);
 
 			GameObject go2 = new GameObject("2");
 			go2.transform.parent = Camera.main.transform;

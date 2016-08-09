@@ -25,8 +25,16 @@ namespace GPUGraph
 			{
 				if (graphMat == null)
 				{
-					graphMat = new Material(GraphShader);
-					UpdateAllParams();
+					if (GraphShader == null)
+					{
+						throw new InvalidOperationException("Something happened to a RuntimeGraph's shader! " +
+															 "View the RuntimeGraph in the Inspector to regenerate it.");
+					}
+					else
+					{
+						graphMat = new Material(GraphShader);
+						UpdateAllParams();
+					}
 				}
 
 				return graphMat;

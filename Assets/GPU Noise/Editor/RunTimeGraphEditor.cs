@@ -150,14 +150,11 @@ namespace GPUGraph
 													  graph._ShaderFile);
 				if (newPath != graph._ShaderFile)
 				{
-					Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
-
-					string dirName = Path.Combine("Assets", Path.GetDirectoryName(graph._ShaderFile));
+					string dirName = Path.GetDirectoryName(graph._ShaderFile);
 					if (!Directory.Exists(Path.Combine(Application.dataPath, dirName)))
 						Directory.CreateDirectory(Path.Combine(Application.dataPath, dirName));
 
-					AssetDatabase.MoveAsset(Path.Combine("Assets", graph._ShaderFile),
-											Path.Combine("Assets", newPath));
+					AssetDatabase.MoveAsset(graph._ShaderFile, newPath);
 
 					graph._ShaderFile = newPath;
 				}
@@ -305,17 +302,23 @@ namespace GPUGraph
 		}
 
 		/// <summary>
-		/// Gets a new, unused shader file name.
+		/// Gets a new, unused shader file name and creates a dummy shader file at that path.
 		/// </summary>
 		private string GetNewShaderFile()
 		{
 			int i = 0;
-			string path = "GPU Noise/Resources/MyGPUGShader0.shader";
-			while (File.Exists(Path.Combine(Application.dataPath, path)))
+			string path = "Assets/GPU Noise/Resources/MyGPUGShader0.shader";
+			while (File.Exists(path))
 			{
 				i += 1;
-				path = "Resources/MyGPUGShader" + i + ".shader";
+				path = "Assets/GPU Noise/Resources/MyGPUGShader" + i + ".shader";
 			}
+
+			if (!Directory.Exists(Path.GetDirectoryName(path)))
+				Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+			File.WriteAllText(path, "");
+
 			return path;
 		}
 		
@@ -463,8 +466,7 @@ namespace GPUGraph
 				return null;
 
 			//Generate the shader.
-			graph.GraphShader = GPUGraph.GraphEditorUtils.SaveShader(gpuG,
-																	 Path.Combine("Assets", graph._ShaderFile),
+			graph.GraphShader = GPUGraph.GraphEditorUtils.SaveShader(gpuG, graph._ShaderFile,
 																	 "Hidden/" +
 																		Path.GetFileNameWithoutExtension(graph._ShaderFile),
 																	 "rgb", 0.0f);
