@@ -174,7 +174,8 @@ namespace GPUGraph
 			get { return Worley_DistanceCalc == "distance($1, $2)" && Worley_NoiseCalc == "$1"; }
 		}
 
-
+		
+		public override Color GUIColor { get { return new Color(1.0f, 0.85f, 0.85f); } }
 		public override string PrettyName
 		{
 			get

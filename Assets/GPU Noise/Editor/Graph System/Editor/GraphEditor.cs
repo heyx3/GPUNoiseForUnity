@@ -593,10 +593,13 @@ namespace GPUGraph.Editor
 
 		private Rect GUINode(Rect nodeRect, Node node)
 		{
+			Color oldCol = GUI.color;
+			GUI.color = (node == null ? new Color(0.65f, 0.65f, 0.65f) : node.GUIColor);
 			nodeRect = GUILayout.Window((node == null ? -1 : (int)node.UID),
 										nodeRect, GUINodeWindow,
 										(node == null ? "Output" : node.PrettyName),
 										GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+			GUI.color = oldCol;
 
 			return nodeRect;
 		}

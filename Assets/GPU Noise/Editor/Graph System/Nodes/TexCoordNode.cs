@@ -18,6 +18,7 @@ namespace GPUGraph
 		public bool IsX;
 
 
+		public override Color GUIColor { get { return new Color(0.85f, 0.85f, 1.0f); } }
 		public override string OutputName { get { return "IN.texcoord." + (IsX ? "x" : "y"); } }
 		public override string PrettyName { get { return "UV " + (IsX ? "X" : "Y"); } }
 

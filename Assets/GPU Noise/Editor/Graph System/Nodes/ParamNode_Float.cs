@@ -60,7 +60,8 @@ namespace GPUGraph
 	{
 		public FloatParamInfo Param;
 
-
+		
+		public override Color GUIColor { get { return new Color(0.85f, 1.0f, 1.0f); } }
 		public override string OutputName { get { return Param.Name; } }
 		public override string PrettyName { get { return "Scalar Param"; } }
 
