@@ -9,9 +9,9 @@ The .unitypackage file for this plugin is stored in the root of this repo: *GPUG
 This repo contains the GPUGraph plugin for Unity, which provides classes and editors for generating floating-point noise on the GPU with shaders.
 This leads to extremely fast noise generation compared to traditional CPU methods.
 
-Note that because Unity no longer supports runtime compilation of shaders, Graphs can only really be used in the editor. However, shaders can be generated from the graph in the editor then used in real-time (graphs can expose float and Tex2D parameters which are changeable at run-time). A serializable class "RuntimeGraph" is provided to greatly simplify use of run-time graphs; see "SampleGPUGScript.cs" for an example of how to use it. You can also use the `GPUGraph.GraphUtils` class for more control.
+Note that because Unity no longer supports runtime compilation of shaders, Graphs can only really be used in the editor. However, shaders can be generated from the graph in the editor then used in real-time (graphs can expose float and Tex2D parameters which are changeable at run-time). A serializable class "RuntimeGraph" is provided to greatly simplify use of run-time graphs; see "SampleScene.unity" and "SampleGPUGScript.cs" for an example of how to use it (note that you need to look at the SampleGPUGScript component in the Inspector to regenerate shaders before the scene will work).
 
-The basic structure behind GPUGraph is a "Directed Acyclic Graph" of commands that represents shader code. Every node in the graph takes some number of floats as inputs and outputs a single float as a result.
+The basic structure behind GPUGraph is a tree (or more accurately, a "Directed Acyclic Graph") of commands that represents shader code. Every node in the graph takes some number of floats as inputs and outputs a single float as a result.
 
 Graphs are created in a custom editor window and saved as ".gpug" files into the "Assets" folder. The editor is accessed by selecting "GPU Noise/Show Editor" in the Unity editor's toolbar. Here is an example of a very simple graph that generates pure white noise:
 
