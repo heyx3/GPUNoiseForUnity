@@ -91,7 +91,7 @@ namespace GPUGraph
 
 		/// <summary>
 		/// Simplifies this graph by running its nodes through the pre-processing stage.
-		/// The whole graph will be reduced to its final form (i.e. no "weirdos" like SubGraphNode).
+		/// The whole graph will be reduced to its final form (i.e. no "weird" nodes like SubGraphNode).
 		/// </summary>
 		public void PreProcess()
 		{

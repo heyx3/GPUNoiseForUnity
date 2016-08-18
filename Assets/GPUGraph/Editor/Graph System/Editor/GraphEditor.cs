@@ -12,7 +12,7 @@ namespace GPUGraph.Editor
 {
 	public class GraphEditor : EditorWindow
 	{
-		[UnityEditor.MenuItem("GPU Noise/Show Editor")]
+		[UnityEditor.MenuItem("Assets/GPU Graph/Editor", false, 1)]
 		public static void ShowEditor()
 		{
 			EditorWindow.GetWindow(typeof(GraphEditor));

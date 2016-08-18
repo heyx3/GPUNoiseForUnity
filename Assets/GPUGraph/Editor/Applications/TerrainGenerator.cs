@@ -11,7 +11,7 @@ namespace GPUGraph.Applications
 {
 	public class TerrainGenerator : EditorWindow
 	{
-		[MenuItem("GPU Noise/Generate Terrain Heightmap")]
+		[MenuItem("Assets/GPU Graph/Generate Terrain Heightmap", false, 3)]
 		public static void GenerateHeightmap()
 		{
 			ScriptableObject.CreateInstance<TerrainGenerator>().Show();

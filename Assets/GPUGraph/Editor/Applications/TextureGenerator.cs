@@ -13,7 +13,7 @@ namespace GPUGraph.Applications
 	[Serializable]
 	public class TextureGenerator : EditorWindow
 	{
-		[MenuItem("GPU Noise/Generate Texture")]
+		[MenuItem("Assets/GPU Graph/Generate Texture", false, 4)]
 		public static void GenerateTexture()
 		{
 			ScriptableObject.CreateInstance<TextureGenerator>().Show();

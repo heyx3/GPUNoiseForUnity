@@ -12,7 +12,7 @@ namespace GPUGraph.Applications
 {
 	public class ShaderGenerator : EditorWindow
 	{
-		[MenuItem("GPU Noise/Generate Shader")]
+		[MenuItem("Assets/GPU Graph/Generate Shader", false, 2)]
 		public static void GenerateTexture()
 		{
 			ScriptableObject.CreateInstance<ShaderGenerator>().Show();
