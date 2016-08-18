@@ -13,7 +13,7 @@ Note that because Unity no longer supports runtime compilation of shaders, Graph
 
 The basic structure behind GPUGraph is a tree (or more accurately, a "Directed Acyclic Graph") of commands that represents shader code. Every node in the graph takes some number of floats as inputs and outputs a single float as a result.
 
-Graphs are created in a custom editor window and saved as ".gpug" files into the "Assets" folder. The editor is accessed by selecting "GPU Noise/Show Editor" in the Unity editor's toolbar. Here is an example of a very simple graph that generates pure white noise:
+Graphs are created in a custom editor window and saved as ".gpug" files into the "Assets" folder. The editor is accessed by selecting "Assets/GPU Graph/Editor" in the Unity editor's toolbar. Here is an example of a very simple graph that generates pure white noise:
 
 ![White Noise](https://github.com/heyx3/GPUNoiseForUnity/blob/master/Readme%20Images/WhiteNoise.png)
 
@@ -78,7 +78,7 @@ All the nodes this plugin currently offers are listed here:
 
 # Applications
 
-Several example applications are built into the editor; they are all accessible through the "GPU Noise" category in the Unity editor's toolbar.
+Several example applications are built into the editor; they are all accessible through the "Assets/GPU Graph" category in the Unity editor's toolbar.
 
 ## <a name="GenerateShader"></a>Shader Generator
 
