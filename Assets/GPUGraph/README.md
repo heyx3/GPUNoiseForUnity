@@ -2,7 +2,7 @@
 
 An open-source Unity plugin for generating coherent noise on the GPU, for both editor and runtime uses. The source is available [here](http://www.github.com/heyx3/GPUNoiseForUnity), on Github.
 
-The .unitypackage file for this plugin is stored in the root of this repo: *GPUGraph.unitypackage*.
+Editor tools for this plugin are available in the "Assets/GPU Graph" section on the Unity editor's toolbar. The *.unitypackage* file for this plugin is stored in the root of the Github repo: *GPUGraph.unitypackage*.
 
 # Overview
 

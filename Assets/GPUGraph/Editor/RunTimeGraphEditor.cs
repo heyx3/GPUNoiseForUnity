@@ -80,7 +80,8 @@ namespace GPUGraph
 			EditorGUI.BeginProperty(position, label, property); 
 
 			//Do any necessary initialization.
-			if (graph._ShaderFile == null)
+			if (graph._ShaderFile == null || graph._ShaderFile == "" ||
+				!File.Exists(Path.Combine(Application.dataPath, graph._ShaderFile)))
 			{
 				graph._ShaderFile = GetNewShaderFile();
 				IsEditorNew = true;
@@ -294,7 +295,7 @@ namespace GPUGraph
 			//Occasionally refresh the texture preview.
 			//This lets the window "react" to undo/redo changes.
 			//Have to do it this way because UnityEditor.Undo is a huge PITA.
-			if (UnityEngine.Random.Range(0.0f, 1.0f) > 0.85f)
+			if (graph._ShaderFile != null && UnityEngine.Random.Range(0.0f, 1.0f) > 0.85f)
 				UpdatePreviewTex(graph);
 
 
@@ -306,18 +307,24 @@ namespace GPUGraph
 		/// </summary>
 		private string GetNewShaderFile()
 		{
+			const string dir = "GPU Noise/Resources";
+			if (!Directory.Exists(Path.Combine(Application.dataPath, dir)))
+				Directory.CreateDirectory(Path.Combine(Application.dataPath, dir));
+
 			int i = 0;
-			string path = "Assets/GPU Noise/Resources/MyGPUGShader0.shader";
-			while (File.Exists(path))
+			string path = Path.Combine(dir, "MyGPUGShader0.shader");
+			while (File.Exists(Path.Combine(Application.dataPath, path)))
 			{
 				i += 1;
-				path = "Assets/GPU Noise/Resources/MyGPUGShader" + i + ".shader";
+				path = Path.Combine(dir, "MyGPUGShader" + i + ".shader");
 			}
 
-			if (!Directory.Exists(Path.GetDirectoryName(path)))
-				Directory.CreateDirectory(Path.GetDirectoryName(path));
+			if (!Directory.Exists(Path.Combine(Application.dataPath, dir)))
+			{
+				Directory.CreateDirectory(Path.Combine(Application.dataPath, dir));
+			}
 
-			File.WriteAllText(path, "");
+			File.WriteAllText(Path.Combine(Application.dataPath, path), "");
 
 			return path;
 		}
@@ -466,7 +473,8 @@ namespace GPUGraph
 				return null;
 
 			//Generate the shader.
-			graph.GraphShader = GPUGraph.GraphEditorUtils.SaveShader(gpuG, graph._ShaderFile,
+			graph.GraphShader = GPUGraph.GraphEditorUtils.SaveShader(gpuG, Path.Combine(Application.dataPath,
+																						graph._ShaderFile),
 																	 "Hidden/" +
 																		Path.GetFileNameWithoutExtension(graph._ShaderFile),
 																	 "rgb", 0.0f);
