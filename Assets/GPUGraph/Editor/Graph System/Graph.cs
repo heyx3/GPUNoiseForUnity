@@ -252,8 +252,13 @@ namespace GPUGraph
                 //Otherwise, let the node emit its code and then remove it from the stack.
                 else
                 {
-                    toProcess.RemoveAt(toProcess.Count - 1);
-                    n.EmitCode(body);
+					toProcess.RemoveAt(toProcess.Count - 1);
+					
+					//Fixes duplicate variable definitions for nodes with branching paths.
+					if( body.ToString().Contains("float "+n.OutputName+" =" ) )
+						continue;
+					else
+                    	n.EmitCode(body);
                 }
             }
 
