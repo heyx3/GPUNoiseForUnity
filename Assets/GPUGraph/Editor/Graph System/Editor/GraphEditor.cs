@@ -53,14 +53,6 @@ namespace GPUGraph.Editor
 		private Texture2D previewNoise = null;
 		private bool autoUpdatePreview = false;
 
-
-		private Rect WindowRect
-		{
-			get { return new Rect(0.0f, 0.0f,
-								  position.width - NodeChoiceSpace - OptionsSpace,
-								  position.height); }
-		}
-
 		
 		public void SelectOption(NodeTree_Element_Option option)
 		{
@@ -440,12 +432,12 @@ namespace GPUGraph.Editor
 				case EventType.MouseDrag:
 					if (draggingMouseDown && draggingWindowID < -1)
 					{
-						CamOffset -= Event.current.delta;
+						CamOffset -= evt.delta;
 						Repaint();
 					}
 					break;
 				case EventType.MouseDown:
-					if (Event.current.button == 0)
+					if (evt.button == 0)
 					{
 						if (CurrentlyPlacing != null)
 						{
@@ -472,10 +464,10 @@ namespace GPUGraph.Editor
 						}
 						else
 						{
-							activeWindowID = -2;
+							activeWindowID = -2; //TODO: Should this be -1? Also check the conditional below.
 							foreach (Node n in Grph.Nodes)
 							{
-								if (n.Pos.Contains(mPos))
+								if (n.Pos.Contains(mPos))//TODO: Shouldn't we use localMPos?
 								{
 									activeWindowID = n.UID;
 								}
@@ -487,7 +479,7 @@ namespace GPUGraph.Editor
 							}
 						}
 					}
-					else if (Event.current.button == 1)
+					else if (evt.button == 1)
 					{
 						//If a node is currently being placed, cancel it.
 						if (CurrentlyPlacing != null)

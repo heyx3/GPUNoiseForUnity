@@ -8,6 +8,7 @@
 /*.unityproj
 /*.sln
 /*.suo
+*.suo
 /*.user
 /*.userprefs
 /*.pidb
@@ -67,3 +68,4 @@ $RECYCLE.BIN/
 # Custom
 Assets/UnityVS
 Assets/UnityVS.meta
+Assets/AssetStoreTools*

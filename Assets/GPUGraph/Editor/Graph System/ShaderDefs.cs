@@ -269,7 +269,7 @@ namespace GPUGraph
 		float cellThis = floor(f),
 			  cellLess = cellThis - 1.0,
 			  cellMore = cellThis + 1.0;
-					     
+
 	#define VAL(var) abs((var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue1(var))) - f)
 		return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
 	#undef VAL

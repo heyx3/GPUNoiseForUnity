@@ -214,45 +214,56 @@ namespace GPUGraph
             }
 
             //Emit code for all nodes in proper order.
-            List<Node> toProcess = new List<Node>();
-            Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
+            List<Node> toWrite = new List<Node>();
+            Dictionary<int, bool> processedChildrenYet = new Dictionary<int, bool>();
             if (!Output.IsAConstant)
             {
-                toProcess.Add(GetNode(Output.NodeID));
-                uidDoneYet.Add(Output.NodeID, false);
+                toWrite.Add(GetNode(Output.NodeID));
+                processedChildrenYet.Add(Output.NodeID, false);
             }
-            while (toProcess.Count > 0)
+            while (toWrite.Count > 0)
             {
-                Node n = toProcess[toProcess.Count - 1];
+                Node n = toWrite[toWrite.Count - 1];
 
                 //If the next node hasn't been processed yet, add its inputs to the stack.
-                if (!uidDoneYet[n.UID])
+                if (!processedChildrenYet[n.UID])
                 {
                     foreach (NodeInput ni in n.Inputs)
                     {
                         if (!ni.IsAConstant)
                         {
-							if (uidDoneYet.ContainsKey(ni.NodeID))
+							Node n2 = GetNode(ni.NodeID);
+							if (toWrite.Contains(n2))
 							{
-								//Move the node up to the top of the stack.
-								Node n2 = GetNode(ni.NodeID);
-								toProcess.Remove(n2);
-								toProcess.Add(n2);
+								//The node has already been seen, but not processed,
+								//    so move it to the top of the stack.
+								toWrite.Remove(n2);
+								toWrite.Add(n2);
 							}
 							else
-                            {
-                                toProcess.Add(GetNode(ni.NodeID));
-                                uidDoneYet.Add(ni.NodeID, false);
-                            }
+							{
+								if (processedChildrenYet.ContainsKey(n2.UID) &&
+									processedChildrenYet[n2.UID])
+								{
+									//We already wrote the node out.
+									continue;
+								}
+								else
+								{
+									//We haven't seen this node yet.
+									toWrite.Add(n2);
+									processedChildrenYet.Add(n2.UID, false);
+								}
+							}
                         }
                     }
 
-                    uidDoneYet[n.UID] = true;
+                    processedChildrenYet[n.UID] = true;
                 }
                 //Otherwise, let the node emit its code and then remove it from the stack.
                 else
                 {
-                    toProcess.RemoveAt(toProcess.Count - 1);
+                    toWrite.RemoveAt(toWrite.Count - 1);
                     n.EmitCode(body);
                 }
             }
