@@ -97,7 +97,7 @@ namespace GPUGraph
 		{
 			List<Node> currentNodes = new List<Node>(nodes),
 					   newNodes = new List<Node>();
-			
+
 			//Pre-process all nodes currently owned by the graph,
 			//    and keep track of any new ones that were created.
 			foreach (Node n in currentNodes)
@@ -214,57 +214,51 @@ namespace GPUGraph
             }
 
             //Emit code for all nodes in proper order.
-            List<Node> toWrite = new List<Node>();
-            Dictionary<int, bool> processedChildrenYet = new Dictionary<int, bool>();
+            List<Node> toProcess = new List<Node>();
+            HashSet<Node> processedAlready = new HashSet<GPUGraph.Node>();
+            Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
             if (!Output.IsAConstant)
             {
-                toWrite.Add(GetNode(Output.NodeID));
-                processedChildrenYet.Add(Output.NodeID, false);
+                toProcess.Add(GetNode(Output.NodeID));
+                uidDoneYet.Add(Output.NodeID, false);
             }
-            while (toWrite.Count > 0)
+            while (toProcess.Count > 0)
             {
-                Node n = toWrite[toWrite.Count - 1];
+                Node n = toProcess[toProcess.Count - 1];
 
                 //If the next node hasn't been processed yet, add its inputs to the stack.
-                if (!processedChildrenYet[n.UID])
+                if (!uidDoneYet[n.UID])
                 {
                     foreach (NodeInput ni in n.Inputs)
                     {
                         if (!ni.IsAConstant)
                         {
-							Node n2 = GetNode(ni.NodeID);
-							if (toWrite.Contains(n2))
+							if (uidDoneYet.ContainsKey(ni.NodeID))
 							{
-								//The node has already been seen, but not processed,
-								//    so move it to the top of the stack.
-								toWrite.Remove(n2);
-								toWrite.Add(n2);
+								//Move the node up to the top of the stack.
+								Node n2 = GetNode(ni.NodeID);
+								toProcess.Remove(n2);
+								toProcess.Add(n2);
 							}
 							else
-							{
-								if (processedChildrenYet.ContainsKey(n2.UID) &&
-									processedChildrenYet[n2.UID])
-								{
-									//We already wrote the node out.
-									continue;
-								}
-								else
-								{
-									//We haven't seen this node yet.
-									toWrite.Add(n2);
-									processedChildrenYet.Add(n2.UID, false);
-								}
-							}
+                            {
+                                toProcess.Add(GetNode(ni.NodeID));
+                                uidDoneYet.Add(ni.NodeID, false);
+                            }
                         }
                     }
 
-                    processedChildrenYet[n.UID] = true;
+                    uidDoneYet[n.UID] = true;
                 }
                 //Otherwise, let the node emit its code and then remove it from the stack.
                 else
                 {
-                    toWrite.RemoveAt(toWrite.Count - 1);
-                    n.EmitCode(body);
+                    toProcess.RemoveAt(toProcess.Count - 1);
+                    if (!processedAlready.Contains(n))
+                    {
+                        processedAlready.Add(n);
+                        n.EmitCode(body);
+                    }
                 }
             }
 
@@ -507,7 +501,7 @@ namespace GPUGraph
 			OutputPos = g.OutputPos;
 			nodes = g.nodes;
 			uidToNode = g.uidToNode;
-			
+
 			foreach (Node n in nodes)
 				n.Owner = this;
 			foreach (Node n in nodes)
@@ -528,7 +522,7 @@ namespace GPUGraph
 				  sizeX = info.GetSingle("OutputSizeX"),
 				  sizeY = info.GetSingle("OutputSizeY");
 			OutputPos = new Rect(posX, posY, sizeX, sizeY);
-		
+
 			Hash1 = info.GetString("Hash1");
 			Hash2 = info.GetString("Hash2");
 			Hash3 = info.GetString("Hash3");
