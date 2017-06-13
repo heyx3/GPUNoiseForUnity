@@ -27,7 +27,7 @@ namespace GPUGraph
 					IsFloatParamListFolded = false,
 					IsTex2DParamListFolded = false;
 
-		
+
 		private const float oneLine = 15.0f;
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
@@ -38,7 +38,7 @@ namespace GPUGraph
 				return oneLine;
 			else
 			{
-				float height = oneLine; 
+				float height = oneLine;
 
 				if (IsFolded)
 				{
@@ -72,12 +72,12 @@ namespace GPUGraph
 				return height;
 			}
 		}
-		
+
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
 			RuntimeGraph graph = (RuntimeGraph)fieldInfo.GetValue(property.serializedObject.targetObject);
 
-			EditorGUI.BeginProperty(position, label, property); 
+			EditorGUI.BeginProperty(position, label, property);
 
 			//Do any necessary initialization.
 			if (graph._ShaderFile == null || graph._ShaderFile == "" ||
@@ -100,7 +100,7 @@ namespace GPUGraph
 			{
 				position.x += 20.0f;
 				position.y += oneLine + 10.0f;
-				
+
 				float viewWidth = position.width;
 				position.width = 50.0f;
 
@@ -328,7 +328,7 @@ namespace GPUGraph
 
 			return path;
 		}
-		
+
 		/// <summary>
 		/// Updates the given RuntimeGraph's params to be consistent with the given GPUGraph.
 		/// </summary>

@@ -113,10 +113,10 @@ namespace GPUGraph.Editor
 		public override NodeTree_Element_Option OnGUI()
 		{
 			GUILayout.BeginHorizontal();
-			
+
 			bool pressed = GUILayout.Button(new GUIContent(Name, Tooltip));
 			GUILayout.FlexibleSpace();
-			
+
 			GUILayout.EndHorizontal();
 
 			return (pressed ? this : null);

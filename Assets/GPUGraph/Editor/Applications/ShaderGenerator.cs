@@ -18,7 +18,7 @@ namespace GPUGraph.Applications
 			ScriptableObject.CreateInstance<ShaderGenerator>().Show();
 		}
 
-		
+
 		private bool useRed = true,
 					 useGreen = true,
 					 useBlue = true,
@@ -55,9 +55,9 @@ namespace GPUGraph.Applications
 			{
 				useRed = true;
 			}
-			
+
 			unusedColor = EditorGUILayout.FloatField("Unused color value", unusedColor);
-			
+
 			GUILayout.Space(10.0f);
 
 			int oldIndex = selectedGraphIndex;

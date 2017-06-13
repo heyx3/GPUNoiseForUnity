@@ -28,7 +28,7 @@ namespace GPUGraph.Applications
 
 		private List<string> graphPaths = new List<string>();
 		private GUIContent[] graphNameOptions;
-		
+
 
 		private GraphParamCollection gParams;
 
@@ -66,7 +66,7 @@ namespace GPUGraph.Applications
 
 			X = EditorGUILayout.IntField("Width", X);
 			Y = EditorGUILayout.IntField("Height", Y);
-			
+
 			GUILayout.Space(15.0f);
 
 			GUILayout.Label("Gradient");

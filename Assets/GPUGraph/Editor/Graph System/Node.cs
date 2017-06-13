@@ -43,7 +43,7 @@ namespace GPUGraph
 		/// </summary>
 		public int UID = -1;
 
-		
+
 		/// <summary>
 		/// The graph that owns this instance.
 		/// </summary>
@@ -277,9 +277,9 @@ namespace GPUGraph
 			{
 				result = GUIResults.Duplicate;
 			}
-			
+
 			GUILayout.FlexibleSpace();
-			
+
 			//"Delete" button.
 			if (GUILayout.Button("Delete"))
 			{

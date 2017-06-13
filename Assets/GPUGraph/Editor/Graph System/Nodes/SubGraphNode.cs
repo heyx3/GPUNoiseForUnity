@@ -71,7 +71,7 @@ namespace GPUGraph
 			}
 		}
 
-		
+
 		public override Color GUIColor { get { return new Color(1.0f, 0.85f, 0.85f); } }
 
 		public override string PrettyName

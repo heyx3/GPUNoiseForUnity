@@ -121,7 +121,7 @@ namespace GPUGraph
 				outCode.AppendLine(");");
 			}
 		}
-		
+
 		private void SetUpInputs()
 		{
 			//Get all new inputs.

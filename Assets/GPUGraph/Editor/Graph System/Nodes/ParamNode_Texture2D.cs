@@ -43,7 +43,7 @@ namespace GPUGraph
 
 		public Texture2DParamInfo Param;
 
-		
+
 		public override Color GUIColor { get { return new Color(0.85f, 1.0f, 0.85f); } }
 		public override string PrettyName { get { return "2D Texture Parameter"; } }
 

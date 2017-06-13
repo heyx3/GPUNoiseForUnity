@@ -88,7 +88,7 @@ namespace GPUGraph.Applications
 				{
 					gParams.ParamEditorGUI();
 				}
-				
+
 				GUILayout.Space(15.0f);
 
 				//Other params.
@@ -96,7 +96,7 @@ namespace GPUGraph.Applications
 				EditorGUILayout.LabelField("Height scale:");
 				heightScale = EditorGUILayout.FloatField(heightScale);
 				EditorGUILayout.EndHorizontal();
-				
+
 				GUILayout.Space(15.0f);
 
 				//Button to generate heightmap.

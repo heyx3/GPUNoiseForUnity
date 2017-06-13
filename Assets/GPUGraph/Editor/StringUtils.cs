@@ -31,7 +31,7 @@ public static class StringUtils
 		{
 			sb.Replace('\\', Path.DirectorySeparatorChar);
 		}
-		
+
 		//Get the start of the given folder in the path string.
 		int folderLoc = sb.ToString().IndexOf(Path.DirectorySeparatorChar +
 											  startFolder +
@@ -54,7 +54,7 @@ public static class StringUtils
 			return null;
 		}
 	}
-	
+
 	/// <summary>
 	/// Replaces all directory separators with the correct one for the current platform (either / or \).
 	/// </summary>

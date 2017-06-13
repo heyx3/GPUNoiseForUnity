@@ -5,7 +5,7 @@ using UnityEngine;
 
 
 namespace GPUGraph
-{	 
+{
 	/// <summary>
 	/// Stores a graph at run-time in the form of a Shader/Material.
 	/// Note that modifying parameters is best done with the built-in methods,
@@ -126,7 +126,7 @@ namespace GPUGraph
 			UnityEngine.Assertions.Assert.IsTrue(false);
 			return null;
 		}
-		
+
 		public bool SetParam_Float(string name, float val)
 		{
 			int i = IndexOfParam_Float(name);
@@ -188,7 +188,7 @@ namespace GPUGraph
 		{
 			public Texture2D DefaultValue;
 		}
-		
+
 		[Serializable]
 		public class _SerializableFloatParamKVP
 		{
@@ -226,7 +226,7 @@ namespace GPUGraph
 		#endregion
 	}
 
-	
+
 	/// <summary>
 	/// A float parameter's name and value.
 	/// </summary>
