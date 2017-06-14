@@ -53,7 +53,7 @@ namespace GPUGraph.Editor
 		private Texture2D previewNoise = null;
 		private bool autoUpdatePreview = false;
 
-		
+
 		public void SelectOption(NodeTree_Element_Option option)
 		{
 			CurrentlyPlacing = option;
@@ -91,7 +91,7 @@ namespace GPUGraph.Editor
 			Grph = null;
 
 			OnFocus();
-			
+
 			titleContent = new GUIContent("GPUG Editor");
 			minSize = new Vector2(OptionsSpace + MinGraphSize.x, MinGraphSize.y);
 		}
@@ -119,7 +119,7 @@ namespace GPUGraph.Editor
 
 			//Keep the same graph selected even when the list of graphs changes.
 			selectedGraph = GraphPaths.IndexOf((Grph == null ? "" : Grph.FilePath));
-			
+
 
 			//If this graph was deleted, reset the editor.
 			if (selectedGraph == -1)
@@ -188,7 +188,7 @@ namespace GPUGraph.Editor
 									  position.width - NodeChoiceSpace - OptionsSpace,
 									  position.height);
 			GUIHandleEvents(graphArea, NodeChoiceSpace + OptionsSpace);
-			
+
 			//Draw the various windows.
 			GUILayout.BeginArea(graphArea);
 			BeginWindows();
@@ -204,9 +204,9 @@ namespace GPUGraph.Editor
 					if (!unsavedStr.Contains("moved node"))
 						unsavedStr += "moved node, ";
 				}
-				
+
 				newPos.position += CamOffset;
-				n.Pos = newPos;	
+				n.Pos = newPos;
 			}
 
 			oldPos = new Rect(Grph.OutputPos.position - CamOffset, Grph.OutputPos.size);
@@ -375,7 +375,7 @@ namespace GPUGraph.Editor
 			}
 
 			GUILayout.Space(30.0f);
-			
+
 
 			//Noise previewing.
 			if (Grph != null)
@@ -386,7 +386,7 @@ namespace GPUGraph.Editor
 				{
 					UpdatePreview();
 				}
-				
+
 				if (!autoUpdatePreview)
 				{
 					if (GUILayout.Button("Update Preview"))
@@ -411,7 +411,7 @@ namespace GPUGraph.Editor
 				titleContent = new GUIContent("GPUG Editor");
 			}
 			else if (unsavedStr.Length > 0)
-			{	
+			{
 				titleContent = new GUIContent("*" + Path.GetFileNameWithoutExtension(Grph.FilePath) + "*");
 			}
 			else
@@ -459,7 +459,7 @@ namespace GPUGraph.Editor
 									unsavedStr = "added node, ";
 								Repaint();
 							}
-							
+
 							CurrentlyPlacing = null;
 						}
 						else
@@ -467,7 +467,7 @@ namespace GPUGraph.Editor
 							activeWindowID = -2; //TODO: Should this be -1? Also check the conditional below.
 							foreach (Node n in Grph.Nodes)
 							{
-								if (n.Pos.Contains(mPos))//TODO: Shouldn't we use localMPos?
+								if (n.Pos.Contains(localMPos))
 								{
 									activeWindowID = n.UID;
 								}
@@ -494,7 +494,7 @@ namespace GPUGraph.Editor
 
 							foreach (Node n in Grph.Nodes)
 							{
-								if (n.Pos.Contains(mPos))
+								if (n.Pos.Contains(localMPos))
 								{
 									activeWindowID = n.UID;
 									draggingWindowID = activeWindowID;
@@ -507,7 +507,7 @@ namespace GPUGraph.Editor
 						}
 					}
 					break;
-					
+
 				case EventType.ContextClick:
 					//If a node is currently being placed, cancel it.
 					if (CurrentlyPlacing != null)
@@ -685,7 +685,7 @@ namespace GPUGraph.Editor
 						if (reconnectingOutput >= 0)
 						{
 							n.Inputs[tempInput] = new NodeInput(reconnectingOutput);
-						
+
 						if (!unsavedStr.Contains("connect nodes"))
 							unsavedStr += "connect nodes, ";
 							if (autoUpdatePreview)
@@ -719,7 +719,7 @@ namespace GPUGraph.Editor
 							{
 								Grph.GetNode(reconnectingInput).Inputs[reconnectingInput_Index] =
 									new NodeInput(windowID);
-								
+
 								if (!unsavedStr.Contains("connect nodes"))
 									unsavedStr += "connect nodes, ";
 								if (autoUpdatePreview)
@@ -749,7 +749,7 @@ namespace GPUGraph.Editor
 						Node copy = Grph.GetNode(windowID).Clone();
 						Grph.AddNode(copy);
 						copy.Pos.y += copy.Pos.height;
-						
+
 						if (!unsavedStr.Contains("duplicated node"))
 							unsavedStr += "duplicated node, ";
 
@@ -758,7 +758,7 @@ namespace GPUGraph.Editor
 							if (copy.Inputs.Count > 0)
 							{
 								copy.Inputs[0] = new NodeInput(reconnectingOutput);
-								
+
 								if (autoUpdatePreview)
 									UpdatePreview();
 							}
