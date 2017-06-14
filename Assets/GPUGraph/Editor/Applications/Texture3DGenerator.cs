@@ -169,7 +169,7 @@ namespace GPUGraph.Applications
 			valueTex.wrapMode = TextureWrapMode.Repeat;
 			valueTex.filterMode = FilterMode.Bilinear;
             valueTex.SetPixels(valueTexPixels);
-            valueTex.Apply(UseMipmaps, LeaveReadable);
+            valueTex.Apply(UseMipmaps, !LeaveReadable);
             AssetDatabase.CreateAsset(valueTex, StringUtils.GetRelativePath(texPath, "Assets"));
 
 
@@ -228,7 +228,7 @@ namespace GPUGraph.Applications
 			normalsTex.wrapMode = TextureWrapMode.Repeat;
 			normalsTex.filterMode = FilterMode.Bilinear;
             normalsTex.SetPixels(normalsPixels);
-            normalsTex.Apply(Normals_UseMipmaps, Normals_LeaveReadable);
+            normalsTex.Apply(Normals_UseMipmaps, !Normals_LeaveReadable);
             AssetDatabase.CreateAsset(normalsTex, StringUtils.GetRelativePath(normalTexPath, "Assets"));
 
 

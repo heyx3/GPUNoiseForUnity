@@ -440,7 +440,7 @@ namespace GPUGraph
             }
         }
     }");
-            return shader.ToString().Replace("\r\n", "\n");
+            return (shader.ToString() + "\r\n").Replace("\r\n", "\n");
         }
 
 		/// <summary>

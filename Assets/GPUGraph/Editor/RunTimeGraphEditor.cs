@@ -518,7 +518,6 @@ namespace GPUGraph
 			{
 				graph._PreviewTex.Resize(graph._PreviewTexWidth, graph._PreviewTexHeight);
 			}
-			graph._PreviewTex.Apply(true, false);
 
 			graph.UpdateAllParams();
 
