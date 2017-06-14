@@ -51,7 +51,11 @@ namespace GPUGraph.Editor
 		private string unsavedStr = "";
 
 		private Texture2D previewNoise = null;
+		private Material cachedPreviewMat = null;
 		private bool autoUpdatePreview = false;
+
+		private float uvZ = 0.0f,
+					  uvZMax = 1.0f;
 
 
 		public void SelectOption(NodeTree_Element_Option option)
@@ -399,8 +403,27 @@ namespace GPUGraph.Editor
 				{
 					//Flip the image vertically for unity GUI.
 					Rect texR = EditorGUILayout.GetControlRect(GUILayout.Width(previewNoise.width),
-															   GUILayout.Height(previewNoise.height));
+																   GUILayout.Height(previewNoise.height));
 					GUI.DrawTextureWithTexCoords(texR, previewNoise, new Rect(0.0f, 1.0f, 1.0f, -1.0f));
+
+					//Draw a slider for the UV.z coordinate.
+					GUILayout.BeginHorizontal();
+					{
+						float oldUVz = uvZ;
+
+						GUILayout.Label("UV.z coord:");
+						GUILayout.Space(10.0f);
+						GUILayout.Label("0");
+						uvZ = GUILayout.HorizontalSlider(uvZ, 0.0f, uvZMax, GUILayout.Width(80.0f));
+						uvZMax = EditorGUILayout.FloatField(uvZMax, GUILayout.Width(25.0f));
+						GUILayout.FlexibleSpace();
+
+						if (oldUVz != uvZ)
+							UpdatePreview(false);
+					}
+					GUILayout.EndHorizontal();
+
+					//TODO: Allow editing of params for preview.
 				}
 			}
 
@@ -809,11 +832,39 @@ namespace GPUGraph.Editor
 			GUI.DragWindow();
 		}
 
-		private void UpdatePreview()
+		/// <summary>
+		/// Updates the preview texture for this editor.
+		/// </summary>
+		/// <param name="regenerateShader">
+		/// If true, regenerates the graph's shader, which takes a lot longer.
+		/// This should be true whenever the graph itself changes.
+		/// </param>
+		private void UpdatePreview(bool regenerateShader = true)
 		{
-			previewNoise = GraphEditorUtils.GenerateToTexture(Grph, new GraphParamCollection(Grph),
-															  256, 256, "rgb", 1.0f,
-															  TextureFormat.RGBAFloat);
+			//Create shader.
+			if (regenerateShader || cachedPreviewMat == null)
+			{
+				Shader shader = ShaderUtil.CreateShaderAsset(Grph.GenerateShader(
+																 "Graph editor temp shader",
+																 "rgb", 1.0f));
+				cachedPreviewMat = new Material(shader);
+			}
+
+			//Create texture.
+			if (previewNoise == null)
+			{
+				previewNoise = new Texture2D(256, 256, TextureFormat.RGBA32, false);
+			}
+
+			//Set params.
+			new GraphParamCollection(Grph).SetParams(cachedPreviewMat);
+			cachedPreviewMat.SetFloat(GraphUtils.Param_UVz, uvZ);
+
+			//Generate noise.
+			GraphUtils.GenerateToTexture(RenderTexture.GetTemporary(previewNoise.width,
+																	previewNoise.height,
+																	16, RenderTextureFormat.ARGB32),
+										 cachedPreviewMat, previewNoise);
 		}
 	}
 }

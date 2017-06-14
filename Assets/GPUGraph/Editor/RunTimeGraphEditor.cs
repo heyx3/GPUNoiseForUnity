@@ -28,7 +28,11 @@ namespace GPUGraph
 					IsTex2DParamListFolded = false;
 
 
-		private const float oneLine = 15.0f;
+		private const float oneLine = 15.0f,
+							smallSpace = 2.0f,
+							normalSpace = 4.0f,
+							midSpace = 8.0f,
+							largeSpace = 16.0f;
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
@@ -44,24 +48,24 @@ namespace GPUGraph
 				{
 					if (CurrentGraph < 0)
 					{
-						height += 10.0f + oneLine + 10.0f + oneLine + 10.0f;
+						height += normalSpace + oneLine + normalSpace + oneLine + normalSpace;
 					}
 					else
 					{
-						height += 10.0f + oneLine + 10.0f + oneLine + 20.0f +
-									oneLine + 10.0f + oneLine + 10.0f + oneLine + 40.0f;
+						height += normalSpace + oneLine + normalSpace + oneLine + largeSpace +
+									oneLine + normalSpace + oneLine + normalSpace + oneLine + 40.0f;
 					}
 				}
 
 				if (graph._PreviewTex != null)
 				{
-					height += oneLine + 10.0f + oneLine + 15.0f +
+					height += oneLine + normalSpace + oneLine + midSpace +
 								(graph._PreviewTex.height * graph._PreviewTexScale);
 				}
 
 				if (IsFloatParamListFolded && graph.FloatParams != null)
 				{
-					height += (oneLine + 5.0f) * graph.FloatParams.Count;
+					height += (oneLine + smallSpace) * graph.FloatParams.Count;
 				}
 				if (IsTex2DParamListFolded && graph.Tex2DParams != null)
 				{
@@ -99,7 +103,7 @@ namespace GPUGraph
 			if (IsFolded)
 			{
 				position.x += 20.0f;
-				position.y += oneLine + 10.0f;
+				position.y += oneLine + normalSpace;
 
 				float viewWidth = position.width;
 				position.width = 50.0f;
@@ -126,7 +130,7 @@ namespace GPUGraph
 					}
 				}
 
-				position.y += oneLine + 10.0f;
+				position.y += oneLine + normalSpace;
 
 				//"Refresh Graphs" button.
 				if (GUI.Button(new Rect(position.x, position.y, 150.0f, oneLine),
@@ -142,7 +146,7 @@ namespace GPUGraph
 					return;
 				}
 
-				position.y += oneLine + 10.0f;
+				position.y += oneLine + normalSpace;
 
 				//Shader path.
 				GUI.Label(new Rect(position.x, position.y, 100.0f, oneLine), "Shader File Path");
@@ -159,7 +163,7 @@ namespace GPUGraph
 
 					graph._ShaderFile = newPath;
 				}
-				position.y += oneLine + 20.0f;
+				position.y += oneLine + largeSpace;
 
 				//Parameters.
 				bool paramsChanged = false;
@@ -200,10 +204,10 @@ namespace GPUGraph
 							graph.FloatParams[i].Value = newVal;
 						}
 
-						position.y += oneLine + 5.0f;
+						position.y += oneLine + smallSpace;
 					}
 				}
-				position.y += 10.0f;
+				position.y += normalSpace;
 				//Tex2D.
 				IsTex2DParamListFolded = EditorGUI.Foldout(new Rect(position.x + 15.0f, position.y,
 																	position.width, oneLine),
@@ -234,7 +238,7 @@ namespace GPUGraph
 						position.y += graph.Tex2DParams[i].Value.height;
 					}
 				}
-				position.y += 20.0f;
+				position.y += largeSpace;
 
 				if (paramsChanged)
 				{
@@ -250,7 +254,7 @@ namespace GPUGraph
 																	     position.width, oneLine),
 															    graph._PreviewTexScale,
 															    0.1f, 10.0f);
-					position.y += oneLine + 10.0f;
+					position.y += oneLine + normalSpace;
 
 					const float labelWidth = 78.0f,
 								intBoxWidth = 40.0f;
@@ -282,12 +286,15 @@ namespace GPUGraph
 							UpdatePreviewTex(graph);
 					}
 
-					position.y += oneLine + 15.0f;
+					position.y += oneLine + midSpace;
 
-					EditorGUI.DrawPreviewTexture(new Rect(position.x, position.y,
-														  graph._PreviewTex.width * graph._PreviewTexScale,
-														  graph._PreviewTex.height * graph._PreviewTexScale),
-												 graph._PreviewTex);
+					//NOTE: There is a unity bug that makes the preview texture flicker.
+					//Nothing I can do about it.
+					//https://issuetracker.unity3d.com/issues/a-texture-drawn-from-a-custom-propertydrawer-is-sometimes-not-drawn
+					Rect texPos = new Rect(position.x, position.y,
+										   graph._PreviewTex.width * graph._PreviewTexScale,
+										   graph._PreviewTex.height * graph._PreviewTexScale);
+					EditorGUI.DrawPreviewTexture(texPos, graph._PreviewTex);
 					position.y += graph._PreviewTex.height * graph._PreviewTexScale;
 				}
 			}
@@ -307,7 +314,7 @@ namespace GPUGraph
 		/// </summary>
 		private string GetNewShaderFile()
 		{
-			const string dir = "GPU Noise/Resources";
+			const string dir = "GPUGraph/Resources";
 			if (!Directory.Exists(Path.Combine(Application.dataPath, dir)))
 				Directory.CreateDirectory(Path.Combine(Application.dataPath, dir));
 
@@ -514,7 +521,6 @@ namespace GPUGraph
 
 			graph.UpdateAllParams();
 
-			//TODO: Maybe using the instance's private fields like this is the cause of some display bugs?
 			graph.GenerateToTexture(graph._PreviewTex);
 		}
 	}

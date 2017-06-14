@@ -34,7 +34,6 @@ namespace GPUGraph
 					.ToList();
 		}
 
-		
 		/// <summary>
 		/// Saves the shader for the given graph to the given file with the given name.
 		/// Also forces Unity to immediately recognize and compile the shader
@@ -69,7 +68,7 @@ namespace GPUGraph
 				if (!dir.Exists)
 					dir.Create();
 				File.WriteAllText(filePath, shad);
-				
+
 
 				//Tell Unity to load/compile it.
 				AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceSynchronousImport);
@@ -108,7 +107,7 @@ namespace GPUGraph
 				if (!dir.Exists)
 					dir.Create();
 				File.WriteAllText(filePath, shad);
-				
+
 
 				//Tell Unity to load/compile it.
 				AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceSynchronousImport);
@@ -120,7 +119,7 @@ namespace GPUGraph
 
 			return AssetDatabase.LoadAssetAtPath<Shader>(relativePath);
 		}
-		
+
 		/// <summary>
 		/// Generates a texture containing the given graph's noise output.
 		/// If this is being called very often, create a permanent render target and material and
@@ -135,7 +134,8 @@ namespace GPUGraph
 		/// <param name="defaultColor">
 		/// The color (generally 0-1) of the color components which aren't set by the noise.
 		/// </param>
-		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c, int width, int height,
+		/// <param name="uvZ">The Z coordinate of the UVs, in case the graph uses it for 3D noise.</param>
+		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c, int width, int height, float uvZ,
 												  string outputComponents, float defaultColor,
 												  TextureFormat format = TextureFormat.RGBAFloat)
 		{
@@ -155,6 +155,7 @@ namespace GPUGraph
 			//Create the material and set its parameters.
 			Material mat = new Material(shader);
 			c.SetParams(mat);
+			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
 			GraphUtils.GenerateToTexture(target, mat, resultTex);
 
@@ -174,7 +175,9 @@ namespace GPUGraph
 		/// If an error occurred, outputs to the Unity debug console and returns "null".
 		/// </summary>
 		/// <param name="gradientRampName">The name of the gradient ramp texture param.</param>
-		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c, int width, int height,
+		/// <param name="uvZ">The Z coordinate of the UVs, in case the graph uses it for 3D noise.</param>
+		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c,
+												  int width, int height, float uvZ,
 												  Gradient gradientRamp,
 												  TextureFormat format = TextureFormat.RGBAFloat)
 		{
@@ -203,6 +206,7 @@ namespace GPUGraph
 			Material mat = new Material(shader);
 			mat.SetTexture("_MyGradientRamp14123", myRamp);
 			c.SetParams(mat);
+			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
 			GraphUtils.GenerateToTexture(target, mat, resultTex);
 
@@ -216,13 +220,155 @@ namespace GPUGraph
 			return resultTex;
 		}
 
-		/// <summary>
-		/// Generates a 2D grid of noise from the given graph.
-		/// If an error occurred, outputs to the Unity debug console and returns "null".
-		/// </summary>
-		public static float[,] GenerateToArray(Graph g, GraphParamCollection c, int width, int height)
+        /// <summary>
+        /// Generates a 3D texture containing the given graph's noise output.
+        /// </summary>
+        /// <param name="outputComponents">
+        /// The texture output.
+        /// For example, pass "rgb" or "xyz" to output the noise into the red, green, and blue channels
+        ///     but not the alpha channel.
+        /// </param>
+        /// <param name="defaultColor">
+        /// The color (generally 0-1) of the color components which aren't set by the noise.
+        /// </param>
+        /// <param name="useMipmaps">Whether the 3D texture object uses mipmapping.</param>
+        /// <param name="leaveTextureReadable">
+        /// Whether to let the texture keep a CPU copy of its data on hand for later reading.
+        /// </param>
+        public static Texture3D GenerateToTexture(Graph g, GraphParamCollection c,
+                                                  int width, int height, int depth,
+                                                  string outputComponents, float defaultColor,
+                                                  bool useMipmaps, bool leaveTextureReadable,
+                                                  TextureFormat format = TextureFormat.RGBA32)
+        {
+            //Generate a shader from the graph and have Unity compile it.
+            string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
+            Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", outputComponents, defaultColor);
+            if (shader == null)
+            {
+                return null;
+            }
+
+
+            //For every Z layer in the texture, generate a 2D texture representing that layer.
+
+            Color32[] finalPixels = new Color32[width * height * depth];
+
+            RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
+            target.Create();
+            Texture2D resultTex = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
+
+            Material mat = new Material(shader);
+            c.SetParams(mat);
+
+            for (int depthI = 0; depthI < depth; ++depthI)
+            {
+                //Get the UV.z coordinate.
+                float uvZ = (float)depthI / depth;
+                mat.SetFloat(GraphUtils.Param_UVz, uvZ);
+
+                GraphUtils.GenerateToTexture(target, mat, resultTex);
+
+                //Copy the resulting data into part of the 3D texture.
+                Color32[] layerPixels = resultTex.GetPixels32();
+                int pixelOffset = depthI * (width * height);
+                for (int pixelI = 0; pixelI < (width * height); ++pixelI)
+                    finalPixels[pixelI + pixelOffset] = layerPixels[pixelI];
+            }
+
+
+            //Create the actual texture object.
+            Texture3D finalTex = new Texture3D(width, height, depth, format, useMipmaps);
+            finalTex.SetPixels32(finalPixels);
+            finalTex.Apply(useMipmaps, !leaveTextureReadable);
+
+            //Clean up.
+            target.Release();
+            if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
+            {
+                Debug.LogError("Unable to delete temp file: " + shaderPath);
+            }
+
+            return finalTex;
+        }
+        /// <summary>
+        /// Generates a 3D texture containing the given graph's noise output.
+        /// </summary>
+        /// <param name="useMipmaps">Whether the 3D texture object uses mipmapping.</param>
+        /// <param name="leaveTextureReadable">
+        /// Whether to let the texture keep a CPU copy of its data on hand for later reading.
+        /// </param>
+        public static Texture3D GenerateToTexture(Graph g, GraphParamCollection c,
+                                                  int width, int height, int depth, Gradient gradientRamp,
+                                                  bool useMipmaps, bool leaveTextureReadable,
+                                                  TextureFormat format = TextureFormat.RGBA32)
+        {
+            //Generate a shader from the graph and have Unity compile it.
+            string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
+            Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", "_MyGradientRamp14123");
+            if (shader == null)
+            {
+                return null;
+            }
+
+            //Generate a texture from the gradient.
+            Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
+            Color[] cols = new Color[myRamp.width];
+            for (int i = 0; i < cols.Length; ++i)
+                cols[i] = gradientRamp.Evaluate((float)i / (float)(cols.Length - 1));
+            myRamp.SetPixels(cols);
+            myRamp.Apply(false, true);
+
+            //For every Z layer in the texture, generate a 2D texture representing that layer.
+
+            Color32[] finalPixels = new Color32[width * height * depth];
+
+            RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
+            target.Create();
+            Texture2D resultTex = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
+
+            Material mat = new Material(shader);
+            c.SetParams(mat);
+            mat.SetTexture("_MyGradientRamp14123", myRamp);
+
+            for (int depthI = 0; depthI < depth; ++depthI)
+            {
+                //Get the UV.z coordinate.
+                float uvZ = (float)depthI / depth;
+                mat.SetFloat(GraphUtils.Param_UVz, uvZ);
+
+                GraphUtils.GenerateToTexture(target, mat, resultTex);
+
+                //Copy the resulting data into part of the 3D texture.
+                Color32[] layerPixels = resultTex.GetPixels32();
+                int pixelOffset = depthI * (width * height);
+                for (int pixelI = 0; pixelI < (width * height); ++pixelI)
+                    finalPixels[pixelI + pixelOffset] = layerPixels[pixelI];
+            }
+
+
+            //Create the actual texture object.
+            Texture3D finalTex = new Texture3D(width, height, depth, format, useMipmaps);
+            finalTex.SetPixels32(finalPixels);
+            finalTex.Apply(useMipmaps, !leaveTextureReadable);
+
+            //Clean up.
+            target.Release();
+            if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
+            {
+                Debug.LogError("Unable to delete temp file: " + shaderPath);
+            }
+
+            return finalTex;
+        }
+
+        /// <summary>
+        /// Generates a 2D grid of noise from the given graph.
+        /// If an error occurred, outputs to the Unity debug console and returns "null".
+        /// </summary>
+        public static float[,] GenerateToArray(Graph g, GraphParamCollection c, int width, int height)
 		{
-			Texture2D t = GenerateToTexture(g, c, width, height, "r", 0.0f);
+			Texture2D t = GenerateToTexture(g, c, width, height, 0.0f, "r", 0.0f);
 			if (t == null)
 			{
 				return null;
@@ -239,6 +385,32 @@ namespace GPUGraph
 			}
 
 			return vals;
-		}
-	}
+        }
+        /// <summary>
+        /// Generates a 3D grid of noise from the given graph.
+        /// If an error occurred, outputs to the Unity debug console and returns "null".
+        /// </summary>
+        public static float[,,] GenerateToArray(Graph g, GraphParamCollection c,
+                                                int width, int height, int depth)
+        {
+            //Generate a 3D texture using the graph's shader.
+            Texture3D t = GenerateToTexture(g, c, width, height, depth, "r", 0.0f, false, true,
+                                            TextureFormat.RGBA32);
+            if (t == null)
+            {
+                return null;
+            }
+
+            //Read the texture data and put it into a 3D array.
+            Color[] cols = t.GetPixels();
+            float[,,] vals = new float[width, height, depth];
+            int i = 0;
+            for (int z = 0; z < depth; ++z)
+                for (int y = 0; y < height; ++y)
+                    for (int x = 0; x < width; ++x)
+                        vals[x, y, z] = cols[i++].r;
+
+            return vals;
+        }
+    }
 }

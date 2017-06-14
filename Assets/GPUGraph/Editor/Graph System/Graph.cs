@@ -10,6 +10,8 @@ using UnityEngine;
 
 namespace GPUGraph
 {
+	//TODO: Use a version number uint as the context for deserialization.
+
 	[Serializable]
 	public class Graph : ISerializable
 	{
@@ -362,7 +364,7 @@ namespace GPUGraph
     {
         Properties
         {");
-            shader.AppendLine(properties.ToString());
+			shader.AppendLine(properties.ToString());
 			addToProperties(shader);
             shader.AppendLine(@"
         }
@@ -432,13 +434,13 @@ namespace GPUGraph
             shader.Append(outExpr);
             shader.AppendLine(";");
 			returnFragmentColor("OUT_expr", shader);
-			shader.Append(@"
+			shader.AppendLine(@"
                 }
             ENDCG
             }
         }
     }");
-            return shader.ToString();
+            return shader.ToString().Replace("\r\n", "\n");
         }
 
 		/// <summary>
@@ -485,7 +487,7 @@ namespace GPUGraph
 			}
 			catch (System.Exception e)
 			{
-				return "Error opening/reading file: " + e.Message;
+				return "Error opening/reading file: " + e.Message + "\n" + e.StackTrace;
 			}
 			finally
 			{

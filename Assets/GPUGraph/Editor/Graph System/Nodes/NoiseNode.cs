@@ -20,19 +20,20 @@ namespace GPUGraph
 			White, Blocky, Linear, Smooth, Smoother, Perlin, Worley
 		}
 
-		public string GetFunc(NoiseTypes type, int nDimensions)
+		public string GetFunc(NoiseTypes type, int nDimensions, bool wraps)
 		{
+            string postfix = (wraps ? "_Wrap" : "");
 			switch (type)
 			{
-				case NoiseTypes.White: return "hashValue" + nDimensions;
-				case NoiseTypes.Blocky: return "GridNoise" + nDimensions;
-				case NoiseTypes.Linear: return "LinearNoise" + nDimensions;
-				case NoiseTypes.Smooth: return "SmoothNoise" + nDimensions;
-				case NoiseTypes.Smoother: return "SmootherNoise" + nDimensions;
-				case NoiseTypes.Perlin: return "PerlinNoise" + nDimensions;
+				case NoiseTypes.White: return "hashValue" + nDimensions + postfix;
+				case NoiseTypes.Blocky: return "GridNoise" + nDimensions + postfix;
+				case NoiseTypes.Linear: return "LinearNoise" + nDimensions + postfix;
+				case NoiseTypes.Smooth: return "SmoothNoise" + nDimensions + postfix;
+				case NoiseTypes.Smoother: return "SmootherNoise" + nDimensions + postfix;
+				case NoiseTypes.Perlin: return "PerlinNoise" + nDimensions + postfix;
 				case NoiseTypes.Worley:
 					if (IsWorleyDefault)
-						return "WorleyNoise" + NDimensions;
+						return "WorleyNoise" + NDimensions + postfix;
 					else
 						return "Worley_" + UID;
 				default: throw new NotImplementedException(type.ToString());
@@ -103,7 +104,7 @@ namespace GPUGraph
 			//Scale and weight.
 			n.Add("Scale");
 			n.Add("Weight");
-			
+
 			//Noise-specific extras.
 			switch (t)
 			{
@@ -168,13 +169,14 @@ namespace GPUGraph
 
 		public string Worley_DistanceCalc = "distance($1, $2)",
 					  Worley_NoiseCalc = "$1";
+        public bool Wraps = false;
 
 		public bool IsWorleyDefault
 		{
 			get { return Worley_DistanceCalc == "distance($1, $2)" && Worley_NoiseCalc == "$1"; }
 		}
 
-		
+
 		public override Color GUIColor { get { return new Color(1.0f, 0.85f, 0.85f); } }
 		public override string PrettyName
 		{
@@ -207,16 +209,6 @@ namespace GPUGraph
 		private NoiseNode() { }
 
 
-		protected override Node MakeClone()
-		{
-			NoiseNode n = new NoiseNode();
-			n.NoiseType = NoiseType;
-			n.NDimensions = NDimensions;
-			n.Worley_DistanceCalc = Worley_DistanceCalc;
-			n.Worley_NoiseCalc = Worley_NoiseCalc;
-			return n;
-		}
-
 		public override void EmitDefs(StringBuilder outCode)
 		{
 			//If using customized Worley noise, we need to emit a custom function to call in the shader.
@@ -229,14 +221,20 @@ namespace GPUGraph
 			outCode.Append("#define OUTVAL(a, b) (");
 			outCode.AppendLine(Worley_NoiseCalc.Replace("$1", "a").Replace("$2", "b") + ")");
 
-			outCode.AppendLine("#define INSERT_MIN(a, b, new) if (new < a) { b = a; a = new; } else b = min(b, new);");
-			outCode.AppendLine("#define WORLEY_POS(p, nDims) (p + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue##nDims(p)))");
+			outCode.AppendLine("#define INSERT_MIN(a, b, new) if (new < a) { b = a; a = new; } else { b = min(b, new); }");
+            if (Wraps)
+			    outCode.AppendLine("#define WORLEY_POS(p, nDims) (p + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue##nDims(WRAP(p))))");
+            else
+                outCode.AppendLine("#define WORLEY_POS(p, nDims) (p + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue##nDims(p)))");
 
 			outCode.Append("float ");
-			outCode.Append(GetFunc(NoiseType, NDimensions));
+			outCode.Append(GetFunc(NoiseType, NDimensions, Wraps));
 			if (NDimensions == 1)
 			{
-				outCode.Append(@"(float seed, float cellVariance)
+                outCode.Append("(float seed, float cellVariance");
+                if (Wraps)
+                    outCode.Append(", float valMax");
+				outCode.Append(@")
 {
 	float cellThis = floor(seed),
 		  cellLess = cellThis - 1.0,
@@ -251,11 +249,14 @@ namespace GPUGraph
 }");
 			}
 			else if (NDimensions == 2)
-			{
-				outCode.AppendLine(@"(float2 seed, float2 cellVariance)
+            {
+                outCode.Append("(float2 seed, float2 cellVariance");
+                if (Wraps)
+                    outCode.Append(", float2 valMax");
+                outCode.Append(@")
 {
 	float2 centerCell = floor(seed);
-	
+
 	float min1, min2;
 	const float3 c = float3(-1.0, 0.0, 1.0);
 
@@ -290,8 +291,11 @@ namespace GPUGraph
 }");
 			}
 			else if (NDimensions == 3)
-			{
-				outCode.AppendLine(@"(float3 seed, float3 cellVariance)
+            {
+                outCode.Append("(float3 seed, float3 cellVariance");
+                if (Wraps)
+                    outCode.Append(", float3 valMax");
+                outCode.Append(@")
 {
 	float3 cellyyy = floor(seed);
 
@@ -358,14 +362,17 @@ namespace GPUGraph
 		}
 		public override void EmitCode(StringBuilder outCode)
 		{
+            string scaleStr = Inputs[NDimensions].GetExpression(Owner),
+                   weightStr = Inputs[NDimensions + 1].GetExpression(Owner);
+
 			outCode.Append("float ");
 			outCode.Append(OutputName);
 			outCode.Append(" = ");
-			outCode.Append(Inputs[NDimensions + 1].GetExpression(Owner));
+			outCode.Append(weightStr);
 			outCode.Append(" * ");
-			outCode.Append(GetFunc(NoiseType, NDimensions));
+			outCode.Append(GetFunc(NoiseType, NDimensions, Wraps));
 			outCode.Append("(");
-			outCode.Append(Inputs[NDimensions].GetExpression(Owner));
+			outCode.Append(scaleStr);
 			outCode.Append(" * float");
 			outCode.Append(NDimensions);
 			outCode.Append("(");
@@ -402,8 +409,13 @@ namespace GPUGraph
 					outCode.Append(")");
 					break;
 				default: throw new NotImplementedException(NoiseType.ToString());
-			}
-			outCode.AppendLine(");");
+            }
+            if (Wraps)
+            {
+                outCode.Append(", ");
+                outCode.Append(scaleStr);
+            }
+            outCode.AppendLine(");");
 		}
 
 		protected override bool CustomGUI()
@@ -427,6 +439,16 @@ namespace GPUGraph
 				NDimensions = newDim;
 			}
 
+            //Edit whether the noise wraps.
+            GUILayout.BeginHorizontal();
+            bool newWraps = GUILayout.Toggle(Wraps, "Wraps?");
+            if (newWraps != Wraps)
+            {
+                changed = true;
+                Wraps = newWraps;
+            }
+            GUILayout.EndHorizontal();
+
 			//If using worley noise, edit the customizable aspects of it.
 			if (NoiseType == NoiseTypes.Worley)
 			{
@@ -435,9 +457,9 @@ namespace GPUGraph
 				GUILayout.Space(15.0f);
 				string newWorleyDist = GUILayout.TextField(Worley_DistanceCalc);
 				GUILayout.EndHorizontal();
-				
+
 				GUILayout.BeginHorizontal();
-				GUILayout.Label("Distance Func");
+				GUILayout.Label("Noise Expression:");
 				GUILayout.Space(15.0f);
 				string newWorleyNoise = GUILayout.TextField(Worley_NoiseCalc);
 				GUILayout.EndHorizontal();
@@ -468,12 +490,39 @@ namespace GPUGraph
 			base.GetObjectData(info, context);
 			info.AddValue("NoiseType", (int)NoiseType);
 			info.AddValue("NDimensions", NDimensions);
+            info.AddValue("Wraps", Wraps);
 		}
 		public NoiseNode(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
-			NoiseType = (NoiseTypes)info.GetInt32("NoiseType");
-			NDimensions = info.GetInt32("NDimensions");
-		}
-	}
+            //"Wraps" isn't in older graph files, so give it a default value.
+            Wraps = false;
+
+            foreach (SerializationEntry entry in info)
+            {
+                switch (entry.Name)
+                {
+                    case "NoiseType":
+                        NoiseType = (NoiseTypes)(int)entry.Value;
+                        break;
+                    case "NDimensions":
+                        NDimensions = (int)entry.Value;
+                        break;
+                    case "Wraps":
+                        Wraps = (bool)entry.Value;
+                        break;
+                }
+            }
+        }
+        protected override Node MakeClone()
+        {
+            NoiseNode n = new NoiseNode();
+            n.NoiseType = NoiseType;
+            n.NDimensions = NDimensions;
+            n.Worley_DistanceCalc = Worley_DistanceCalc;
+            n.Worley_NoiseCalc = Worley_NoiseCalc;
+            n.Wraps = Wraps;
+            return n;
+        }
+    }
 }
