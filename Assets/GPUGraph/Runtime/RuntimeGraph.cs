@@ -61,23 +61,30 @@ namespace GPUGraph
 		/// <summary>
 		/// Outputs noise into the given Texture2D.
 		/// </summary>
-		public void GenerateToTexture(Texture2D outTex)
+		/// <param name="leaveReadable">
+		/// Whether to leave the texture data readable on the CPU after the operation.
+		/// </param>
+		public void GenerateToTexture(Texture2D outTex, bool leaveReadable = false)
 		{
 			RenderTexture tempTex = RenderTexture.GetTemporary(outTex.width, outTex.height);
-			GraphUtils.GenerateToTexture(tempTex, GraphMat, outTex);
+			GraphUtils.GenerateToTexture(tempTex, GraphMat, outTex, leaveReadable);
 			RenderTexture.ReleaseTemporary(tempTex);
 		}
 		/// <summary>
 		/// Generates to a texture of the given size.
 		/// </summary>
+		/// <param name="leaveReadable">
+		/// Whether to leave the texture data readable on the CPU after the operation.
+		/// </param>
 		public Texture2D GenerateToTexture(int width, int height,
 										   TextureFormat fmt = TextureFormat.RGBAFloat,
 										   FilterMode filtering = FilterMode.Bilinear,
-										   bool mipmaps = true)
+										   bool mipmaps = true,
+										   bool leaveReadable = false)
 		{
 			Texture2D t = new Texture2D(width, height, fmt, mipmaps);
 			t.filterMode = filtering;
-			GenerateToTexture(t);
+			GenerateToTexture(t, leaveReadable);
 			return t;
 		}
 

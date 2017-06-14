@@ -11,38 +11,105 @@ using GPUGraph;
 namespace GPUGraph.Applications
 {
 	[Serializable]
-	public class TextureGenerator : EditorWindow
+	public abstract class TextureGenerator : EditorWindow
 	{
-		[MenuItem("Assets/GPU Graph/Generate Texture", false, 4)]
-		public static void GenerateTexture()
-		{
-			ScriptableObject.CreateInstance<TextureGenerator>().Show();
-		}
-
-
-		public int X = 512, Y = 512;
 		public int SelectedGraphIndex = 0;
 
 		public List<Color> GradientRamp_Colors = null;
 		public List<float> GradientRamp_Times = null;
 
+
 		private List<string> graphPaths = new List<string>();
 		private GUIContent[] graphNameOptions;
 
-
 		private GraphParamCollection gParams;
 
+		private Texture2D previewTex = null;
+		private Material previewMat = null;
+		private float previewScale = 1.0f;
+		private float previewUVz = 0.0f,
+					  previewUVzMin = 0.0f,
+					  previewUVzMax = 1.0f;
 
-		void OnEnable()
+
+		protected bool HasGraph { get { return graphPaths.Count > 0; } }
+		protected string SelectedGraphPath { get { return graphPaths[SelectedGraphIndex]; } }
+		protected GraphParamCollection GraphParams { get { return gParams; } }
+
+		protected Graph LoadGraph()
+		{
+			Graph graph = new Graph(SelectedGraphPath);
+			string errMsg = graph.Load();
+			if (errMsg.Length > 0)
+			{
+				Debug.LogError("Error loading graph " + graphPaths[SelectedGraphIndex] +
+							   ": " + errMsg);
+				return null;
+			}
+
+			return graph;
+		}
+		protected Gradient MakeGradient()
+		{
+			Gradient gradient = new Gradient();
+			gradient.SetKeys(GradientRamp_Colors.Select((c, i) =>
+							     new GradientColorKey(c, GradientRamp_Times[i])).ToArray(),
+							 new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f) });
+			return gradient;
+		}
+
+
+		/// <summary>
+		/// Properly updates the preview texture for this window.
+		/// Returns it in case anybody wants it (returns null if there was a problem loading the graph).
+		/// </summary>
+		public Texture2D GetPreview(bool regenerateShader)
+		{
+			//Regenerate shader.
+			if (regenerateShader || previewMat == null)
+			{
+				//Render the gradient ramp to a texture.
+				Gradient gradient = MakeGradient();
+				Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
+				myRamp.wrapMode = TextureWrapMode.Clamp;
+				Color[] cols = new Color[myRamp.width];
+				for (int i = 0; i < cols.Length; ++i)
+					cols[i] = gradient.Evaluate((float)i / (float)(cols.Length - 1));
+				myRamp.SetPixels(cols);
+				myRamp.Apply(false, true);
+
+				Graph graph = new Graph(graphPaths[SelectedGraphIndex]);
+				string errMsg = graph.Load();
+				if (errMsg.Length > 0)
+				{
+					Debug.LogError("Error loading graph " + graphPaths[SelectedGraphIndex] +
+								   ": " + errMsg);
+					return null;
+				}
+
+				Shader shader = ShaderUtil.CreateShaderAsset(graph.GenerateShader(
+																 "Graph editor temp shader",
+																 "_textureGeneratorWindowGradient"));
+				previewMat = new Material(shader);
+				previewMat.SetTexture("_textureGeneratorWindowGradient", myRamp);
+			}
+
+			//Set parameters.
+			gParams.SetParams(previewMat);
+			previewMat.SetFloat(GraphUtils.Param_UVz, previewUVz);
+
+			//Generate.
+			GeneratePreview(ref previewTex, previewMat);
+			return previewTex;
+		}
+
+		protected virtual void OnEnable()
 		{
 			graphPaths.Clear();
 			graphPaths = GraphEditorUtils.GetAllGraphsInProject();
 
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
-
-			this.titleContent = new GUIContent("Texture Gen");
-			this.minSize = new Vector2(200.0f, 270.0f);
 
 			gParams = new GraphParamCollection();
 
@@ -60,55 +127,29 @@ namespace GPUGraph.Applications
 			}
 		}
 
-		void OnGUI()
+		/// <summary>
+		/// Generates a preview into the given texture with the given noise material.
+		/// </summary>
+		/// <param name="outTex">
+		/// The texture to generate into.
+		/// NOTE: the child class is responsible for making sure the texture exists and is the right size.
+		/// </param>
+		protected abstract void GeneratePreview(ref Texture2D outTex, Material noiseMat);
+		/// <summary>
+		/// Generates the full texture to a file.
+		/// </summary>
+		protected abstract void GenerateTexture();
+
+		//Defined in the same order they're called.
+		protected virtual void OnGUI_BelowGraphSelection() { }
+		protected virtual void OnGUI_BelowGradientAboveParams() { }
+		protected virtual void OnGUI_AboveGenerationButton() { }
+
+		private void OnGUI()
 		{
-			GUILayout.Space(10.0f);
-
-			X = EditorGUILayout.IntField("Width", X);
-			Y = EditorGUILayout.IntField("Height", Y);
-
 			GUILayout.Space(15.0f);
 
-			GUILayout.Label("Gradient");
-			GUILayout.BeginHorizontal();
-			GUILayout.Space(15.0f);
-			GUILayout.BeginVertical();
-			for (int i = 0; i < GradientRamp_Colors.Count; ++i)
-			{
-				GUILayout.BeginHorizontal();
-				GradientRamp_Colors[i] = EditorGUILayout.ColorField(GradientRamp_Colors[i]);
-				if (i > 0)
-					GradientRamp_Times[i] = EditorGUILayout.Slider(GradientRamp_Times[i],
-																   0.0f, 1.0f);
-				if (i > 0 && GUILayout.Button("+"))
-				{
-					GradientRamp_Colors.Insert(i, GradientRamp_Colors[i]);
-					GradientRamp_Times.Insert(i, GradientRamp_Times[i] - 0.00000001f);
-				}
-				if (i > 0 && GradientRamp_Colors.Count > 2 && GUILayout.Button("-"))
-				{
-					GradientRamp_Colors.RemoveAt(i);
-					GradientRamp_Times.RemoveAt(i);
-					i -= 1;
-				}
-				GUILayout.EndHorizontal();
-
-				if (i > 0 && GradientRamp_Times[i] < GradientRamp_Times[i - 1])
-				{
-					GradientRamp_Times[i] = GradientRamp_Times[i - 1] + 0.000001f;
-				}
-				else if (i < GradientRamp_Colors.Count - 1 &&
-						 GradientRamp_Times[i] > GradientRamp_Times[i + 1])
-				{
-					GradientRamp_Times[i] = GradientRamp_Times[i + 1] - 0.00001f;
-				}
-			}
-			GUILayout.EndVertical();
-			GUILayout.EndHorizontal();
-
-			GUILayout.Space(15.0f);
-
-
+			//Choose the graph to use.
 			GUILayout.BeginHorizontal();
 			GUILayout.Label("Graph:");
 			int oldIndex = SelectedGraphIndex;
@@ -116,7 +157,7 @@ namespace GPUGraph.Applications
 			if (oldIndex != SelectedGraphIndex)
 			{
 				Graph g = new Graph(graphPaths[SelectedGraphIndex]);
-				if (g.Load().Length == 0)
+				if (g.Load().Length > 0)
 				{
 					SelectedGraphIndex = oldIndex;
 				}
@@ -124,103 +165,156 @@ namespace GPUGraph.Applications
 				{
 					gParams = new GraphParamCollection(g);
 				}
+
+				GetPreview(true);
 			}
 			GUILayout.EndHorizontal();
 
 			GUILayout.Space(10.0f);
 
-			//Show some GUI elements for changing the parameters.
-			if (graphPaths.Count > 0)
-				gParams.ParamEditorGUI();
+			OnGUI_BelowGraphSelection();
+
+			//Choose the color gradient.
+			GUILayout.Label("Gradient");
+			GUILayout.BeginHorizontal();
+			GUILayout.Space(15.0f);
+			GUILayout.BeginVertical();
+			for (int i = 0; i < GradientRamp_Colors.Count; ++i)
+			{
+				GUILayout.BeginHorizontal();
+
+				//Edit the color value.
+				EditorGUI.BeginChangeCheck();
+				GradientRamp_Colors[i] = EditorGUILayout.ColorField(GradientRamp_Colors[i]);
+				if (i > 0)
+					GradientRamp_Times[i] = EditorGUILayout.Slider(GradientRamp_Times[i],
+																   0.0f, 1.0f);
+				if (EditorGUI.EndChangeCheck())
+					GetPreview(true);
+
+				//Button to insert a new element.
+				if (i > 0 && GUILayout.Button("+"))
+				{
+					GradientRamp_Colors.Insert(i, GradientRamp_Colors[i]);
+					GradientRamp_Times.Insert(i, GradientRamp_Times[i] - 0.00000001f);
+
+					GetPreview(true);
+				}
+				//Button to remove this element.
+				if (i > 0 && GradientRamp_Colors.Count > 2 && GUILayout.Button("-"))
+				{
+					GradientRamp_Colors.RemoveAt(i);
+					GradientRamp_Times.RemoveAt(i);
+					i -= 1;
+
+					GetPreview(true);
+				}
+				GUILayout.EndHorizontal();
+
+				//Make sure elements are in order.
+				if (i > 0 && GradientRamp_Times[i] < GradientRamp_Times[i - 1])
+				{
+					GradientRamp_Times[i] = GradientRamp_Times[i - 1] + 0.000001f;
+					GetPreview(true);
+				}
+				else if (i < GradientRamp_Colors.Count - 1 &&
+						 GradientRamp_Times[i] > GradientRamp_Times[i + 1])
+				{
+					GradientRamp_Times[i] = GradientRamp_Times[i + 1] - 0.00001f;
+					GetPreview(true);
+				}
+			}
+			GUILayout.EndVertical();
+			GUILayout.EndHorizontal();
+
+			GUILayout.Space(15.0f);
+
+			OnGUI_BelowGradientAboveParams();
+
+			//Edit the graph's parameters.
+			GUILayout.Label("Graph Parameters:");
+			GUILayout.BeginHorizontal();
+			GUILayout.FlexibleSpace();
+			GUILayout.BeginVertical();
+			{
+				if (graphPaths.Count > 0 && gParams.ParamEditorGUI())
+					GetPreview(false);
+			}
+			GUILayout.EndVertical();
+			GUILayout.FlexibleSpace();
+			GUILayout.EndHorizontal();
 
 			GUILayout.Space(10.0f);
+
+			OnGUI_AboveGenerationButton();
+
+			//Show the preview texture.
+			if (previewTex != null)
+			{
+				//Preview scale slider.
+				GUILayout.BeginHorizontal();
+				{
+					GUILayout.Label("Preview Scale");
+
+					//Use a nonlinear scale for the slider.
+					float t = Mathf.Log10(previewScale);
+					float resultT = GUILayout.HorizontalSlider(t, -2.0f, 2.0f,
+															   GUILayout.Width(position.width - 40.0f));
+					previewScale = Mathf.Pow(10.0f, resultT);
+				}
+				GUILayout.EndHorizontal();
+
+				GUILayout.BeginHorizontal();
+				{
+					//Slider for preview UV z.
+					GUILayout.BeginVertical();
+					{
+						float oldZ = previewUVz;
+
+						GUILayout.Label("Z");
+						previewUVzMax = EditorGUILayout.FloatField(previewUVzMax, GUILayout.Width(20.0f));
+						previewUVz = GUILayout.VerticalSlider(previewUVz, previewUVzMin, previewUVzMax,
+															  GUILayout.Height(previewTex.height * previewScale - (15.0f * 3)));
+						previewUVzMin = EditorGUILayout.FloatField(previewUVzMin, GUILayout.Width(20.0f));
+
+						if (oldZ != previewUVz)
+							GetPreview(false);
+					}
+					GUILayout.EndVertical();
+
+					//NOTE: There is a unity bug that makes the preview texture flicker.
+					//Nothing I can do about it.
+					//https://issuetracker.unity3d.com/issues/a-texture-drawn-from-a-custom-propertydrawer-is-sometimes-not-drawn
+					Rect texPos = EditorGUILayout.GetControlRect(GUILayout.Width(previewTex.width * previewScale),
+																 GUILayout.Height(previewTex.height * previewScale));
+					EditorGUI.DrawPreviewTexture(texPos, previewTex);
+
+					GUILayout.FlexibleSpace();
+				}
+				GUILayout.EndHorizontal();
+			}
 
 			//If a graph is selected, display a button to generate the texture.
 			if (graphPaths.Count > 0)
 			{
 				if (GUILayout.Button("Generate Texture"))
-				{
-					string savePath = EditorUtility.SaveFilePanel("Choose where to save the texture.",
-																  Application.dataPath, "MyTex.png", "png");
-					if (savePath.Length > 0)
-					{
-						//Load the graph.
-						Graph g = new Graph(graphPaths[SelectedGraphIndex]);
-						if (g.Load().Length > 0)
-						{
-							return;
-						}
-
-						//Render the gradient ramp to a texture,
-						//    then render the graph's noise to a texture.
-						Gradient grd = new Gradient();
-						grd.SetKeys(GradientRamp_Colors.Select((c, i) =>
-										new GradientColorKey(c, GradientRamp_Times[i])).ToArray(),
-									new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f) });
-						Texture2D tex = GraphEditorUtils.GenerateToTexture(g, new GraphParamCollection(g, gParams),
-																		   X, Y, grd);
-						if (tex == null)
-						{
-							return;
-						}
-
-						//Write out the texture as a PNG.
-						try
-						{
-							File.WriteAllBytes(savePath, tex.EncodeToPNG());
-						}
-						catch (Exception e)
-						{
-							Debug.LogError("Unable to save texture to file: " + e.Message);
-						}
-
-
-						//Now that we're finished, clean up.
-						AssetDatabase.ImportAsset(StringUtils.GetRelativePath(savePath, "Assets"));
-
-						//Finally, open explorer to show the user the texture.
-						if (Application.platform == RuntimePlatform.WindowsEditor)
-						{
-							System.Diagnostics.Process.Start("explorer.exe",
-															 "/select," +
-															   StringUtils.FixDirectorySeparators(savePath));
-						}
-						else if (Application.platform == RuntimePlatform.OSXEditor)
-						{
-							try
-							{
-								System.Diagnostics.Process proc = new System.Diagnostics.Process();
-								proc.StartInfo.FileName = "open";
-								proc.StartInfo.Arguments = "-n -R \"" +
-															StringUtils.FixDirectorySeparators(savePath) +
-															"\"";
-								proc.StartInfo.UseShellExecute = false;
-								proc.StartInfo.RedirectStandardError = false;
-								proc.StartInfo.RedirectStandardOutput = false;
-								proc.ErrorDataReceived += (s, a) => Debug.Log(a.Data);
-								if (proc.Start())
-								{
-									proc.BeginErrorReadLine();
-									proc.BeginOutputReadLine();
-								}
-								else
-								{
-									Debug.LogError("Error opening Finder to show texture file");
-								}
-							}
-							catch (Exception e)
-							{
-								Debug.LogError("Error opening Finder to show texture file: " + e.Message);
-							}
-						}
-					}
-				}
+					GenerateTexture();
 			}
 			else
 			{
 				GUILayout.Space(15.0f);
 				GUILayout.Label("No graph files detected in the project!");
 			}
+		}
+
+		private float Smoothstep(float t)
+		{
+			return (t * t * (3.0f - (2.0f * t)));
+		}
+		private float SmoothstepInv(float t)
+		{
+			//From https://stackoverflow.com/questions/28740544/inverted-smoothstep
+			return t + (t - ((t * t * (3.0f - (2.0f * t)))));
 		}
 	}
 }

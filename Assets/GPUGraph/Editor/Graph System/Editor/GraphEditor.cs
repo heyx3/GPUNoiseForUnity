@@ -403,8 +403,9 @@ namespace GPUGraph.Editor
 				{
 					//Flip the image vertically for unity GUI.
 					Rect texR = EditorGUILayout.GetControlRect(GUILayout.Width(previewNoise.width),
-																   GUILayout.Height(previewNoise.height));
-					GUI.DrawTextureWithTexCoords(texR, previewNoise, new Rect(0.0f, 1.0f, 1.0f, -1.0f));
+															   GUILayout.Height(previewNoise.height));
+					EditorGUI.DrawPreviewTexture(texR, previewNoise);
+					//GUI.DrawTextureWithTexCoords(texR, previewNoise, new Rect(0.0f, 1.0f, 1.0f, -1.0f));
 
 					//Draw a slider for the UV.z coordinate.
 					GUILayout.BeginHorizontal();
@@ -864,7 +865,7 @@ namespace GPUGraph.Editor
 			GraphUtils.GenerateToTexture(RenderTexture.GetTemporary(previewNoise.width,
 																	previewNoise.height,
 																	16, RenderTextureFormat.ARGB32),
-										 cachedPreviewMat, previewNoise);
+										 cachedPreviewMat, previewNoise, true);
 		}
 	}
 }

@@ -135,9 +135,14 @@ namespace GPUGraph
 		/// The color (generally 0-1) of the color components which aren't set by the noise.
 		/// </param>
 		/// <param name="uvZ">The Z coordinate of the UVs, in case the graph uses it for 3D noise.</param>
-		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c, int width, int height, float uvZ,
+		/// <param name="leaveReadable">
+		/// Whether the texture's pixel data can still be read from the CPU after this operation.
+		/// </param>
+		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c,
+												  int width, int height, float uvZ,
 												  string outputComponents, float defaultColor,
-												  TextureFormat format = TextureFormat.RGBAFloat)
+												  TextureFormat format = TextureFormat.RGBAFloat,
+												  bool leaveReadable = false)
 		{
 			//Generate a shader from the graph and have Unity compile it.
 			string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
@@ -157,7 +162,7 @@ namespace GPUGraph
 			c.SetParams(mat);
 			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
-			GraphUtils.GenerateToTexture(target, mat, resultTex);
+			GraphUtils.GenerateToTexture(target, mat, resultTex, leaveReadable);
 
 			//Clean up.
 			target.Release();
@@ -176,10 +181,14 @@ namespace GPUGraph
 		/// </summary>
 		/// <param name="gradientRampName">The name of the gradient ramp texture param.</param>
 		/// <param name="uvZ">The Z coordinate of the UVs, in case the graph uses it for 3D noise.</param>
+		/// <param name="leaveReadable">
+		/// Whether to leave the texture data readable on the CPU after the operation.
+		/// </param>
 		public static Texture2D GenerateToTexture(Graph g, GraphParamCollection c,
 												  int width, int height, float uvZ,
 												  Gradient gradientRamp,
-												  TextureFormat format = TextureFormat.RGBAFloat)
+												  TextureFormat format = TextureFormat.RGBAFloat,
+												  bool leaveReadable = false)
 		{
 			//Generate a shader from the graph and have Unity compile it.
 			string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
@@ -208,7 +217,7 @@ namespace GPUGraph
 			c.SetParams(mat);
 			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
-			GraphUtils.GenerateToTexture(target, mat, resultTex);
+			GraphUtils.GenerateToTexture(target, mat, resultTex, leaveReadable);
 
 			//Clean up.
 			target.Release();
@@ -267,7 +276,7 @@ namespace GPUGraph
                 float uvZ = (float)depthI / depth;
                 mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
-                GraphUtils.GenerateToTexture(target, mat, resultTex);
+                GraphUtils.GenerateToTexture(target, mat, resultTex, true);
 
                 //Copy the resulting data into part of the 3D texture.
                 Color32[] layerPixels = resultTex.GetPixels32();
@@ -337,7 +346,7 @@ namespace GPUGraph
                 float uvZ = (float)depthI / depth;
                 mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
-                GraphUtils.GenerateToTexture(target, mat, resultTex);
+                GraphUtils.GenerateToTexture(target, mat, resultTex, true);
 
                 //Copy the resulting data into part of the 3D texture.
                 Color32[] layerPixels = resultTex.GetPixels32();

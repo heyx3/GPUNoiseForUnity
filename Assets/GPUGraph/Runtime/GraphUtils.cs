@@ -77,7 +77,7 @@ namespace GPUGraph
 
 			//Generate the noise.
 			SetUpColorTex(outData.GetLength(0), outData.GetLength(1));
-			GenerateToTexture(rendTex, noiseMat, colorTex);
+			GenerateToTexture(rendTex, noiseMat, colorTex, true);
 
 			//Read the noise into the array.
 			Color[] cols = colorTex.GetPixels();
@@ -115,7 +115,7 @@ namespace GPUGraph
                 float uvZ = (float)depthI / depth;
                 noiseMat.SetFloat(Param_UVz, uvZ);
 
-                GenerateToTexture(rendTarget, noiseMat, colorTex);
+                GenerateToTexture(rendTarget, noiseMat, colorTex, true);
 
                 //Copy the resulting data into part of the 3D texture.
                 Color32[] layerPixels = colorTex.GetPixels32();
