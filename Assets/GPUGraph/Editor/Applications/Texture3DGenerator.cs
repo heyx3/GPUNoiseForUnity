@@ -22,13 +22,16 @@ namespace GPUGraph.Applications
 
 		public int X = 128, Y = 128, Z = 128;
 		public TextureFormat Format = TextureFormat.ARGB32;
-		//TODO: Filter/wrap modes for this and normals.
+		public FilterMode Filtering = FilterMode.Bilinear;
+		public TextureWrapMode Wrapping = TextureWrapMode.Repeat;
 		public bool UseMipmaps = false,
 					LeaveReadable = true;
 
 		public bool GenerateNormals = true;
 		public int Normals_X = 128, Normals_Y = 128, Normals_Z = 128;
 		public TextureFormat Normals_Format = TextureFormat.ARGB32;
+		public FilterMode Normals_Filtering = FilterMode.Bilinear;
+		public TextureWrapMode Normals_Wrapping = TextureWrapMode.Repeat;
 		public bool Normals_UseMipmaps = false,
 					Normals_LeaveReadable = true;
 
@@ -48,7 +51,8 @@ namespace GPUGraph.Applications
 		{
 			EditorGUI.BeginChangeCheck();
 			{
-				EditTextureGUI(ref X, ref Y, ref Z, ref Format, ref UseMipmaps, ref LeaveReadable);
+				EditTextureGUI(ref X, ref Y, ref Z, ref Format, ref Filtering, ref Wrapping,
+							   ref UseMipmaps, ref LeaveReadable);
 
 				GUILayout.Space(7.5f);
 
@@ -56,6 +60,7 @@ namespace GPUGraph.Applications
 				if (GenerateNormals)
 				{
 					EditTextureGUI(ref Normals_X, ref Normals_Y, ref Normals_Z, ref Normals_Format,
+								   ref Normals_Filtering, ref Normals_Wrapping,
 								   ref Normals_UseMipmaps, ref Normals_LeaveReadable);
 				}
 			}
@@ -101,6 +106,7 @@ namespace GPUGraph.Applications
 
         private void EditTextureGUI(ref int sizeX, ref int sizeY, ref int sizeZ,
                                     ref TextureFormat format,
+									ref FilterMode filtering, ref TextureWrapMode wrapping,
                                     ref bool useMips, ref bool leaveReadable)
         {
             sizeX = EditorGUILayout.IntField("Width", sizeX);
@@ -110,6 +116,8 @@ namespace GPUGraph.Applications
             GUILayout.Space(5.0f);
 
             format = (TextureFormat)EditorGUILayout.EnumPopup("Format", format);
+			filtering = (FilterMode)EditorGUILayout.EnumPopup("Filtering", filtering);
+			wrapping = (TextureWrapMode)EditorGUILayout.EnumPopup("Wrapping", wrapping);
 
             GUILayout.Space(5.0f);
 
@@ -166,8 +174,8 @@ namespace GPUGraph.Applications
             }
 
             Texture3D valueTex = new Texture3D(X, Y, Z, TextureFormat.ARGB32, false);
-			valueTex.wrapMode = TextureWrapMode.Repeat;
-			valueTex.filterMode = FilterMode.Bilinear;
+			valueTex.wrapMode = Wrapping;
+			valueTex.filterMode = Filtering;
             valueTex.SetPixels(valueTexPixels);
             valueTex.Apply(UseMipmaps, !LeaveReadable);
             AssetDatabase.CreateAsset(valueTex, StringUtils.GetRelativePath(texPath, "Assets"));
@@ -225,8 +233,8 @@ namespace GPUGraph.Applications
 
             Texture3D normalsTex = new Texture3D(Normals_X, Normals_Y, Normals_Z,
                                                  Normals_Format, Normals_UseMipmaps);
-			normalsTex.wrapMode = TextureWrapMode.Repeat;
-			normalsTex.filterMode = FilterMode.Bilinear;
+			normalsTex.wrapMode = Normals_Wrapping;
+			normalsTex.filterMode = Normals_Filtering;
             normalsTex.SetPixels(normalsPixels);
             normalsTex.Apply(Normals_UseMipmaps, !Normals_LeaveReadable);
             AssetDatabase.CreateAsset(normalsTex, StringUtils.GetRelativePath(normalTexPath, "Assets"));
