@@ -805,10 +805,13 @@ namespace GPUGraph.Editor
 			//Create shader.
 			if (regenerateShader || cachedPreviewMat == null)
 			{
-				Shader shader = ShaderUtil.CreateShaderAsset(Grph.GenerateShader(
-																 "Graph editor temp shader",
-																 "rgb", 1.0f));
-				cachedPreviewMat = new Material(shader);
+				string shaderText = Grph.GenerateShader("Graph editor temp shader", "rgb", 1.0f);
+				Shader shader = ShaderUtil.CreateShaderAsset(shaderText);
+
+				if (shader == null)
+					Debug.LogError("Shader: " + shaderText);
+				else
+					cachedPreviewMat = new Material(shader);
 			}
 
 			//Create texture.

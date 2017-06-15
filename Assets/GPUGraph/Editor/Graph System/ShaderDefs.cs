@@ -190,7 +190,6 @@ namespace GPUGraph
 	float SmootherNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
 	float SmootherNoise3_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
 
-	//TODO: Make Worley use new hash functions.
 	//TODO: Convert these perlin noise function pairs to three functions: one wrap, one non-wrap, and one helper function with the bulk of the code. Make the helper function based on the wrapping version of the noise.
 	//TODO: Add 4d perlin and worley. Consider using iteration.
 
@@ -489,7 +488,7 @@ namespace GPUGraph
 			   cellMinXMaxY = cellMidXY + zon.zy,
 			   cellMidXMaxY = cellMidXY + zon.xy,
 			   cellMaxXY = cellMidXY + zon.yy;
-	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(var)))
+	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo2(var)))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	return MIN3(MIN3(VAL(cellMinXY),    VAL(cellMidXMinY), VAL(cellMaxXMinY)),
 				MIN3(VAL(cellMinXMidY), VAL(cellMidXY),    VAL(cellMaxXMidY)),
@@ -509,7 +508,7 @@ namespace GPUGraph
 			   cellMinXMaxY = cellMidXY + zon.zy,
 			   cellMidXMaxY = cellMidXY + zon.xy,
 			   cellMaxXY = cellMidXY + zon.yy;
-	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(var))))
+	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo2(WRAP(var))))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	return MIN3(MIN3(VAL(cellMinXY),    VAL(cellMidXMinY), VAL(cellMaxXMinY)),
 				MIN3(VAL(cellMinXMidY), VAL(cellMidXY),    VAL(cellMaxXMidY)),
@@ -550,7 +549,7 @@ namespace GPUGraph
 		MAKE_VAL(zzx)
 		MAKE_VAL(zzy)
 		MAKE_VAL(zzz)
-	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(cell##swizzle)))
+	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo3(cell##swizzle)))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	#define MIN9(a, b, c, d, e, f, g, h, i) MIN3(MIN3(a, b, c), MIN3(d, e, f), MIN3(g, h, i))
 		return MIN3(MIN9(VAL(xxx), VAL(xxy), VAL(xxz),
@@ -599,7 +598,7 @@ namespace GPUGraph
 		MAKE_VAL(zzx)
 		MAKE_VAL(zzy)
 		MAKE_VAL(zzz)
-	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(cell##swizzle))))
+	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo3(WRAP(cell##swizzle))))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	#define MIN9(a, b, c, d, e, f, g, h, i) MIN3(MIN3(a, b, c), MIN3(d, e, f), MIN3(g, h, i))
 		return MIN3(MIN9(VAL(xxx), VAL(xxy), VAL(xxz),
