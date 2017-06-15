@@ -144,32 +144,26 @@ namespace GPUGraph
 												  TextureFormat format = TextureFormat.RGBAFloat,
 												  bool leaveReadable = false)
 		{
-			//Generate a shader from the graph and have Unity compile it.
-			string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
-			Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", outputComponents, defaultColor);
+			//Generate a shader/material from the graph.
+			Shader shader = ShaderUtil.CreateShaderAsset(g.GenerateShader("TempGPUNoiseShader",
+																		  outputComponents,
+																		  defaultColor));
 			if (shader == null)
-			{
 				return null;
-			}
-
-			//Render the shader's output into a render texture and copy the data to a Texture2D.
-			RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
-			target.Create();
-			Texture2D resultTex = new Texture2D(width, height, format, false, true);
-
-			//Create the material and set its parameters.
 			Material mat = new Material(shader);
 			c.SetParams(mat);
 			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
+			//Render the shader's output into a render texture and copy the data to a Texture2D.
+			RenderTexture target = RenderTexture.GetTemporary(width, height, 16,
+															  RenderTextureFormat.ARGBFloat);
+			Texture2D resultTex = new Texture2D(width, height, format, false, true);
+
+			//Generate.
 			GraphUtils.GenerateToTexture(target, mat, resultTex, leaveReadable);
 
 			//Clean up.
-			target.Release();
-			if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
-			{
-				Debug.LogError("Unable to delete temp file: " + shaderPath);
-			}
+			RenderTexture.ReleaseTemporary(target);
 
 			return resultTex;
 		}
@@ -190,13 +184,14 @@ namespace GPUGraph
 												  TextureFormat format = TextureFormat.RGBAFloat,
 												  bool leaveReadable = false)
 		{
-			//Generate a shader from the graph and have Unity compile it.
-			string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
-			Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", "_MyGradientRamp14123");
+			//Generate a shader/material from the graph.
+			Shader shader = ShaderUtil.CreateShaderAsset(g.GenerateShader("TempGPUNoiseShader",
+																		  "_MyGradientRamp14123"));
 			if (shader == null)
-			{
 				return null;
-			}
+			Material mat = new Material(shader);
+			c.SetParams(mat);
+			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
 
 			//Generate a texture from the gradient.
 			Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
@@ -205,26 +200,18 @@ namespace GPUGraph
 				cols[i] = gradientRamp.Evaluate((float)i / (float)(cols.Length - 1));
 			myRamp.SetPixels(cols);
 			myRamp.Apply(false, true);
+			mat.SetTexture("_MyGradientRamp14123", myRamp);
 
 			//Render the shader's output into a render texture and copy the data to a Texture2D.
-			RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
-			target.Create();
+			RenderTexture target = RenderTexture.GetTemporary(width, height, 16,
+															  RenderTextureFormat.ARGBFloat);
 			Texture2D resultTex = new Texture2D(width, height, format, false, true);
 
-			//Create the material and set its parameters.
-			Material mat = new Material(shader);
-			mat.SetTexture("_MyGradientRamp14123", myRamp);
-			c.SetParams(mat);
-			mat.SetFloat(GraphUtils.Param_UVz, uvZ);
-
+			//Generate.
 			GraphUtils.GenerateToTexture(target, mat, resultTex, leaveReadable);
 
 			//Clean up.
-			target.Release();
-			if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
-			{
-				Debug.LogError("Unable to delete temp file: " + shaderPath);
-			}
+			RenderTexture.ReleaseTemporary(target);
 
 			return resultTex;
 		}
@@ -250,25 +237,24 @@ namespace GPUGraph
                                                   bool useMipmaps, bool leaveTextureReadable,
                                                   TextureFormat format = TextureFormat.RGBA32)
         {
-            //Generate a shader from the graph and have Unity compile it.
-            string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
-            Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", outputComponents, defaultColor);
-            if (shader == null)
-            {
-                return null;
-            }
+			//Generate a shader/material from the graph.
+			Shader shader = ShaderUtil.CreateShaderAsset(g.GenerateShader("TempGPUNoiseShader",
+																		  outputComponents,
+																		  defaultColor));
+			if (shader == null)
+				return null;
+            Material mat = new Material(shader);
+            c.SetParams(mat);
 
 
             //For every Z layer in the texture, generate a 2D texture representing that layer.
 
             Color32[] finalPixels = new Color32[width * height * depth];
 
-            RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
-            target.Create();
+            RenderTexture target = RenderTexture.GetTemporary(width, height, 16,
+															  RenderTextureFormat.ARGBFloat);
             Texture2D resultTex = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
 
-            Material mat = new Material(shader);
-            c.SetParams(mat);
 
             for (int depthI = 0; depthI < depth; ++depthI)
             {
@@ -291,12 +277,8 @@ namespace GPUGraph
             finalTex.SetPixels32(finalPixels);
             finalTex.Apply(useMipmaps, !leaveTextureReadable);
 
-            //Clean up.
-            target.Release();
-            if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
-            {
-                Debug.LogError("Unable to delete temp file: " + shaderPath);
-            }
+			//Clean up.
+			RenderTexture.ReleaseTemporary(target);
 
             return finalTex;
         }
@@ -312,13 +294,13 @@ namespace GPUGraph
                                                   bool useMipmaps, bool leaveTextureReadable,
                                                   TextureFormat format = TextureFormat.RGBA32)
         {
-            //Generate a shader from the graph and have Unity compile it.
-            string shaderPath = Path.Combine(Application.dataPath, "gpuNoiseShaderTemp.shader");
-            Shader shader = SaveShader(g, shaderPath, "TempGPUNoiseShader", "_MyGradientRamp14123");
-            if (shader == null)
-            {
-                return null;
-            }
+			//Generate a shader/material from the graph.
+			Shader shader = ShaderUtil.CreateShaderAsset(g.GenerateShader("TempGPUNoiseShader",
+																		  "_MyGradientRamp14123"));
+			if (shader == null)
+				return null;
+			Material mat = new Material(shader);
+			c.SetParams(mat);
 
             //Generate a texture from the gradient.
             Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
@@ -327,18 +309,16 @@ namespace GPUGraph
                 cols[i] = gradientRamp.Evaluate((float)i / (float)(cols.Length - 1));
             myRamp.SetPixels(cols);
             myRamp.Apply(false, true);
+            mat.SetTexture("_MyGradientRamp14123", myRamp);
 
             //For every Z layer in the texture, generate a 2D texture representing that layer.
 
             Color32[] finalPixels = new Color32[width * height * depth];
 
-            RenderTexture target = new RenderTexture(width, height, 16, RenderTextureFormat.ARGBFloat);
-            target.Create();
+            RenderTexture target = RenderTexture.GetTemporary(width, height, 16,
+															  RenderTextureFormat.ARGBFloat);
             Texture2D resultTex = new Texture2D(width, height, TextureFormat.RGBAFloat, false, true);
 
-            Material mat = new Material(shader);
-            c.SetParams(mat);
-            mat.SetTexture("_MyGradientRamp14123", myRamp);
 
             for (int depthI = 0; depthI < depth; ++depthI)
             {
@@ -361,12 +341,8 @@ namespace GPUGraph
             finalTex.SetPixels32(finalPixels);
             finalTex.Apply(useMipmaps, !leaveTextureReadable);
 
-            //Clean up.
-            target.Release();
-            if (!AssetDatabase.DeleteAsset(StringUtils.GetRelativePath(shaderPath, "Assets")))
-            {
-                Debug.LogError("Unable to delete temp file: " + shaderPath);
-            }
+			//Clean up.
+			RenderTexture.ReleaseTemporary(target);
 
             return finalTex;
         }
@@ -377,7 +353,8 @@ namespace GPUGraph
         /// </summary>
         public static float[,] GenerateToArray(Graph g, GraphParamCollection c, int width, int height)
 		{
-			Texture2D t = GenerateToTexture(g, c, width, height, 0.0f, "r", 0.0f);
+			Texture2D t = GenerateToTexture(g, c, width, height, 0.0f, "r", 0.0f,
+											TextureFormat.RGBAFloat, true);
 			if (t == null)
 			{
 				return null;

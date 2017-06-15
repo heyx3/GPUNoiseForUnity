@@ -13,9 +13,24 @@ namespace GPUGraph
 	public static class GraphUtils
 	{
 		//TODO: Allow setting UVz when making 2D texture, or scaling/offsetting the UVz when making 3D texture.
+
 		public static readonly string Param_UVz = "__UV_z__";
 
 
+		/// <summary>
+		/// Renders the given material into given texture.
+		/// Assumes the material uses a shader generated from a Graph.
+		/// </summary>
+		/// <param name="leaveReadable">
+		/// Whether to leave the texture data readable on the CPU after the operation.
+		/// </param>
+		public static void GenerateToTexture(Material noiseMat, Texture2D dest, bool leaveReadable = false)
+		{
+			var tempTarget = RenderTexture.GetTemporary(dest.width, dest.height, 16,
+														RenderTextureFormat.ARGB32);
+			GenerateToTexture(tempTarget, noiseMat, dest, leaveReadable);
+			RenderTexture.ReleaseTemporary(tempTarget);
+		}
 		/// <summary>
 		/// Renders the given material into the given render target using a full-screen quad.
 		/// Assumes the material uses a shader generated from a Graph.
@@ -68,40 +83,19 @@ namespace GPUGraph
 			//Reset rendering state.
 			RenderTexture.active = activeTarget;
 		}
-		/// <summary>
-		/// Uses the given noise material to generate noise into the given array.
-		/// </summary>
-		public static void GenerateToArray(float[,] outData, Material noiseMat)
-		{
-			RenderTexture rendTex = RenderTexture.GetTemporary(outData.GetLength(0), outData.GetLength(1));
-
-			//Generate the noise.
-			SetUpColorTex(outData.GetLength(0), outData.GetLength(1));
-			GenerateToTexture(rendTex, noiseMat, colorTex, true);
-
-			//Read the noise into the array.
-			Color[] cols = colorTex.GetPixels();
-			for (int y = 0; y < outData.GetLength(1); ++y)
-				for (int x = 0; x < outData.GetLength(0); ++x)
-					outData[x, y] = cols[x + (outData.GetLength(0) * y)].r;
-
-			RenderTexture.ReleaseTemporary(rendTex);
-		}
 
         /// <summary>
-        /// Renders the given material into the given 3D texture,
-        ///     with the help of the given render target.
+        /// Renders the given material into the given 3D texture.
         /// </summary>
-		/// <param name="rendTarget">
-		/// If set to "null", the noise will be rendered onto the screen.
-		/// </param>
         /// <param name="leaveTextureReadable">
         /// Whether to let the texture keep a CPU copy of its data on hand for later reading.
         /// </param>
         /// <param name="depth">The depth of the 3D texture (i.e. its size along the Z axis).</param>
-        public static void GenerateToTexture(RenderTexture rendTarget, int depth, Material noiseMat,
-                                             Texture3D copyTo, bool leaveTextureReadable)
+        public static void GenerateToTexture(int depth, Material noiseMat, Texture3D copyTo,
+										     bool leaveTextureReadable)
         {
+			var rendTarget = RenderTexture.GetTemporary(copyTo.width, copyTo.height,
+													    16, RenderTextureFormat.ARGB32);
             int width = (rendTarget == null ? Screen.width : rendTarget.width),
                 height = (rendTarget == null ? Screen.height : rendTarget.height);
 
@@ -128,18 +122,38 @@ namespace GPUGraph
             //Create the actual texture object.
             copyTo.SetPixels32(finalPixels);
             copyTo.Apply(true, !leaveTextureReadable);
+
+			//Clean up.
+			RenderTexture.ReleaseTemporary(rendTarget);
         }
+
+		/// <summary>
+		/// Uses the given noise material to generate noise into the given array.
+		/// </summary>
+		public static void GenerateToArray(float[,] outData, Material noiseMat)
+		{
+			RenderTexture rendTex = RenderTexture.GetTemporary(outData.GetLength(0), outData.GetLength(1));
+
+			//Generate the noise.
+			SetUpColorTex(outData.GetLength(0), outData.GetLength(1));
+			GenerateToTexture(rendTex, noiseMat, colorTex, true);
+
+			//Read the noise into the array.
+			Color[] cols = colorTex.GetPixels();
+			for (int y = 0; y < outData.GetLength(1); ++y)
+				for (int x = 0; x < outData.GetLength(0); ++x)
+					outData[x, y] = cols[x + (outData.GetLength(0) * y)].r;
+
+			RenderTexture.ReleaseTemporary(rendTex);
+		}
         /// <summary>
         /// Uses the given noise material to generate noise into the given array.
         /// </summary>
         public static void GenerateToArray(float[,,] outData, Material noiseMat)
         {
-            RenderTexture rendTex = RenderTexture.GetTemporary(outData.GetLength(0),
-                                                               outData.GetLength(1));
-
             //Generate the noise.
             SetUpColorTex3(outData.GetLength(0), outData.GetLength(1), outData.GetLength(2));
-            GenerateToTexture(rendTex, outData.GetLength(2), noiseMat, colorTex3, true);
+            GenerateToTexture(outData.GetLength(2), noiseMat, colorTex3, true);
 
             //Read the noise into the array.
             Color[] cols = colorTex.GetPixels();
@@ -148,8 +162,6 @@ namespace GPUGraph
                 for (int y = 0; y < outData.GetLength(1); ++y)
                     for (int x = 0; x < outData.GetLength(0); ++x)
                         outData[x, y, z] = cols[i++].r;
-
-            RenderTexture.ReleaseTemporary(rendTex);
         }
 
 
