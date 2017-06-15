@@ -145,7 +145,9 @@ namespace GPUGraph.Editor
 		void OnGUI()
 		{
 			//Draw the node creation choices.
-			GUILayout.BeginArea(new Rect(0.0f, 0.0f, NodeChoiceSpace, position.height));
+			Rect nodeChoicesArea = new Rect(0.0f, 0.0f, NodeChoiceSpace, position.height);
+			GUI.Box(nodeChoicesArea, GUIUtil.WhitePixel);
+			GUILayout.BeginArea(nodeChoicesArea);
 			if (CurrentlyPlacing == null)
 			{
 				if (selectedGraph < 0)
@@ -178,7 +180,9 @@ namespace GPUGraph.Editor
 
 
 			//Draw the side-bar.
-			GUILayout.BeginArea(new Rect(NodeChoiceSpace, 0, OptionsSpace, position.height));
+			Rect sidebarArea = new Rect(NodeChoiceSpace, 0, OptionsSpace, position.height);
+			GUI.Box(sidebarArea, GUIUtil.WhitePixel);
+			GUILayout.BeginArea(sidebarArea);
 			GUILeftArea();
 			GUILayout.EndArea();
 			GUIUtil.DrawLine(new Vector2(NodeChoiceSpace + OptionsSpace + 4.0f, 0.0f),

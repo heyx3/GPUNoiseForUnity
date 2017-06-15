@@ -10,21 +10,28 @@ namespace GPUGraph
 	{
 		private static Texture2D whitePixelTex = null;
 
+		public static Texture2D WhitePixel
+		{
+			get
+			{
+				//Generate the texture if it doesn't exist.
+				if (whitePixelTex == null)
+				{
+					whitePixelTex = new Texture2D(1, 1);
+					whitePixelTex.SetPixel(0, 0, Color.white);
+					whitePixelTex.Apply();
+				}
+
+				return whitePixelTex;
+			}
+		}
+
 		public static void DrawLine(Vector2 a, Vector2 b, float thickness, Color col)
 		{
 			//Taken from: http://wiki.unity3d.com/index.php?title=DrawLine
 
-
 			// Save the current GUI matrix, since we're going to make changes to it.
 			Matrix4x4 matrix = GUI.matrix;
-
-			// Generate a single pixel texture if it doesn't exist
-			if (whitePixelTex == null)
-			{
-				whitePixelTex = new Texture2D(1, 1);
-				whitePixelTex.SetPixel(0, 0, Color.white);
-				whitePixelTex.Apply();
-			}
 
 			// Store current GUI color, so we can switch it back later,
 			// and set the GUI color to the color parameter
@@ -44,7 +51,7 @@ namespace GPUGraph
 			// Use ScaleAroundPivot to adjust the size of the line.
 			// We could do this when we draw the texture, but by scaling it here we can use
 			//  non-integer values for the width and length (such as sub 1 pixel widths).
-			// Note that the pivot point is at +.5 from a.y, this is so that the width of the line
+			// Note that the pivot point is at 0.5 ahead of a.y, this is so that the width of the line
 			//  is centered on the origin at point a.
 			GUIUtility.ScaleAroundPivot(new Vector2((b - a).magnitude, thickness),
 										new Vector2(a.x, a.y + 0.5f));

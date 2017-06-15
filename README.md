@@ -4,6 +4,7 @@ An open-source Unity plugin for generating coherent noise on the GPU, for both e
 
 Editor tools for this plugin are available in the "Assets/GPU Graph" section on the Unity editor's toolbar. The *.unitypackage* file for this plugin is stored in the root of this repo: *GPUGraph.unitypackage*.
 
+
 # Overview
 
 This repo contains the GPUGraph plugin for Unity, which provides classes and editors for generating floating-point noise on the GPU with shaders.
@@ -11,11 +12,12 @@ This leads to extremely fast noise generation compared to traditional CPU method
 
 Note that because Unity no longer supports runtime compilation of shaders, Graphs can only really be used in the editor. However, shaders can be generated from the graph in the editor then used in real-time (graphs can expose float and Tex2D parameters which are changeable at run-time). A serializable class "RuntimeGraph" is provided to greatly simplify use of run-time graphs; see "SampleScene.unity" and "SampleGPUGScript.cs" for an example of how to use it (note that you need to look at the SampleGPUGScript component in the Inspector to regenerate shaders before the scene will work).
 
-The basic structure behind GPUGraph is a tree (or more accurately, a "Directed Acyclic Graph") of commands that represents shader code. Every node in the graph takes some number of floats as inputs and outputs a single float as a result.
+The basic structure behind GPUGraph is a "Directed Acyclic Graph" (essentially a tree whose nodes can have multiple parents) of commands that represents shader code. Every node in the graph takes some number of floats as inputs and outputs a single float as a result.
 
 Graphs are created in a custom editor window and saved as ".gpug" files into the "Assets" folder. The editor is accessed by selecting "Assets/GPU Graph/Editor" in the Unity editor's toolbar. Here is an example of a very simple graph that generates pure white noise:
 
 ![White Noise](https://github.com/heyx3/GPUNoiseForUnity/blob/master/Readme%20Images/WhiteNoise.png)
+
 
 # Editor
 
@@ -30,27 +32,30 @@ In the above image, note the various aspects of the graph editor:
 
 In order to add a new node, click the button for the node you want to place, then left-click in the graph to place it. Right-click in the graph to cancel. A node's inputs are on the left side, and its output is on the right side. Note that some nodes have no inputs at all. Each input to a node is either the output of a different node or a constant value entered in a text box.
 
+You can add the basic arithmetic nodes by pressing their respective keys (`+`, `-`, `*`, and `/`).
+
+
 # Nodes
 
 All the nodes this plugin currently offers are listed here:
 
-* Noise: Exposes a wide variety of 1D, 2D, or 3D noise algorithms (all of which return a value between 0 and 1) with a scale/weight value for convenience when combining multiple octaves of noise.
+* Noise: Exposes a wide variety of 1D, 2D, or 3D noise algorithms (all of which return a value between 0 and 1) with a scale/weight value for convenience when combining multiple octaves of noise. They can all optionally wrap around their edges so that the resulting noise tiles nicely.
     * White noise: a pseudo-random value.
-    * Grid noise: gets white noise for the `floor` of the seed value. In other words, creates 1.0x1.0 square blocks of noise.
-    * Linear noise: Like Grid noise but with a linear interpolation between values instead of solid blocks.
+    * Grid noise: Creates 1x1 square blocks of noise by getting White Noise for the `floor` of the seed value.
+    * Linear noise: Like Grid noise but with a linear interpolation between values, yielding smooth diamond shapes instead of square blocks.
     * Smooth noise: Like Linear noise but smoother and a bit more expensive.
-    * Smoother noise: Like Smooth noise but smoother and a bit more expensive.
-    * Perlin noise: Like Smoother noise but better, with fewer blocky artifacts, and more expensive.
-    * Worley noise: Generates a random point for each cell of a grid and outputs noise based on how far away each pixel is from the nearest point.
-* UV: The X or Y coordinate (from 0 to 1) of the pixel in the render texture currently being generated.
-* Custom Expression: A user-specified shader expression with any number of inputs.
-* Float Parameter: A shader parameter that can be set when generating the noise.
-* Tex2D Parameter: A texture parameter that can be set when generating the noise.
-* Sub-graph: Outputs the result of another graph file.
-* Fract: gets the fractional part of an input.
-* Ceil: gets the next integer value after the input.
-* Floor: gets the integer value just before the input.
+    * Smoother noise: Like Smooth noise but even smoother and a bit more expensive.
+    * Perlin noise: Like Smooth noise but with fewer blocky artifacts, and much more expensive.
+    * Worley noise: Generates a random point in every 1x1 block of space and outputs noise based on how far away the given value is from the nearest point.
+* UV: The X, Y, or Z coordinate (from 0 to 1) of the pixel in the render texture currently being generated. The Z coordinate is useful when generating 3D textures.
+* Custom Expression: A custom HLSL expression with any number of inputs.
+* Float Parameter: A shader parameter that can be easily changed after the graph has been compiled into a Material.
+* Tex2D Parameter: A texture parameter that can be easily changed after the graph has been compiled into a Material.
+* Sub-graph: Represents the output of another graph file.
+* Ceil: rounds the input to the next largest integer.
+* Floor: rounds the input to the next smallest integer.
 * Truncate: gets the non-fractional part of an input.
+* Fract: gets the fractional part of an input.
 * RoundToInt: rounds the input to the nearest integer.
 * Sign: Returns -1 if the input is negative, 0 if it's zero, and +1 if it's positive.
 * Abs: Returns the absolute value of the input.
@@ -74,7 +79,8 @@ All the nodes this plugin currently offers are listed here:
 * Clamp: Forces the third input to be no smaller than the first one and no larger than the second.
 * Lerp: Linearly interpolates between the first and second inputs using the third input.
 * Smoothstep: Like `Lerp` but with a smooth, third-order curve instead of a line.
-* Remap: Remaps a value from the "source" min and max to the "destination" min and max.
+* Remap: Remaps a value from the "source" min and max range to the "destination" min and max range.
+
 
 # Applications
 
@@ -84,19 +90,29 @@ Several example applications are built into the editor; they are all accessible 
 
 This tool generates a shader that outputs the graph's noise. You could then create a material that uses this shader and use it in the editor or at runtime to generate noise via the `GPUGraph.GraphUtils` and `GPUGraph.GraphEditorUtils` classes. Fortunately, a helper class `RuntimeGraph` has already been created to make this easier for you, complete with custom Inspector code, but this utility is still useful if you want to further mess with the shader after generating it.
 
-## Texture Generator
+## Texture 2D Generator
 
 This tool generates a 2D texture file using a graph.
+
+## Texture 3D Generator
+
+This tool generates a 3D texture file (and, optionally, an accompanying normal texture) using a graph.
+
+## Texture Generator
+
+This is the abstract base class for Texture2DGenerator and Texture3DGenerator. It provides the bulk of their GUI.
+
 
 ## Terrain Generator
 
 This tool uses a graph to generate a heightmap for whichever terrain object is currently selected in the scene view.
 
+
 # Code
 
 Code is organized in the following way inside the "GPU Noise" folder:
 
-* Runtime: Scripts for using graphs at run-time. Take a look at "SampleGPUGScript.cs" for an example.
+* Runtime: Scripts for using graphs at run-time. Take a look at "SampleGPUGScript.cs" for an example of how to use these.
 * Editor: Scripts for using graphs in the editor.
     * **Graph System**: The code for representing/editing a graph.
         * **Nodes**: Specific kinds of nodes that can be placed in a graph.
@@ -121,7 +137,7 @@ The number of `Node` child classes is actually fairly small:
 * `SimpleNode` handles any kind of one-line expression, including all the built-in shader functions like `sin`, `lerp`, `abs`, etc. The vast majority of nodes are instances of `SimpleNode`.
 * `CustomExprNode` allows the user to type a custom shader expression using any number of inputs (`$1`, `$2`, `$3`, etc).
 * `NoiseNode` is a node that generates 1D, 2D, or 3D noise. The noise can be "White", "Blocky", "Linear", "Smooth", "Smoother", "Perlin", or "Worley". Note that "Worley" has special editing options that the other noise types don't need.
-* `TexCoordNode` represents the UV coordinates of the texture the graph noise is being rendered into. This is generally how you get the seed values for a noise function. It can output either the X or the Y coordinate.
+* `TexCoordNode` represents the UV coordinates of the texture the graph noise is being rendered into. This is generally how you get the input values for a noise function. It can output the X, Y, or Z coordinate. Z coordinate is used when you want to generate a 3D texture from the graph.
 * `ParamNode_Float` is a float parameter represented as either a text box or a slider.
 * `ParamNode_Texture2D` is a 2D texture parameter.
 * `SubGraphNode` allows graphs to be used inside other graphs.
@@ -130,7 +146,7 @@ The number of `Node` child classes is actually fairly small:
 
 *namespace: GPUGraph.Applications*
 
-This folder contains the various built-in utilities mentioned above: *ShaderGenerator*, *TextureGenerator*, and *TerrainGenerator*.
+This folder contains the various built-in utilities mentioned above: *ShaderGenerator*, *Texture2DGenerator*, *Texture3DGenerator*, and *TerrainGenerator*.
 
 # Known Issues
 
@@ -138,21 +154,16 @@ If anybody wants to help out with these issues (or contribute to the codebase in
 
 * When you first click on the editor after creating a new graph, it goes back to a state of not editing anything for some reason.
 
-* The editor window's UI is pretty rough; you get what you pay for :P. You can pan the view, but you can't zoom in or out. Adding zoom functionality would probably require one of these two approaches:
+* The editor window's UI is pretty rough; you get what you pay for :P. You can pan the view, but you can't zoom in or out. Adding zoom functionality can most likely be done somehow with the use of the GUIUtility.ScaleAroundPivot() method.
+* Similarly, features like multi-node selection/movement, comments, and pressing Ctrl+S to save would be nice.
 
-    * Using custom GUIStyles for everything and manually lowering/increasing their size with the zoom level
-
-    * Find a way to render `GUILayout`/`EditorGUILayout` calls into a texture and then draw a scaled version of the texture.
-
-* Similarly, features like multi-node selection/movement and pressing Ctrl+S to save would be nice.
-
-* The Applications (specifically Texture Generator and Terrain Generator) should show a preview of the generated image.
+* Terrain Generator should show a preview of the generated image.
 
 * UnityEditor's `Undo` class just didn't seem to work at all with the graph editor window, so I don't use it at all (although I at least got it to work with RuntimeGraph's custom inspector). However, the editor closely tracks any unsaved changes and makes sure to tell you if you're about to discard them.
 
-* There are some bugs with drawing textures in RealtimeGraph's custom Inspector code; sometimes the textures aren't visible. As far as I can tell, this is Unity's problem.
+* There are some bugs with drawing textures in RuntimeGraph's custom Inspector code; sometimes the textures aren't visible. As far as I can tell, this is Unity's problem.
 
-* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same path, "Resources/unity_buitin_extra"). Currently I have a manual check that logs a warning if you try to do that.
+* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same path, "Resources/unity_buitin_extra"). Currently I have a check that logs a warning if you try to do that.
 
 # License
 
