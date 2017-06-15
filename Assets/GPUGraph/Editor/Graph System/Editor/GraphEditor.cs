@@ -342,49 +342,6 @@ namespace GPUGraph.Editor
 			GUILayout.Space(35.0f);
 
 
-			if (Grph != null)
-			{
-				GUILayout.Label("1D Hash:");
-				string oldHash = Grph.Hash1;
-				Grph.Hash1 = GUILayout.TextField(Grph.Hash1);
-				if (oldHash != Grph.Hash1)
-				{
-					if (!unsavedStr.Contains("1D hash func"))
-						unsavedStr += "1D hash func, ";
-					if (autoUpdatePreview)
-						UpdatePreview();
-				}
-
-				GUILayout.Space(10.0f);
-
-				GUILayout.Label("2D Hash:");
-				oldHash = Grph.Hash2;
-				Grph.Hash2 = GUILayout.TextField(Grph.Hash2);
-				if (oldHash != Grph.Hash2)
-				{
-					if (!unsavedStr.Contains("2D hash func"))
-						unsavedStr += "2D hash func, ";
-					if (autoUpdatePreview)
-						UpdatePreview();
-				}
-
-				GUILayout.Space(10.0f);
-
-				GUILayout.Label("3D Hash:");
-				oldHash = Grph.Hash3;
-				Grph.Hash3 = GUILayout.TextField(Grph.Hash3);
-				if (oldHash != Grph.Hash3)
-				{
-					if (!unsavedStr.Contains("3D hash func"))
-						unsavedStr += "3D hash func, ";
-					if (autoUpdatePreview)
-						UpdatePreview();
-				}
-			}
-
-			GUILayout.Space(30.0f);
-
-
 			//Noise previewing.
 			if (Grph != null)
 			{
@@ -409,7 +366,6 @@ namespace GPUGraph.Editor
 					Rect texR = EditorGUILayout.GetControlRect(GUILayout.Width(previewNoise.width),
 															   GUILayout.Height(previewNoise.height));
 					EditorGUI.DrawPreviewTexture(texR, previewNoise);
-					//GUI.DrawTextureWithTexCoords(texR, previewNoise, new Rect(0.0f, 1.0f, 1.0f, -1.0f));
 
 					//Draw a slider for the UV.z coordinate.
 					GUILayout.BeginHorizontal();
@@ -861,15 +817,10 @@ namespace GPUGraph.Editor
 				previewNoise = new Texture2D(256, 256, TextureFormat.RGBA32, false);
 			}
 
-			//Set params.
+			//Set params and generate.
 			new GraphParamCollection(Grph).SetParams(cachedPreviewMat);
 			cachedPreviewMat.SetFloat(GraphUtils.Param_UVz, uvZ);
-
-			//Generate noise.
-			GraphUtils.GenerateToTexture(RenderTexture.GetTemporary(previewNoise.width,
-																	previewNoise.height,
-																	16, RenderTextureFormat.ARGB32),
-										 cachedPreviewMat, previewNoise, true);
+			GraphUtils.GenerateToTexture(cachedPreviewMat, previewNoise, true);
 		}
 	}
 }

@@ -28,11 +28,6 @@ namespace GPUGraph
 		public string FilePath;
 
 		/// <summary>
-		/// The 1D, 2D, and 3D hash functions this graph is using.
-		/// </summary>
-		public string Hash1, Hash2, Hash3;
-
-		/// <summary>
 		/// The output of this graph.
 		/// </summary>
 		public NodeInput Output;
@@ -64,9 +59,6 @@ namespace GPUGraph
 		}
 		public Graph()
 		{
-			Hash1 = ShaderDefs.DefaultHash1;
-			Hash2 = ShaderDefs.DefaultHash2;
-			Hash3 = ShaderDefs.DefaultHash3;
 			Output = new NodeInput(0.5f);
 			OutputPos = new Rect(200.0f, 0.0f, 100.0f, 50.0f);
 		}
@@ -79,9 +71,6 @@ namespace GPUGraph
 			g.FilePath = FilePath;
 			g.Output = Output;
 			g.OutputPos = OutputPos;
-			g.Hash1 = Hash1;
-			g.Hash2 = Hash2;
-			g.Hash3 = Hash3;
 
 			foreach (Node n in nodes)
 				g.nodes.Add(n.Clone(g, false, idOffset));
@@ -204,7 +193,6 @@ namespace GPUGraph
 
             if (addDefines)
             {
-                cgProperties.AppendLine(ShaderDefs.GetHashFuncs(Hash1, Hash2, Hash3));
                 cgProperties.AppendLine(ShaderDefs.Functions);
             }
 
@@ -496,9 +484,6 @@ namespace GPUGraph
 			}
 
 			NextUID = g.NextUID;
-			Hash1 = g.Hash1;
-			Hash2 = g.Hash2;
-			Hash3 = g.Hash3;
 			Output = g.Output;
 			OutputPos = g.OutputPos;
 			nodes = g.nodes;
@@ -525,10 +510,6 @@ namespace GPUGraph
 				  sizeY = info.GetSingle("OutputSizeY");
 			OutputPos = new Rect(posX, posY, sizeX, sizeY);
 
-			Hash1 = info.GetString("Hash1");
-			Hash2 = info.GetString("Hash2");
-			Hash3 = info.GetString("Hash3");
-
 			int nNodes = info.GetInt32("NNodes");
 			for (int i = 0; i < nNodes; ++i)
 			{
@@ -544,10 +525,6 @@ namespace GPUGraph
 			info.AddValue("OutputPosY", OutputPos.y);
 			info.AddValue("OutputSizeX", OutputPos.width);
 			info.AddValue("OutputSizeY", OutputPos.height);
-
-			info.AddValue("Hash1", Hash1);
-			info.AddValue("Hash2", Hash2);
-			info.AddValue("Hash3", Hash3);
 
 			info.AddValue("NNodes", nodes.Count);
 			for (int i = 0; i < nodes.Count; ++i)

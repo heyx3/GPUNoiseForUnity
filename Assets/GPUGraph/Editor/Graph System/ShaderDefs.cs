@@ -10,46 +10,50 @@ namespace GPUGraph
 	/// </summary>
 	public static class ShaderDefs
 	{
-		#region Hash Functions
-
 		//TODO: Add the concept of a seed.
-		//TODO: Use the much better, no-trig hash functions: https://www.shadertoy.com/view/4djSRW
-
-		public static readonly string DefaultHash1 =
-	"frac(sin(x * 78.233) * 43758.5453)";
-		public static readonly string DefaultHash2 =
-	"frac(sin(dot(x, float2(12.9898, 78.233))) * 43758.5453)";
-		public static readonly string DefaultHash3 =
-	"frac(sin(dot(x, float3(12.9898, 78.233, 36.34621))) * 43758.5453)";
-
-		public static string GetHashFuncs(string hash1, string hash2, string hash3)
-		{
-			StringBuilder sb = new StringBuilder();
-			sb.Append(@"
-	float hashValue1(float x)
-	{
-		return (");
-			sb.Append(hash1);
-			sb.Append(@");
-	}
-	float hashValue2(float2 x)
-	{
-		return (");
-			sb.Append(hash2);
-			sb.Append(@");
-	}
-	float hashValue3(float3 x)
-	{
-		return (");
-			sb.Append(hash3);
-			sb.Append(@");
-	}");
-			return sb.ToString();
-		}
-
-		#endregion
 
 		public static readonly string Functions = @"
+
+	//Hash functions.
+	//The hash functions are modified versions of this idea: https://www.shadertoy.com/view/4djSRW
+	#define _HASH(p4, swizzle) \
+		p4 = frac(p4 * float4(443.897, 441.423, 437.195, 444.129)); \
+		p4 += dot(p4, p4.wzxy + 19.19); \
+		return frac(dot(p.xyzw, p.zwxy) * p.swizzle);
+	float _hashTo1(float4 p)
+	{
+		_HASH(p, x);
+	}
+	float2 _hashTo2(float4 p)
+	{
+		_HASH(p, xy);
+	}
+	float3 _hashTo3(float4 p)
+	{
+		_HASH(p, xyz);
+	}
+	float4 _hashTo4(float4 p)
+	{
+		_HASH(p, xyzw);
+	}
+	#undef _HASH
+	float  hashTo1(float p)  { return _hashTo1(p.xxxx); }
+	float  hashTo1(float2 p) { return _hashTo1(p.xyxy); }
+	float  hashTo1(float3 p) { return _hashTo1(p.xyzx); }
+	float  hashTo1(float4 p) { return _hashTo1(p);		}
+	float2 hashTo2(float p)  { return _hashTo2(p.xxxx); }
+	float2 hashTo2(float2 p) { return _hashTo2(p.xyxy); }
+	float2 hashTo2(float3 p) { return _hashTo2(p.xyzx); }
+	float2 hashTo2(float4 p) { return _hashTo2(p);		}
+	float3 hashTo3(float p)  { return _hashTo3(p.xxxx); }
+	float3 hashTo3(float2 p) { return _hashTo3(p.xyxy); }
+	float3 hashTo3(float3 p) { return _hashTo3(p.xyzx); }
+	float3 hashTo3(float4 p) { return _hashTo3(p);		}
+	float4 hashTo4(float p)  { return _hashTo4(p.xxxx); }
+	float4 hashTo4(float2 p) { return _hashTo4(p.xyxy); }
+	float4 hashTo4(float3 p) { return _hashTo4(p.xyzx); }
+	float4 hashTo4(float4 p) { return _hashTo4(p);		}
+
 	//The body (no open/close braces) for a function that interpolates between noise values on a 1D grid.
 	//Allows customization of the interpolant (see LinearNoise1 and SmoothNoise1 for simple examples).
 	#define INTERP_NOISE1(tModifier, posModifier) \
@@ -60,8 +64,8 @@ namespace GPUGraph
 		float t = f - minF; \
 		t = tModifier; \
 		 \
-		return lerp(hashValue1(posModifier(minF)), \
-					hashValue1(posModifier(maxF)), \
+		return lerp(hashTo1(posModifier(minF)), \
+					hashTo1(posModifier(maxF)), \
 					t);
 	//The body (no open/close braces) for a function that interpolates between noise values on a 2D grid.
 	//Allows customization of the interpolant (see LinearNoise2 and SmoothNoise2 for simple examples).
@@ -73,11 +77,11 @@ namespace GPUGraph
 		float2 t = f - minF; \
 		t = tModifier; \
 		 \
-		return lerp(lerp(hashValue2(posModifier(minF)), \
-						 hashValue2(posModifier(float2(maxF.x, minF.y))), \
+		return lerp(lerp(hashTo1(posModifier(minF)), \
+						 hashTo1(posModifier(float2(maxF.x, minF.y))), \
 						 t.x), \
-					lerp(hashValue2(posModifier(float2(minF.x, maxF.y))), \
-						 hashValue2(posModifier(maxF)), \
+					lerp(hashTo1(posModifier(float2(minF.x, maxF.y))), \
+						 hashTo1(posModifier(maxF)), \
 						 t.x), \
 					t.y);
 	//The body (no open/close braces) for a function that interpolates between noise values on a 3D grid.
@@ -90,18 +94,18 @@ namespace GPUGraph
 		float3 t = f - minF; \
 		t = tModifier; \
 		 \
-		return lerp(lerp(lerp(hashValue3(posModifier(minF)), \
-							  hashValue3(posModifier(float3(maxF.x, minF.yz))), \
+		return lerp(lerp(lerp(hashTo1(posModifier(minF)), \
+							  hashTo1(posModifier(float3(maxF.x, minF.yz))), \
 							  t.x), \
-						 lerp(hashValue3(posModifier(float3(minF.x, maxF.y, minF.z))), \
-							  hashValue3(posModifier(float3(maxF.xy, minF.z))), \
+						 lerp(hashTo1(posModifier(float3(minF.x, maxF.y, minF.z))), \
+							  hashTo1(posModifier(float3(maxF.xy, minF.z))), \
 							  t.x), \
 						 t.y), \
-					lerp(lerp(hashValue3(posModifier(float3(minF.xy, maxF.z))), \
-							  hashValue3(posModifier(float3(maxF.x, minF.y, maxF.z))), \
+					lerp(lerp(hashTo1(posModifier(float3(minF.xy, maxF.z))), \
+							  hashTo1(posModifier(float3(maxF.x, minF.y, maxF.z))), \
 							  t.x), \
-						 lerp(hashValue3(posModifier(float3(minF.x, maxF.yz))), \
-							  hashValue3(posModifier(maxF)), \
+						 lerp(hashTo1(posModifier(float3(minF.x, maxF.yz))), \
+							  hashTo1(posModifier(maxF)), \
 							  t.x), \
 						 t.y), \
 					t.z);
@@ -115,45 +119,80 @@ namespace GPUGraph
 		float4 t = f - minF; \
 		t = tModifier; \
 		 \
-		return lerp(lerp(lerp(lerp(hashValue4(posModifier(minF)), \
-								   hashValue4(posModifier(float4(maxF.x, minF.yzw))), \
-								   t.w), \
-							  lerp(hashValue4(posModifier(float4(minF.x, maxF.y, minF.zw))), \
-								   hashValue4(posModifier(float4(maxF.xy, minF.zw))), \
-								   t.w), \
-							  lerp(hashValue4
-	//TODO: Finish 4d noise, starting above this line.
+		return lerp(lerp(lerp(lerp(hashTo1(posModifier(minF)), \
+								   hashTo1(posModifier(float4(maxF.x, minF.yzw))), \
+								   t.x), \
+							  lerp(hashTo1(posModifier(float4(minF.x, maxF.y, minF.zw))), \
+								   hashTo1(posModifier(float4(maxF.xy, minF.zw))), \
+								   t.x), \
+							  t.y), \
+						 lerp(lerp(hashTo1(posModifier(float4(minF.xy, maxF.z, minF.w))), \
+								   hashTo1(posModifier(float4(maxF.x, minF.y, maxF.z, minF.w))), \
+								   t.x), \
+							  lerp(hashTo1(posModifier(float4(minF.x, maxF.yz, minF.w))), \
+								   hashTo1(posModifier(float4(maxF.xyz, minF.w))), \
+								   t.x), \
+							  t.y), \
+						 t.z), \
+					lerp(lerp(lerp(hashTo1(posModifier(float4(minF.xyz, maxF.w))), \
+								   hashTo1(posModifier(float4(maxF.x, minF.yz, maxF.w))), \
+								   t.x), \
+							  lerp(hashTo1(posModifier(float4(minF.x, maxF.y, minF.z, maxF.w))), \
+								   hashTo1(posModifier(float4(maxF.xy, minF.z, maxF.w))), \
+								   t.x), \
+							  t.y), \
+						 lerp(lerp(hashTo1(posModifier(float4(minF.xy, maxF.zw))), \
+								   hashTo1(posModifier(float4(maxF.x, minF.y, maxF.zw))), \
+								   t.x), \
+							  lerp(hashTo1(posModifier(float4(minF.x, maxF.yzw))), \
+								   hashTo1(posModifier(maxF)), \
+								   t.x), \
+							  t.y), \
+						 t.z), \
+					t.w);
 
     #define IDENTITY(x) x
     #define WRAP(x) (frac((x) / valMax) * valMax)
 
-	float GridNoise1(float f) { return hashValue1(floor(f)); }
-	float GridNoise2(float2 f) { return hashValue2(floor(f)); }
-	float GridNoise3(float3 f) { return hashValue3(floor(f)); }
+	float GridNoise1(float f) { return hashTo1(floor(f)); }
+	float GridNoise2(float2 f) { return hashTo1(floor(f)); }
+	float GridNoise3(float3 f) { return hashTo1(floor(f)); }
+	float GridNoise4(float4 f) { return hashTo1(floor(f)); }
     float GridNoise1_Wrap(float f, float valMax) { return GridNoise1(frac(f / valMax) * valMax); }
     float GridNoise2_Wrap(float2 f, float2 valMax) { return GridNoise2(frac(f / valMax) * valMax); }
     float GridNoise3_Wrap(float3 f, float3 valMax) { return GridNoise3(frac(f / valMax) * valMax); }
+    float GridNoise4_Wrap(float4 f, float4 valMax) { return GridNoise4(frac(f / valMax) * valMax); }
 
 	float LinearNoise1(float f) { INTERP_NOISE1(t, IDENTITY) }
 	float LinearNoise2(float2 f) { INTERP_NOISE2(t, IDENTITY) }
 	float LinearNoise3(float3 f) { INTERP_NOISE3(t, IDENTITY) }
+	float LinearNoise4(float4 f) { INTERP_NOISE4(t, IDENTITY) }
     float LinearNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(t, WRAP) }
     float LinearNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(t, WRAP) }
     float LinearNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(t, WRAP) }
+    float LinearNoise4_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(t, WRAP) }
 
 	float SmoothNoise1(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), IDENTITY) }
 	float SmoothNoise2(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), IDENTITY) }
 	float SmoothNoise3(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), IDENTITY) }
+	float SmoothNoise4(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), IDENTITY) }
 	float SmoothNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), WRAP) }
 	float SmoothNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), WRAP) }
 	float SmoothNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), WRAP) }
+	float SmoothNoise4_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), WRAP) }
 
 	float SmootherNoise1(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
 	float SmootherNoise2(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
 	float SmootherNoise3(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
+	float SmootherNoise4(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
 	float SmootherNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float2 SmootherNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float3 SmootherNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise3_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+
+	//TODO: Make Worley use new hash functions.
+	//TODO: Convert these perlin noise function pairs to three functions: one wrap, one non-wrap, and one helper function with the bulk of the code. Make the helper function based on the wrapping version of the noise.
+	//TODO: Add 4d perlin and worley. Consider using iteration.
 
 	float PerlinNoise1(float f)
 	{
@@ -161,10 +200,10 @@ namespace GPUGraph
 			  maxX = minX + 1.0,
 			  t = f - minX;
 
-		float minX_V = -1.0 + (2.0 * hashValue1(minX));
+		float minX_V = -1.0 + (2.0 * hashTo1(minX));
 		float toMin = -t;
 
-		float maxX_V = -1.0 + (2.0 * hashValue1(maxX));
+		float maxX_V = -1.0 + (2.0 * hashTo1(maxX));
 		float toMax = 1.0 - t;
 
         t = smoothstep(0.0, 1.0, t);
@@ -182,10 +221,10 @@ namespace GPUGraph
         minX = WRAP(minX);
         maxX = WRAP(maxX);
 
-		float minX_V = -1.0 + (2.0 * hashValue1(minX));
+		float minX_V = -1.0 + (2.0 * hashTo1(minX));
 		float toMin = -t;
 
-		float maxX_V = -1.0 + (2.0 * hashValue1(maxX));
+		float maxX_V = -1.0 + (2.0 * hashTo1(maxX));
 		float toMax = 1.0 - t;
 
         t = smoothstep(0.0, 1.0, t);
@@ -203,22 +242,22 @@ namespace GPUGraph
 			   maxXminY = float2(maxXY.x, minXY.y),
 			   t = f - minXY;
 
-		float temp = hashValue2(minXY);
-		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		float temp = hashTo1(minXY);
+		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMinXY = -t;
 
-		temp = hashValue2(maxXY);
-		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(maxXY);
+		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMaxXY = 1.0 - t;
 
         float4 toMinAndMaxXY = float4(toMinXY, toMaxXY);
 
-		temp = hashValue2(minXmaxY);
-		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(minXmaxY);
+		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMinXmaxY = toMinAndMaxXY.xw;
 
-		temp = hashValue2(maxXminY);
-		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(maxXminY);
+		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMaxXminY = toMinAndMaxXY.zy;
 
 		t = smoothstep(0.0, 1.0, t);
@@ -243,22 +282,22 @@ namespace GPUGraph
 	    float2 minXmaxY = float2(minXY.x, maxXY.y),
 			   maxXminY = float2(maxXY.x, minXY.y);
 
-		float temp = hashValue2(minXY);
-		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		float temp = hashTo1(minXY);
+		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMinXY = -t;
 
-		temp = hashValue2(maxXY);
-		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(maxXY);
+		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMaxXY = 1.0 - t;
 
         float4 toMinAndMaxXY = float4(toMinXY, toMaxXY);
 
-		temp = hashValue2(minXmaxY);
-		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(minXmaxY);
+		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMinXmaxY = toMinAndMaxXY.xw;
 
-		temp = hashValue2(maxXminY);
-		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashValue1(temp)));
+		temp = hashTo1(maxXminY);
+		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
 		float2 toMaxXminY = toMinAndMaxXY.zy;
 
 		t = smoothstep(0.0, 1.0, t);
@@ -284,44 +323,44 @@ namespace GPUGraph
 			   maxXYminZ =    float3(maxXYZ.xy, minXYZ.z),
 			   t = f - minXYZ;
 
-		float temp = hashValue3(minXYZ),
-			  temp2 = hashValue1(temp);
-		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		float temp = hashTo1(minXYZ),
+			  temp2 = hashTo1(temp);
+		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXYZ = -t;
 
-		temp = hashValue3(maxXYZ);
-		temp2 = hashValue1(temp);
-		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXYZ);
+		temp2 = hashTo1(temp);
+		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXYZ = 1.0 - t;
 
-		temp = hashValue3(minXYmaxZ);
-		temp2 = hashValue1(temp);
-		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXYmaxZ);
+		temp2 = hashTo1(temp);
+		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXYmaxZ = minXYmaxZ - f;
 
-		temp = hashValue3(minXmaxYminZ);
-		temp2 = hashValue1(temp);
-		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXmaxYminZ);
+		temp2 = hashTo1(temp);
+		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXmaxYminZ = minXmaxYminZ - f;
 
-		temp = hashValue3(minXmaxYZ);
-		temp2 = hashValue1(temp);
-		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXmaxYZ);
+		temp2 = hashTo1(temp);
+		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXmaxYZ = minXmaxYZ - f;
 
-		temp = hashValue3(maxXminYZ);
-		temp2 = hashValue1(temp);
-		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXminYZ);
+		temp2 = hashTo1(temp);
+		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXminYZ = maxXminYZ - f;
 
-		temp = hashValue3(maxXminYmaxZ);
-		temp2 = hashValue1(temp);
-		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXminYmaxZ);
+		temp2 = hashTo1(temp);
+		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXminYmaxZ = maxXminYmaxZ - f;
 
-		temp = hashValue3(maxXYminZ);
-		temp2 = hashValue1(temp);
-		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXYminZ);
+		temp2 = hashTo1(temp);
+		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXYminZ = maxXYminZ - f;
 
 		t = smoothstep(0.0, 1.0, t);
@@ -358,44 +397,44 @@ namespace GPUGraph
 			   maxXminYmaxZ = float3(maxXYZ.x, minXYZ.y, maxXYZ.z),
 			   maxXYminZ =    float3(maxXYZ.xy, minXYZ.z);
 
-		float temp = hashValue3(minXYZ),
-			  temp2 = hashValue1(temp);
-		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		float temp = hashTo1(minXYZ),
+			  temp2 = hashTo1(temp);
+		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXYZ = -t;
 
-		temp = hashValue3(maxXYZ);
-		temp2 = hashValue1(temp);
-		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXYZ);
+		temp2 = hashTo1(temp);
+		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXYZ = 1.0 - t;
 
-		temp = hashValue3(minXYmaxZ);
-		temp2 = hashValue1(temp);
-		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXYmaxZ);
+		temp2 = hashTo1(temp);
+		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXYmaxZ = float3(toMinXYZ.xy, toMaxXYZ.z);
 
-		temp = hashValue3(minXmaxYminZ);
-		temp2 = hashValue1(temp);
-		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXmaxYminZ);
+		temp2 = hashTo1(temp);
+		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXmaxYminZ = float3(toMinXYZ.x, toMaxXYZ.y, toMinXYZ.z);
 
-		temp = hashValue3(minXmaxYZ);
-		temp2 = hashValue1(temp);
-		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(minXmaxYZ);
+		temp2 = hashTo1(temp);
+		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMinXmaxYZ = float3(toMinXYZ.x, toMaxXYZ.yz);
 
-		temp = hashValue3(maxXminYZ);
-		temp2 = hashValue1(temp);
-		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXminYZ);
+		temp2 = hashTo1(temp);
+		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXminYZ = float3(toMaxXYZ.x, toMinXYZ.yz);
 
-		temp = hashValue3(maxXminYmaxZ);
-		temp2 = hashValue1(temp);
-		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXminYmaxZ);
+		temp2 = hashTo1(temp);
+		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXminYmaxZ = float3(toMaxXYZ.x, toMinXYZ.y, toMaxXYZ.z);
 
-		temp = hashValue3(maxXYminZ);
-		temp2 = hashValue1(temp);
-		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashValue1(temp2)));
+		temp = hashTo1(maxXYminZ);
+		temp2 = hashTo1(temp);
+		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
 		float3 toMaxXYminZ = float3(toMaxXYZ.xy, toMinXYZ.z);
 
 		t = smoothstep(0.0, 1.0, t);
@@ -423,7 +462,7 @@ namespace GPUGraph
 			  cellLess = cellThis - 1.0,
 			  cellMore = cellThis + 1.0;
 
-	#define VAL(var) abs((var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue1(var))) - f)
+	#define VAL(var) abs((var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(var))) - f)
 		return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
 	#undef VAL
 	}
@@ -433,7 +472,7 @@ namespace GPUGraph
 			  cellLess = cellThis - 1.0,
 			  cellMore = cellThis + 1.0;
 
-	#define VAL(var) distance(f, (var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue1(WRAP(var)))))
+	#define VAL(var) distance(f, (var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(var)))))
 		return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
 	#undef VAL
 	}
@@ -450,7 +489,7 @@ namespace GPUGraph
 			   cellMinXMaxY = cellMidXY + zon.zy,
 			   cellMidXMaxY = cellMidXY + zon.xy,
 			   cellMaxXY = cellMidXY + zon.yy;
-	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue2(var)))
+	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(var)))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	return MIN3(MIN3(VAL(cellMinXY),    VAL(cellMidXMinY), VAL(cellMaxXMinY)),
 				MIN3(VAL(cellMinXMidY), VAL(cellMidXY),    VAL(cellMaxXMidY)),
@@ -470,7 +509,7 @@ namespace GPUGraph
 			   cellMinXMaxY = cellMidXY + zon.zy,
 			   cellMidXMaxY = cellMidXY + zon.xy,
 			   cellMaxXY = cellMidXY + zon.yy;
-	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue2(WRAP(var))))
+	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(var))))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	return MIN3(MIN3(VAL(cellMinXY),    VAL(cellMidXMinY), VAL(cellMaxXMinY)),
 				MIN3(VAL(cellMinXMidY), VAL(cellMidXY),    VAL(cellMaxXMidY)),
@@ -511,7 +550,7 @@ namespace GPUGraph
 		MAKE_VAL(zzx)
 		MAKE_VAL(zzy)
 		MAKE_VAL(zzz)
-	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue3(cell##swizzle)))
+	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(cell##swizzle)))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	#define MIN9(a, b, c, d, e, f, g, h, i) MIN3(MIN3(a, b, c), MIN3(d, e, f), MIN3(g, h, i))
 		return MIN3(MIN9(VAL(xxx), VAL(xxy), VAL(xxz),
@@ -560,7 +599,7 @@ namespace GPUGraph
 		MAKE_VAL(zzx)
 		MAKE_VAL(zzy)
 		MAKE_VAL(zzz)
-	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashValue3(WRAP(cell##swizzle))))
+	#define VAL(swizzle) distance(f, cell##swizzle + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(cell##swizzle))))
 	#define MIN3(a, b, c) min(a, min(b, c))
 	#define MIN9(a, b, c, d, e, f, g, h, i) MIN3(MIN3(a, b, c), MIN3(d, e, f), MIN3(g, h, i))
 		return MIN3(MIN9(VAL(xxx), VAL(xxy), VAL(xxz),
