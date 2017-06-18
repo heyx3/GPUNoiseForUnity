@@ -59,7 +59,7 @@ namespace GPUGraph
 	#define INTERP_NOISE1(tModifier, posModifier) \
 		f = posModifier(f); \
         float minF = floor(f), \
-			  maxF = ceil(f); \
+			  maxF = f + 1.0; \
 		 \
 		float t = f - minF; \
 		t = tModifier; \
@@ -72,7 +72,7 @@ namespace GPUGraph
 	#define INTERP_NOISE2(tModifier, posModifier) \
 		f = posModifier(f); \
 		float2 minF = floor(f), \
-			   maxF = ceil(f); \
+			   maxF = f + 1.0; \
 		 \
 		float2 t = f - minF; \
 		t = tModifier; \
@@ -89,7 +89,7 @@ namespace GPUGraph
 	#define INTERP_NOISE3(tModifier, posModifier) \
 		f = posModifier(f); \
 		float3 minF = floor(f), \
-			   maxF = ceil(f); \
+			   maxF = f + 1.0; \
 		 \
 		float3 t = f - minF; \
 		t = tModifier; \
@@ -172,23 +172,25 @@ namespace GPUGraph
     float LinearNoise(float3 f, float3 valMax) { INTERP_NOISE3(t, WRAP) }
     float LinearNoise(float4 f, float4 valMax) { INTERP_NOISE4(t, WRAP) }
 
-	float SmoothNoise(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), WRAP) }
+#define SMOOTH(t) smoothstep(0.0, 1.0, t)
+	float SmoothNoise(float f) { INTERP_NOISE1(SMOOTH(t), IDENTITY) }
+	float SmoothNoise(float2 f) { INTERP_NOISE2(SMOOTH(t), IDENTITY) }
+	float SmoothNoise(float3 f) { INTERP_NOISE3(SMOOTH(t), IDENTITY) }
+	float SmoothNoise(float4 f) { INTERP_NOISE4(SMOOTH(t), IDENTITY) }
+	float SmoothNoise(float f, float valMax) { INTERP_NOISE1(SMOOTH(t), WRAP) }
+	float SmoothNoise(float2 f, float2 valMax) { INTERP_NOISE2(SMOOTH(t), WRAP) }
+	float SmoothNoise(float3 f, float3 valMax) { INTERP_NOISE3(SMOOTH(t), WRAP) }
+	float SmoothNoise(float4 f, float4 valMax) { INTERP_NOISE4(SMOOTH(t), WRAP) }
 
-	float SmootherNoise(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise(float f) { INTERP_NOISE1(SMOOTH(SMOOTH(t)), IDENTITY) }
+	float SmootherNoise(float2 f) { INTERP_NOISE2(SMOOTH(SMOOTH(t)), IDENTITY) }
+	float SmootherNoise(float3 f) { INTERP_NOISE3(SMOOTH(SMOOTH(t)), IDENTITY) }
+	float SmootherNoise(float4 f) { INTERP_NOISE4(SMOOTH(SMOOTH(t)), IDENTITY) }
+	float SmootherNoise(float f, float valMax) { INTERP_NOISE1(SMOOTH(SMOOTH(t)), WRAP) }
+	float SmootherNoise(float2 f, float2 valMax) { INTERP_NOISE2(SMOOTH(SMOOTH(t)), WRAP) }
+	float SmootherNoise(float3 f, float3 valMax) { INTERP_NOISE3(SMOOTH(SMOOTH(t)), WRAP) }
+	float SmootherNoise(float4 f, float4 valMax) { INTERP_NOISE4(SMOOTH(SMOOTH(t)), WRAP) }
+#undef SMOOTH
 
 	float _PerlinNoise(float f, float minX, float maxX)
 	{
@@ -292,79 +294,66 @@ namespace GPUGraph
 	}
 	float _PerlinNoise(float4 f, float4 minXYZW, float4 maxXYZW)
 	{
-		float4 minXminYminZminW = minXYZW,
-			   minXminYminZmaxW = float4(minXYZW.x, minXYZW.y, minXYZW.z, maxXYZW.w),
-			   minXminYmaxZminW = float4(minXYZW.x, minXYZW.y, maxXYZW.z, minXYZW.w),
-			   minXminYmaxZmaxW = float4(minXYZW.x, minXYZW.y, maxXYZW.z, maxXYZW.w),
-			   minXmaxYminZminW = float4(minXYZW.x, maxXYZW.y, minXYZW.z, minXYZW.w),
-			   minXmaxYminZmaxW = float4(minXYZW.x, maxXYZW.y, minXYZW.z, maxXYZW.w),
-			   minXmaxYmaxZminW = float4(minXYZW.x, maxXYZW.y, maxXYZW.z, minXYZW.w),
-			   minXmaxYmaxZmaxW = float4(minXYZW.x, maxXYZW.y, maxXYZW.z, maxXYZW.w),
-			   maxXminYminZminW = float4(maxXYZW.x, minXYZW.y, minXYZW.z, minXYZW.w),
-			   maxXminYminZmaxW = float4(maxXYZW.x, minXYZW.y, minXYZW.z, maxXYZW.w),
-			   maxXminYmaxZminW = float4(maxXYZW.x, minXYZW.y, maxXYZW.z, minXYZW.w),
-			   maxXminYmaxZmaxW = float4(maxXYZW.x, minXYZW.y, maxXYZW.z, maxXYZW.w),
-			   maxXmaxYminZminW = float4(maxXYZW.x, maxXYZW.y, minXYZW.z, minXYZW.w),
-			   maxXmaxYminZmaxW = float4(maxXYZW.x, maxXYZW.y, minXYZW.z, maxXYZW.w),
-			   maxXmaxYmaxZminW = float4(maxXYZW.x, maxXYZW.y, maxXYZW.z, minXYZW.w),
-			   maxXmaxYmaxZmaxW = maxXYZW;
+	#define MAKE_VAR(mx, my, mz, mw) \
+		float4 mx##X##my##Y##mz##Z##mw##W = float4(mx##XYZW.x, \
+												   my##XYZW.y, \
+												   mz##XYZW.z, \
+												   mw##XYZW.w)
+		MAKE_VAR(min, min, min, min);
+		MAKE_VAR(max, min, min, min);
+		MAKE_VAR(min, max, min, min);
+		MAKE_VAR(max, max, min, min);
+		MAKE_VAR(min, min, max, min);
+		MAKE_VAR(max, min, max, min);
+		MAKE_VAR(min, max, max, min);
+		MAKE_VAR(max, max, max, min);
+		MAKE_VAR(min, min, min, max);
+		MAKE_VAR(max, min, min, max);
+		MAKE_VAR(min, max, min, max);
+		MAKE_VAR(max, max, min, max);
+		MAKE_VAR(min, min, max, max);
+		MAKE_VAR(max, min, max, max);
+		MAKE_VAR(min, max, max, max);
+		MAKE_VAR(max, max, max, max);
+#undef MAKE_VAR
 
-		float4 t = f - minXYZW;
-
-		float4 temp;
-	#define DO(toDo) \
-		temp = hashTo4(f); \
-		float4 toDo##_V = (temp * 2.0f) - 1.0f, \
-				to_##toDo = toDo - f;
-
-		DO(minXminYminZminW);
-		DO(minXminYminZmaxW);
-		DO(minXminYmaxZminW);
-		DO(minXminYmaxZmaxW);
-		DO(minXmaxYminZminW);
-		DO(minXmaxYminZmaxW);
-		DO(minXmaxYmaxZminW);
-		DO(minXmaxYmaxZmaxW);
-		DO(maxXminYminZminW);
-		DO(maxXminYminZmaxW);
-		DO(maxXminYmaxZminW);
-		DO(maxXminYmaxZmaxW);
-		DO(maxXmaxYminZminW);
-		DO(maxXmaxYminZmaxW);
-		DO(maxXmaxYmaxZminW);
-		DO(maxXmaxYmaxZmaxW);
-	#undef DO
+		float4 t = f - minXYZW,
+			   tomin = -t,		//'min' is lower case to simplify the next macro.
+			   tomax = 1.0 - t; //'max' is lower case to simplify the next macro.
 
 		t = smoothstep(0.0, 1.0, t);
 
-	#define DOT(a) dot(a##_V, to_##a)
-		float outVal = lerp(lerp(lerp(lerp(DOT(minXminYminZminW),
-                                           DOT(maxXminYminZminW),
+	#define DOT(mx, my, mz, mw) \
+		dot(-1.0 + (2.0 * hashTo4(mx##X##my##Y##mz##Z##mw##W)), \
+			float4(to##mx##.x, to##my##.y, to##mz##.z, to##mw##.w))
+
+		float outVal = lerp(lerp(lerp(lerp(DOT(min, min, min, min),
+                                           DOT(max, min, min, min),
 										   t.x),
-                                      lerp(DOT(minXmaxYminZminW),
-										   DOT(maxXmaxYminZminW),
-										   t.x),
-									  t.y),
-									  lerp(lerp(DOT(minXminYmaxZminW),
-									 		    DOT(maxXminYmaxZminW),
-											    t.x),
-                                           lerp(DOT(minXmaxYmaxZminW),
-										 	    DOT(maxXmaxYmaxZminW),
-										 	    t.x),
-										   t.y),
-									  t.z),
-							lerp(lerp(lerp(DOT(minXminYminZmaxW),
-										   DOT(maxXminYminZmaxW),
-										   t.x),
-                                      lerp(DOT(minXmaxYminZmaxW),
-									   	   DOT(maxXmaxYminZmaxW),
+                                      lerp(DOT(min, max, min, min),
+										   DOT(max, max, min, min),
 										   t.x),
 									  t.y),
-								 lerp(lerp(DOT(minXminYmaxZmaxW),
-										   DOT(maxXminYmaxZmaxW),
+								 lerp(lerp(DOT(min, min, max, min),
+									 	   DOT(max, min, max, min),
 										   t.x),
-                                      lerp(DOT(minXmaxYmaxZmaxW),
-										   DOT(maxXmaxYmaxZmaxW),
+                                      lerp(DOT(min, max, max, min),
+										   DOT(max, max, max, min),
+										   t.x),
+									  t.y),
+								 t.z),
+							lerp(lerp(lerp(DOT(min, min, min, max),
+										   DOT(max, min, min, max),
+										   t.x),
+                                      lerp(DOT(min, max, min, max),
+									   	   DOT(max, max, min, max),
+										   t.x),
+									  t.y),
+								 lerp(lerp(DOT(min, min, max, max),
+										   DOT(max, min, max, max),
+										   t.x),
+                                      lerp(DOT(min, max, max, max),
+										   DOT(max, max, max, max),
 										   t.x),
 									  t.y),
 								 t.z),

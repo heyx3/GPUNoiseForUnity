@@ -141,7 +141,8 @@ namespace GPUGraph
 																							 Param.SliderMax,
 														  								     Param.DefaultValue),
 																				  Param.SliderMin,
-																				  Param.SliderMax));
+																				  Param.SliderMax,
+																				  GUILayout.ExpandWidth(true)));
 				GUILayout.EndHorizontal();
 
 				Param.IsSlider = !GUILayout.Button("Remove slider");

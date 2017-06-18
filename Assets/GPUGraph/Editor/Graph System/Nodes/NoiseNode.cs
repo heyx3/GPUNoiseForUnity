@@ -475,7 +475,7 @@ namespace GPUGraph
 					break;
 				default: throw new NotImplementedException(NoiseType.ToString());
             }
-            if (Wraps)
+            if (Wraps && NoiseType != NoiseTypes.White)
             {
                 outCode.Append(", ");
                 outCode.Append(scaleStr);
@@ -504,19 +504,22 @@ namespace GPUGraph
 				NDimensions = newDim;
 			}
 
-            //Edit whether the noise wraps.
-            GUILayout.BeginHorizontal();
-            bool newWraps = GUILayout.Toggle(Wraps, "Wraps?");
-            if (newWraps != Wraps)
-            {
-                changed = true;
-                Wraps = newWraps;
-            }
-			if (Wraps && NoiseType == NoiseTypes.Worley)
+			//Edit whether the noise wraps.
+			if (NoiseType != NoiseTypes.White)
 			{
-				GUILayout.Label("Only works if Scale = 2^n");
+				GUILayout.BeginHorizontal();
+				bool newWraps = GUILayout.Toggle(Wraps, "Wraps?");
+				if (newWraps != Wraps)
+				{
+					changed = true;
+					Wraps = newWraps;
+				}
+				if (Wraps && NoiseType == NoiseTypes.Worley)
+				{
+					GUILayout.Label("Only works if Scale = 2^n");
+				}
+				GUILayout.EndHorizontal();
 			}
-            GUILayout.EndHorizontal();
 
 			//If using worley noise, edit the customizable aspects of it.
 			if (NoiseType == NoiseTypes.Worley)
