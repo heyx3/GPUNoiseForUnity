@@ -166,83 +166,89 @@ namespace GPUGraph
 				position.y += oneLine + largeSpace;
 
 				//Parameters.
+				const float paramIndent = 20.0f;
 				bool paramsChanged = false;
 				//Float.
-				IsFloatParamListFolded = EditorGUI.Foldout(new Rect(position.x + 15.0f, position.y, position.width, oneLine),
-														   IsFloatParamListFolded, "Float Params");
-				position.y += oneLine;
-				const float paramIndent = 20.0f;
-				if (IsFloatParamListFolded)
+				if (graph.FloatParams.Count > 0)
 				{
-					for (int i = 0; i < graph.FloatParams.Count; ++i)
+					IsFloatParamListFolded = EditorGUI.Foldout(new Rect(position.x + 15.0f, position.y,
+															   position.width, oneLine),
+															   IsFloatParamListFolded, "Float Params");
+					position.y += oneLine;
+					if (IsFloatParamListFolded)
 					{
-						GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
-								  graph.FloatParams[i].Key);
-
-						float newVal;
-						if (graph._FloatParams[i].Value.IsSlider)
+						for (int i = 0; i < graph.FloatParams.Count; ++i)
 						{
-							newVal = EditorGUI.Slider(new Rect(position.x + 105.0f + paramIndent,
-															   position.y,
-															   50.0f, oneLine),
-													  graph.FloatParams[i].Value,
-													  graph._FloatParams[i].Value.SliderMin,
-													  graph._FloatParams[i].Value.SliderMax);
-						}
-						else
-						{
-							newVal = EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent,
-																   position.y,
-																   25.0f, oneLine),
-														  graph.FloatParams[i].Value);
-						}
+							GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
+									  graph.FloatParams[i].Key);
 
-						if (newVal != graph.FloatParams[i].Value)
-						{
-							paramsChanged = true;
-							Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
-							graph.FloatParams[i].Value = newVal;
-						}
+							float newVal;
+							if (graph._FloatParams[i].Value.IsSlider)
+							{
+								newVal = GUI.HorizontalSlider(new Rect(position.x + 105.0f + paramIndent,
+																	   position.y,
+																	   100.0f, oneLine),
+															  graph.FloatParams[i].Value,
+															  graph._FloatParams[i].Value.SliderMin,
+															  graph._FloatParams[i].Value.SliderMax);
+							}
+							else
+							{
+								newVal = EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent,
+																	   position.y,
+																	   25.0f, oneLine),
+															  graph.FloatParams[i].Value);
+							}
 
-						position.y += oneLine + smallSpace;
+							if (newVal != graph.FloatParams[i].Value)
+							{
+								paramsChanged = true;
+								Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+								graph.FloatParams[i].Value = newVal;
+							}
+
+							position.y += oneLine + smallSpace;
+						}
 					}
+					position.y += normalSpace;
 				}
-				position.y += normalSpace;
 				//Tex2D.
-				IsTex2DParamListFolded = EditorGUI.Foldout(new Rect(position.x + 15.0f, position.y,
-																	position.width, oneLine),
-														   IsTex2DParamListFolded, "Tex2D Params");
-				position.y += oneLine;
-				if (IsTex2DParamListFolded)
+				if (graph.Tex2DParams.Count > 0)
 				{
-					for (int i = 0; i < graph.Tex2DParams.Count; ++i)
+					IsTex2DParamListFolded = EditorGUI.Foldout(new Rect(position.x + 15.0f, position.y,
+																		position.width, oneLine),
+															   IsTex2DParamListFolded, "Tex2D Params");
+					position.y += oneLine;
+					if (IsTex2DParamListFolded)
 					{
-						GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
-								  graph.Tex2DParams[i].Key);
-
-						Texture2D newVal =
-							(Texture2D)EditorGUI.ObjectField(new Rect(position.x + 105.0f + paramIndent,
-																	  position.y,
-																	  graph.Tex2DParams[i].Value.width,
-																	  graph.Tex2DParams[i].Value.height),
-															 graph.Tex2DParams[i].Value,
-															 typeof(Texture2D), true);
-
-						if (newVal != graph.Tex2DParams[i].Value)
+						for (int i = 0; i < graph.Tex2DParams.Count; ++i)
 						{
-							paramsChanged = true;
-							Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
-							graph.Tex2DParams[i].Value = newVal;
-						}
+							GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine),
+									  graph.Tex2DParams[i].Key);
 
-						position.y += graph.Tex2DParams[i].Value.height;
+							Texture2D newVal =
+								(Texture2D)EditorGUI.ObjectField(new Rect(position.x + 105.0f + paramIndent,
+																		  position.y,
+																		  graph.Tex2DParams[i].Value.width,
+																		  graph.Tex2DParams[i].Value.height),
+																 graph.Tex2DParams[i].Value,
+																 typeof(Texture2D), true);
+
+							if (newVal != graph.Tex2DParams[i].Value)
+							{
+								paramsChanged = true;
+								Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+								graph.Tex2DParams[i].Value = newVal;
+							}
+
+							position.y += graph.Tex2DParams[i].Value.height;
+						}
 					}
+					position.y += largeSpace;
 				}
-				position.y += largeSpace;
 
 				if (paramsChanged)
 				{
-					graph.UpdateAllParams();
 					UpdatePreviewTex(graph);
 				}
 
@@ -294,6 +300,7 @@ namespace GPUGraph
 					Rect texPos = new Rect(position.x, position.y,
 										   graph._PreviewTex.width * graph._PreviewTexScale,
 										   graph._PreviewTex.height * graph._PreviewTexScale);
+					//EditorGUI.LabelField(texPos, new GUIContent(graph._PreviewTex));
 					EditorGUI.DrawPreviewTexture(texPos, graph._PreviewTex);
 					position.y += graph._PreviewTex.height * graph._PreviewTexScale;
 				}
@@ -367,23 +374,31 @@ namespace GPUGraph
 					i -= 1;
 				}
 			}
-			//Add new params to the RuntimeGraph.
+			//Update/add the params to the RuntimeGraph.
 			for (int i = 0; i < newFloatParams.Count; ++i)
 			{
-				if (!gR.FloatParams.Any((kvp) => kvp.Key == newFloatParams[i].Key))
+				var param = new FloatParamKVP(newFloatParams[i].Key,
+											  (newFloatParams[i].Value.IsSlider ?
+												  Mathf.Lerp(newFloatParams[i].Value.SliderMin,
+															 newFloatParams[i].Value.SliderMax,
+															 newFloatParams[i].Value.DefaultValue) :
+												  newFloatParams[i].Value.DefaultValue));
+
+				int found = gR.FloatParams.IndexOf(p => p.Key == newFloatParams[i].Key);
+				if (found == -1)
 				{
-					gR.FloatParams.Add(
-						new FloatParamKVP(newFloatParams[i].Key,
-										  (newFloatParams[i].Value.IsSlider ?
-										       Mathf.Lerp(newFloatParams[i].Value.SliderMin,
-														  newFloatParams[i].Value.SliderMax,
-														  newFloatParams[i].Value.DefaultValue) :
-											   newFloatParams[i].Value.DefaultValue)));
+					gR.FloatParams.Add(param);
 					gR._FloatParams.Add(newFloatParams[i]);
+				}
+				else
+				{
+					param.Value = gR.FloatParams[found].Value;
+					gR.FloatParams[found] = param;
+					gR._FloatParams[found] = newFloatParams[i];
 				}
 			}
 
-			//Get all Tex2D params for the graph
+			//Get all Tex2D params for the graph.
 			var newTex2DParams = new List<RuntimeGraph._SerializableTex2DParamKVP>();
 			foreach (Texture2DParamInfo tp in paramSet.Tex2DParams)
 			{
@@ -404,15 +419,23 @@ namespace GPUGraph
 					i -= 1;
 				}
 			}
-			//Add new params to the RuntimeGraph.
+			//Update/add new params to the RuntimeGraph.
 			for (int i = 0; i < newTex2DParams.Count; ++i)
 			{
-				if (!gR.Tex2DParams.Any((kvp) => kvp.Key == newTex2DParams[i].Key))
+				var param = new Tex2DParamKVP(newTex2DParams[i].Key,
+											  newTex2DParams[i].Value.DefaultValue);
+
+				int found = gR.Tex2DParams.IndexOf(p => p.Key == newTex2DParams[i].Key);
+				if (found == -1)
 				{
-					gR.Tex2DParams.Add(
-						new Tex2DParamKVP(newTex2DParams[i].Key,
-										  newTex2DParams[i].Value.DefaultValue));
+					gR.Tex2DParams.Add(param);
 					gR._Tex2DParams.Add(newTex2DParams[i]);
+				}
+				else
+				{
+					param.Value = gR.Tex2DParams[found].Value;
+					gR.Tex2DParams[found] = param;
+					gR._Tex2DParams[found] = newTex2DParams[i];
 				}
 			}
 		}
@@ -453,7 +476,7 @@ namespace GPUGraph
 					CurrentGraph = 0;
 					graph._GraphFile = null;
 				}
-				else if (CurrentGraph > 0 && CurrentGraph < AvailableGraphs.Count)
+				else if (CurrentGraph >= 0 && CurrentGraph < AvailableGraphs.Count)
 				{
 					graph._GraphFile = AvailableGraphs[CurrentGraph];
 				}
@@ -518,8 +541,6 @@ namespace GPUGraph
 			{
 				graph._PreviewTex.Resize(graph._PreviewTexWidth, graph._PreviewTexHeight);
 			}
-
-			graph.UpdateAllParams();
 
 			graph.GenerateToTexture(graph._PreviewTex, true);
 		}
