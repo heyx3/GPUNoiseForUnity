@@ -154,71 +154,45 @@ namespace GPUGraph
     #define IDENTITY(x) x
     #define WRAP(x) (frac((x) / valMax) * valMax)
 
-	float GridNoise1(float f) { return hashTo1(floor(f)); }
-	float GridNoise2(float2 f) { return hashTo1(floor(f)); }
-	float GridNoise3(float3 f) { return hashTo1(floor(f)); }
-	float GridNoise4(float4 f) { return hashTo1(floor(f)); }
-    float GridNoise1_Wrap(float f, float valMax) { return GridNoise1(frac(f / valMax) * valMax); }
-    float GridNoise2_Wrap(float2 f, float2 valMax) { return GridNoise2(frac(f / valMax) * valMax); }
-    float GridNoise3_Wrap(float3 f, float3 valMax) { return GridNoise3(frac(f / valMax) * valMax); }
-    float GridNoise4_Wrap(float4 f, float4 valMax) { return GridNoise4(frac(f / valMax) * valMax); }
+	float GridNoise(float f) { return hashTo1(floor(f)); }
+	float GridNoise(float2 f) { return hashTo1(floor(f)); }
+	float GridNoise(float3 f) { return hashTo1(floor(f)); }
+	float GridNoise(float4 f) { return hashTo1(floor(f)); }
+    float GridNoise(float f, float valMax) { return GridNoise(WRAP(f)); }
+    float GridNoise(float2 f, float2 valMax) { return GridNoise(WRAP(f)); }
+    float GridNoise(float3 f, float3 valMax) { return GridNoise(WRAP(f)); }
+    float GridNoise(float4 f, float4 valMax) { return GridNoise(WRAP(f)); }
 
-	float LinearNoise1(float f) { INTERP_NOISE1(t, IDENTITY) }
-	float LinearNoise2(float2 f) { INTERP_NOISE2(t, IDENTITY) }
-	float LinearNoise3(float3 f) { INTERP_NOISE3(t, IDENTITY) }
-	float LinearNoise4(float4 f) { INTERP_NOISE4(t, IDENTITY) }
-    float LinearNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(t, WRAP) }
-    float LinearNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(t, WRAP) }
-    float LinearNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(t, WRAP) }
-    float LinearNoise4_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(t, WRAP) }
+	float LinearNoise(float f) { INTERP_NOISE1(t, IDENTITY) }
+	float LinearNoise(float2 f) { INTERP_NOISE2(t, IDENTITY) }
+	float LinearNoise(float3 f) { INTERP_NOISE3(t, IDENTITY) }
+	float LinearNoise(float4 f) { INTERP_NOISE4(t, IDENTITY) }
+    float LinearNoise(float f, float valMax) { INTERP_NOISE1(t, WRAP) }
+    float LinearNoise(float2 f, float2 valMax) { INTERP_NOISE2(t, WRAP) }
+    float LinearNoise(float3 f, float3 valMax) { INTERP_NOISE3(t, WRAP) }
+    float LinearNoise(float4 f, float4 valMax) { INTERP_NOISE4(t, WRAP) }
 
-	float SmoothNoise1(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise2(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise3(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise4(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), IDENTITY) }
-	float SmoothNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), WRAP) }
-	float SmoothNoise4_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), WRAP) }
+	float SmoothNoise(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), IDENTITY) }
+	float SmoothNoise(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), IDENTITY) }
+	float SmoothNoise(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), IDENTITY) }
+	float SmoothNoise(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), IDENTITY) }
+	float SmoothNoise(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, t), WRAP) }
+	float SmoothNoise(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, t), WRAP) }
+	float SmoothNoise(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, t), WRAP) }
+	float SmoothNoise(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, t), WRAP) }
 
-	float SmootherNoise1(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise2(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise3(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise4(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
-	float SmootherNoise1_Wrap(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise2_Wrap(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise3_Wrap(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
-	float SmootherNoise3_Wrap(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise(float f) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
+	float SmootherNoise(float2 f) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
+	float SmootherNoise(float3 f) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
+	float SmootherNoise(float4 f) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), IDENTITY) }
+	float SmootherNoise(float f, float valMax) { INTERP_NOISE1(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise(float2 f, float2 valMax) { INTERP_NOISE2(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise(float3 f, float3 valMax) { INTERP_NOISE3(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
+	float SmootherNoise(float4 f, float4 valMax) { INTERP_NOISE4(smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t)), WRAP) }
 
-	//TODO: Convert these perlin noise function pairs to three functions: one wrap, one non-wrap, and one helper function with the bulk of the code. Make the helper function based on the wrapping version of the noise.
-	//TODO: Add 4d perlin and worley. Consider using iteration.
-
-	float PerlinNoise1(float f)
+	float _PerlinNoise(float f, float minX, float maxX)
 	{
-		float minX = floor(f),
-			  maxX = minX + 1.0,
-			  t = f - minX;
-
-		float minX_V = -1.0 + (2.0 * hashTo1(minX));
-		float toMin = -t;
-
-		float maxX_V = -1.0 + (2.0 * hashTo1(maxX));
-		float toMax = 1.0 - t;
-
-        t = smoothstep(0.0, 1.0, t);
-		float outVal = lerp(dot(minX_V, toMin),
-							dot(maxX_V, toMax),
-                            t);
-		return 0.5 + (0.5 * outVal);
-	}
-	float PerlinNoise1_Wrap(float f, float valMax)
-	{
-		float minX = floor(f),
-			  maxX = minX + 1.0,
-			  t = f - minX;
-        f = WRAP(f);
-        minX = WRAP(minX);
-        maxX = WRAP(maxX);
+		float t = f - minX;
 
 		float minX_V = -1.0 + (2.0 * hashTo1(minX));
 		float toMin = -t;
@@ -232,71 +206,25 @@ namespace GPUGraph
 							t);
 		return 0.5 + (0.5 * outVal);
 	}
-
-	float PerlinNoise2(float2 f)
+	float _PerlinNoise(float2 f, float2 minXY, float2 maxXY)
 	{
-		float2 minXY = floor(f),
-			   maxXY = minXY + 1.0,
-			   minXmaxY = float2(minXY.x, maxXY.y),
-			   maxXminY = float2(maxXY.x, minXY.y),
-			   t = f - minXY;
+		float2 t = f - minXY;
 
-		float temp = hashTo1(minXY);
-		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
-		float2 toMinXY = -t;
-
-		temp = hashTo1(maxXY);
-		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
-		float2 toMaxXY = 1.0 - t;
-
-        float4 toMinAndMaxXY = float4(toMinXY, toMaxXY);
-
-		temp = hashTo1(minXmaxY);
-		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
-		float2 toMinXmaxY = toMinAndMaxXY.xw;
-
-		temp = hashTo1(maxXminY);
-		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
-		float2 toMaxXminY = toMinAndMaxXY.zy;
-
-		t = smoothstep(0.0, 1.0, t);
-		float outVal = lerp(lerp(dot(minXY_V, toMinXY),
-								 dot(maxXminY_V, toMaxXminY),
-								 t.x),
-							lerp(dot(minXmaxY_V, toMinXmaxY),
-								 dot(maxXY_V, toMaxXY),
-								 t.x),
-							t.y);
-		return 0.5 + (0.5 * outVal);
-	}
-	float PerlinNoise2_Wrap(float2 f, float valMax)
-	{
-		float2 minXY = floor(f),
-			   maxXY = minXY + 1.0,
-			   t = f - minXY;
-        f = WRAP(f);
-        minXY = WRAP(minXY);
-        maxXY = WRAP(maxXY);
-
-	    float2 minXmaxY = float2(minXY.x, maxXY.y),
+		float2 minXmaxY = float2(minXY.x, maxXY.y),
 			   maxXminY = float2(maxXY.x, minXY.y);
 
-		float temp = hashTo1(minXY);
-		float2 minXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
+		float2 minXY_V = -1.0 + (2.0 * hashTo2(minXY));
 		float2 toMinXY = -t;
 
-		temp = hashTo1(maxXY);
-		float2 maxXY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
+		float2 maxXY_V = -1.0 + (2.0 * hashTo2(maxXY));
 		float2 toMaxXY = 1.0 - t;
 
         float4 toMinAndMaxXY = float4(toMinXY, toMaxXY);
 
-		temp = hashTo1(minXmaxY);
-		float2 minXmaxY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
+		float2 minXmaxY_V = -1.0 + (2.0 * hashTo2(minXmaxY));
 		float2 toMinXmaxY = toMinAndMaxXY.xw;
 
-		temp = hashTo1(maxXminY);
-		float2 maxXminY_V = -1.0 + (2.0 * float2(temp, hashTo1(temp)));
+		float2 maxXminY_V = -1.0 + (2.0 * hashTo2(maxXminY));
 		float2 toMaxXminY = toMinAndMaxXY.zy;
 
 		t = smoothstep(0.0, 1.0, t);
@@ -309,85 +237,9 @@ namespace GPUGraph
 							t.y);
 		return 0.5 + (0.5 * outVal);
 	}
-
-	float PerlinNoise3(float3 f)
+	float _PerlinNoise(float3 f, float3 minXYZ, float3 maxXYZ)
 	{
-		float3 minXYZ = floor(f),
-			   maxXYZ = minXYZ + float3(1.0, 1.0, 1.0),
-			   minXYmaxZ =    float3(minXYZ.xy, maxXYZ.z),
-			   minXmaxYminZ = float3(minXYZ.x, maxXYZ.y, minXYZ.z),
-			   minXmaxYZ =    float3(minXYZ.x, maxXYZ.y, maxXYZ.z),
-			   maxXminYZ =    float3(maxXYZ.x, minXYZ.y, minXYZ.z),
-			   maxXminYmaxZ = float3(maxXYZ.x, minXYZ.y, maxXYZ.z),
-			   maxXYminZ =    float3(maxXYZ.xy, minXYZ.z),
-			   t = f - minXYZ;
-
-		float temp = hashTo1(minXYZ),
-			  temp2 = hashTo1(temp);
-		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMinXYZ = -t;
-
-		temp = hashTo1(maxXYZ);
-		temp2 = hashTo1(temp);
-		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMaxXYZ = 1.0 - t;
-
-		temp = hashTo1(minXYmaxZ);
-		temp2 = hashTo1(temp);
-		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMinXYmaxZ = minXYmaxZ - f;
-
-		temp = hashTo1(minXmaxYminZ);
-		temp2 = hashTo1(temp);
-		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMinXmaxYminZ = minXmaxYminZ - f;
-
-		temp = hashTo1(minXmaxYZ);
-		temp2 = hashTo1(temp);
-		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMinXmaxYZ = minXmaxYZ - f;
-
-		temp = hashTo1(maxXminYZ);
-		temp2 = hashTo1(temp);
-		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMaxXminYZ = maxXminYZ - f;
-
-		temp = hashTo1(maxXminYmaxZ);
-		temp2 = hashTo1(temp);
-		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMaxXminYmaxZ = maxXminYmaxZ - f;
-
-		temp = hashTo1(maxXYminZ);
-		temp2 = hashTo1(temp);
-		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
-		float3 toMaxXYminZ = maxXYminZ - f;
-
-		t = smoothstep(0.0, 1.0, t);
-		float outVal = lerp(lerp(lerp(dot(minXYZ_V, toMinXYZ),
-									  dot(maxXminYZ_V, toMaxXminYZ),
-									  t.x),
-								 lerp(dot(minXmaxYminZ_V, toMinXmaxYminZ),
-									  dot(maxXYminZ_V, toMaxXYminZ),
-									  t.x),
-								 t.y),
-							lerp(lerp(dot(minXYmaxZ_V, toMinXYmaxZ),
-									  dot(maxXminYmaxZ_V, toMaxXminYmaxZ),
-									  t.x),
-								 lerp(dot(minXmaxYZ_V, toMinXmaxYZ),
-									  dot(maxXYZ_V, toMaxXYZ),
-									  t.x),
-								 t.y),
-							t.z);
-		return 0.5 + (0.5 * outVal);
-	}
-	float PerlinNoise3_Wrap(float3 f, float3 valMax)
-	{
-		float3 minXYZ = floor(f),
-			   maxXYZ = minXYZ + float3(1.0, 1.0, 1.0),
-			   t = f - minXYZ;
-        f = WRAP(f);
-        minXYZ = WRAP(minXYZ);
-        maxXYZ = WRAP(maxXYZ);
+		float3 t = f - minXYZ;
 
 		float3 minXYmaxZ =    float3(minXYZ.xy, maxXYZ.z),
 			   minXmaxYminZ = float3(minXYZ.x, maxXYZ.y, minXYZ.z),
@@ -396,44 +248,28 @@ namespace GPUGraph
 			   maxXminYmaxZ = float3(maxXYZ.x, minXYZ.y, maxXYZ.z),
 			   maxXYminZ =    float3(maxXYZ.xy, minXYZ.z);
 
-		float temp = hashTo1(minXYZ),
-			  temp2 = hashTo1(temp);
-		float3 minXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 minXYZ_V = -1.0 + (2.0 * hashTo3(minXYZ));
 		float3 toMinXYZ = -t;
 
-		temp = hashTo1(maxXYZ);
-		temp2 = hashTo1(temp);
-		float3 maxXYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 maxXYZ_V = -1.0 + (2.0 * hashTo3(maxXYZ));
 		float3 toMaxXYZ = 1.0 - t;
 
-		temp = hashTo1(minXYmaxZ);
-		temp2 = hashTo1(temp);
-		float3 minXYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 minXYmaxZ_V = -1.0 + (2.0 * hashTo3(minXYmaxZ));
 		float3 toMinXYmaxZ = float3(toMinXYZ.xy, toMaxXYZ.z);
 
-		temp = hashTo1(minXmaxYminZ);
-		temp2 = hashTo1(temp);
-		float3 minXmaxYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 minXmaxYminZ_V = -1.0 + (2.0 * hashTo3(minXmaxYminZ));
 		float3 toMinXmaxYminZ = float3(toMinXYZ.x, toMaxXYZ.y, toMinXYZ.z);
 
-		temp = hashTo1(minXmaxYZ);
-		temp2 = hashTo1(temp);
-		float3 minXmaxYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 minXmaxYZ_V = -1.0 + (2.0 * hashTo3(minXmaxYZ));
 		float3 toMinXmaxYZ = float3(toMinXYZ.x, toMaxXYZ.yz);
 
-		temp = hashTo1(maxXminYZ);
-		temp2 = hashTo1(temp);
-		float3 maxXminYZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 maxXminYZ_V = -1.0 + (2.0 * hashTo3(maxXminYZ));
 		float3 toMaxXminYZ = float3(toMaxXYZ.x, toMinXYZ.yz);
 
-		temp = hashTo1(maxXminYmaxZ);
-		temp2 = hashTo1(temp);
-		float3 maxXminYmaxZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 maxXminYmaxZ_V = -1.0 + (2.0 * hashTo3(maxXminYmaxZ));
 		float3 toMaxXminYmaxZ = float3(toMaxXYZ.x, toMinXYZ.y, toMaxXYZ.z);
 
-		temp = hashTo1(maxXYminZ);
-		temp2 = hashTo1(temp);
-		float3 maxXYminZ_V = -1.0 + (2.0 * float3(temp, temp2, hashTo1(temp2)));
+		float3 maxXYminZ_V = -1.0 + (2.0 * hashTo3(maxXYminZ));
 		float3 toMaxXYminZ = float3(toMaxXYZ.xy, toMinXYZ.z);
 
 		t = smoothstep(0.0, 1.0, t);
@@ -454,8 +290,113 @@ namespace GPUGraph
 							t.z);
 		return 0.5 + (0.5 * outVal);
 	}
+	float _PerlinNoise(float4 f, float4 minXYZW, float4 maxXYZW)
+	{
+		float4 minXminYminZminW = minXYZW,
+			   minXminYminZmaxW = float4(minXYZW.x, minXYZW.y, minXYZW.z, maxXYZW.w),
+			   minXminYmaxZminW = float4(minXYZW.x, minXYZW.y, maxXYZW.z, minXYZW.w),
+			   minXminYmaxZmaxW = float4(minXYZW.x, minXYZW.y, maxXYZW.z, maxXYZW.w),
+			   minXmaxYminZminW = float4(minXYZW.x, maxXYZW.y, minXYZW.z, minXYZW.w),
+			   minXmaxYminZmaxW = float4(minXYZW.x, maxXYZW.y, minXYZW.z, maxXYZW.w),
+			   minXmaxYmaxZminW = float4(minXYZW.x, maxXYZW.y, maxXYZW.z, minXYZW.w),
+			   minXmaxYmaxZmaxW = float4(minXYZW.x, maxXYZW.y, maxXYZW.z, maxXYZW.w),
+			   maxXminYminZminW = float4(maxXYZW.x, minXYZW.y, minXYZW.z, minXYZW.w),
+			   maxXminYminZmaxW = float4(maxXYZW.x, minXYZW.y, minXYZW.z, maxXYZW.w),
+			   maxXminYmaxZminW = float4(maxXYZW.x, minXYZW.y, maxXYZW.z, minXYZW.w),
+			   maxXminYmaxZmaxW = float4(maxXYZW.x, minXYZW.y, maxXYZW.z, maxXYZW.w),
+			   maxXmaxYminZminW = float4(maxXYZW.x, maxXYZW.y, minXYZW.z, minXYZW.w),
+			   maxXmaxYminZmaxW = float4(maxXYZW.x, maxXYZW.y, minXYZW.z, maxXYZW.w),
+			   maxXmaxYmaxZminW = float4(maxXYZW.x, maxXYZW.y, maxXYZW.z, minXYZW.w),
+			   maxXmaxYmaxZmaxW = maxXYZW;
 
-	float WorleyNoise1(float f, float cellVariance)
+		float4 t = f - minXYZW;
+
+		float4 temp;
+	#define DO(toDo) \
+		temp = hashTo4(f); \
+		float4 toDo##_V = (temp * 2.0f) - 1.0f, \
+				to_##toDo = toDo - f;
+
+		DO(minXminYminZminW);
+		DO(minXminYminZmaxW);
+		DO(minXminYmaxZminW);
+		DO(minXminYmaxZmaxW);
+		DO(minXmaxYminZminW);
+		DO(minXmaxYminZmaxW);
+		DO(minXmaxYmaxZminW);
+		DO(minXmaxYmaxZmaxW);
+		DO(maxXminYminZminW);
+		DO(maxXminYminZmaxW);
+		DO(maxXminYmaxZminW);
+		DO(maxXminYmaxZmaxW);
+		DO(maxXmaxYminZminW);
+		DO(maxXmaxYminZmaxW);
+		DO(maxXmaxYmaxZminW);
+		DO(maxXmaxYmaxZmaxW);
+	#undef DO
+
+		t = smoothstep(0.0, 1.0, t);
+
+	#define DOT(a) dot(a##_V, to_##a)
+		float outVal = lerp(lerp(lerp(lerp(DOT(minXminYminZminW),
+                                           DOT(maxXminYminZminW),
+										   t.x),
+                                      lerp(DOT(minXmaxYminZminW),
+										   DOT(maxXmaxYminZminW),
+										   t.x),
+									  t.y),
+									  lerp(lerp(DOT(minXminYmaxZminW),
+									 		    DOT(maxXminYmaxZminW),
+											    t.x),
+                                           lerp(DOT(minXmaxYmaxZminW),
+										 	    DOT(maxXmaxYmaxZminW),
+										 	    t.x),
+										   t.y),
+									  t.z),
+							lerp(lerp(lerp(DOT(minXminYminZmaxW),
+										   DOT(maxXminYminZmaxW),
+										   t.x),
+                                      lerp(DOT(minXmaxYminZmaxW),
+									   	   DOT(maxXmaxYminZmaxW),
+										   t.x),
+									  t.y),
+								 lerp(lerp(DOT(minXminYmaxZmaxW),
+										   DOT(maxXminYmaxZmaxW),
+										   t.x),
+                                      lerp(DOT(minXmaxYmaxZmaxW),
+										   DOT(maxXmaxYmaxZmaxW),
+										   t.x),
+									  t.y),
+								 t.z),
+							t.w);
+	#undef DOT
+		return 0.5 + (0.5 * outVal);
+	}
+
+#define MAKE_PERLINS(FloatType) \
+	float PerlinNoise(FloatType f) \
+	{ \
+		FloatType minX = floor(f), \
+				  maxX = minX + 1.0; \
+		return _PerlinNoise(f, minX, maxX); \
+	} \
+	float PerlinNoise(FloatType f, FloatType valMax) \
+	{ \
+		FloatType minX = floor(f), \
+				  maxX = minX + 1.0; \
+		f = WRAP(f); \
+		minX = WRAP(minX); \
+		maxX = WRAP(maxX); \
+		return _PerlinNoise(f, minX, maxX); \
+	}
+
+	MAKE_PERLINS(float)
+	MAKE_PERLINS(float2)
+	MAKE_PERLINS(float3)
+	MAKE_PERLINS(float4)
+#undef MAKE_PERLINS
+
+	float WorleyNoise(float f, float cellVariance)
 	{
 		float cellThis = floor(f),
 			  cellLess = cellThis - 1.0,
@@ -465,18 +406,18 @@ namespace GPUGraph
 		return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
 	#undef VAL
 	}
-	float WorleyNoise1_Wrap(float f, float cellVariance, float valMax)
+	float WorleyNoise(float f, float cellVariance, float valMax)
 	{
 		float cellThis = floor(f),
 			  cellLess = cellThis - 1.0,
 			  cellMore = cellThis + 1.0;
 
-	#define VAL(var) distance(f, (var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(var)))))
+	#define VAL(var) distance(f, var + lerp(0.5 - cellVariance, 0.5 + cellVariance, hashTo1(WRAP(var))))
 		return min(VAL(cellThis), min(VAL(cellLess), VAL(cellMore)));
 	#undef VAL
 	}
 
-	float WorleyNoise2(float2 f, float2 cellVariance)
+	float WorleyNoise(float2 f, float2 cellVariance)
 	{
 		const float3 zon = float3(0.0, 1.0, -1.0);
 		float2 cellMidXY = floor(f),
@@ -496,7 +437,7 @@ namespace GPUGraph
 	#undef VAL
 	#undef MIN3
 	}
-	float WorleyNoise2_Wrap(float2 f, float2 cellVariance, float2 valMax)
+	float WorleyNoise(float2 f, float2 cellVariance, float2 valMax)
 	{
 		const float3 zon = float3(0.0, 1.0, -1.0);
 		float2 cellMidXY = floor(f),
@@ -517,7 +458,7 @@ namespace GPUGraph
 	#undef MIN3
 	}
 
-	float WorleyNoise3(float3 f, float3 cellVariance)
+	float WorleyNoise(float3 f, float3 cellVariance)
 	{
 		float3 cellyyy = floor(f);
 
@@ -566,7 +507,7 @@ namespace GPUGraph
 	#undef MIN3
 	#undef MIN9
 	}
-	float WorleyNoise3_Wrap(float3 f, float3 cellVariance, float3 valMax)
+	float WorleyNoise(float3 f, float3 cellVariance, float3 valMax)
 	{
 		float3 cellyyy = floor(f);
 
@@ -614,6 +555,101 @@ namespace GPUGraph
 	#undef VAL
 	#undef MIN3
 	#undef MIN9
+	}
+
+	float WorleyNoise(float4 f, float4 cellVariance)
+	{
+		float4 cellyyyy = floor(f);
+
+		const float3 c = float3(-1.0, 0.0, 1.0);
+
+		float4 cellPos;
+
+		//Calculate the first noise value and store it.
+		float4 cellOffsetMin = 0.5 - cellVariance,
+			   cellOffsetMax = 0.5 + cellVariance;
+	#define GET distance(f, cellPos + lerp(cellOffsetMin, cellOffsetMax, hashTo4(cellPos)))
+		cellPos = cellyyyy;
+		float minNoise = GET;
+
+		//Do the rest of the noise values.
+		//Define a way to easily iterate over every possible swizzle.
+	#define DO(swizzle) \
+		cellPos = cellyyyy + c.swizzle; \
+		minNoise = min(minNoise, GET);
+	#define FOREACH_X(swizzleX) \
+		FOREACH_XY(swizzleX##x) FOREACH_XY(swizzleX##y) FOREACH_XY(swizzleX##z)
+	#define FOREACH_XY(swizzleXY) \
+		FOREACH_XYZ(swizzleXY##x) FOREACH_XYZ(swizzleXY##y) FOREACH_XYZ(swizzleXY##z)
+	#define FOREACH_XYZ(swizzleXYZ) \
+		DO(swizzleXYZ##x) DO(swizzleXYZ##y) DO(swizzleXYZ##z)
+		//Skip yyyy because we already did that one.
+	#define FOREACH_DO \
+		FOREACH_X(x) \
+			FOREACH_XY(yx) \
+				FOREACH_XYZ(yyx) \
+					DO(yyyz) \
+				FOREACH_XYZ(yyz) \
+			FOREACH_XY(yz) \
+		FOREACH_X(z)
+
+		//Perform the iteration.
+		FOREACH_DO;
+		return minNoise;
+
+	#undef FOREACH_XYZ
+	#undef FOREACH_XY
+	#undef FOREACH_X
+	#undef FOREACH_DO
+	#undef DO
+	#undef GET
+	}
+	float WorleyNoise(float4 f, float4 cellVariance, float4 valMax)
+	{
+		float4 cellyyyy = floor(f);
+
+		const float3 c = float3(-1.0, 0.0, 1.0);
+
+		float4 cellPos;
+
+		//Calculate the first noise value and store it.
+		float4 cellOffsetMin = 0.5 - cellVariance,
+			   cellOffsetMax = 0.5 + cellVariance;
+	#define GET distance(f, cellPos + lerp(cellOffsetMin, cellOffsetMax, hashTo4(WRAP(cellPos))))
+		cellPos = cellyyyy;
+		float minNoise = GET;
+
+		//Do the rest of the noise values.
+		//Define a way to easily iterate over every possible swizzle.
+	#define DO(swizzle) \
+		cellPos = cellyyyy + c.swizzle; \
+		minNoise = min(minNoise, GET);
+	#define FOREACH_X(swizzleX) \
+		FOREACH_XY(swizzleX##x) FOREACH_XY(swizzleX##y) FOREACH_XY(swizzleX##z)
+	#define FOREACH_XY(swizzleXY) \
+		FOREACH_XYZ(swizzleXY##x) FOREACH_XYZ(swizzleXY##y) FOREACH_XYZ(swizzleXY##z)
+	#define FOREACH_XYZ(swizzleXYZ) \
+		DO(swizzleXYZ##x) DO(swizzleXYZ##y) DO(swizzleXYZ##z)
+	//Skip yyyy because we already did that one.
+	#define FOREACH_DO \
+		FOREACH_X(x) \
+			FOREACH_XY(yx) \
+				FOREACH_XYZ(yyx) \
+					DO(yyyx) DO(yyyz) \
+				FOREACH_XYZ(yyz) \
+			FOREACH_XY(yz) \
+		FOREACH_X(z)
+
+		//Perform the iteration.
+		FOREACH_DO;
+		return minNoise;
+
+	#undef FOREACH_XYZ
+	#undef FOREACH_XY
+	#undef FOREACH_X
+	#undef FOREACH_DO
+	#undef DO
+	#undef GET
 	}";
 	}
 }

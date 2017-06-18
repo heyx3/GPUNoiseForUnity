@@ -22,18 +22,17 @@ namespace GPUGraph
 
 		public string GetFunc(NoiseTypes type, int nDimensions, bool wraps)
 		{
-            string postfix = (wraps ? "_Wrap" : "");
 			switch (type)
 			{
 				case NoiseTypes.White: return "hashTo1";
-				case NoiseTypes.Blocky: return "GridNoise" + nDimensions + postfix;
-				case NoiseTypes.Linear: return "LinearNoise" + nDimensions + postfix;
-				case NoiseTypes.Smooth: return "SmoothNoise" + nDimensions + postfix;
-				case NoiseTypes.Smoother: return "SmootherNoise" + nDimensions + postfix;
-				case NoiseTypes.Perlin: return "PerlinNoise" + nDimensions + postfix;
+				case NoiseTypes.Blocky: return "GridNoise";
+				case NoiseTypes.Linear: return "LinearNoise";
+				case NoiseTypes.Smooth: return "SmoothNoise";
+				case NoiseTypes.Smoother: return "SmootherNoise";
+				case NoiseTypes.Perlin: return "PerlinNoise";
 				case NoiseTypes.Worley:
 					if (IsWorleyDefault)
-						return "WorleyNoise" + NDimensions + postfix;
+						return "WorleyNoise";
 					else
 						return "Worley_" + UID;
 				default: throw new NotImplementedException(type.ToString());
@@ -100,6 +99,8 @@ namespace GPUGraph
 				n.Add("y");
 			if (nDimensions > 2)
 				n.Add("z");
+			if (nDimensions > 3)
+				n.Add("w");
 
 			//Scale and weight.
 			n.Add("Scale");
@@ -121,6 +122,8 @@ namespace GPUGraph
 					    n.Add("Cell Variance Y");
                     if (nDimensions > 2)
                         n.Add("Cell Variance Z");
+					if (nDimensions > 3)
+						n.Add("Cell Variance W");
 					break;
 				default: throw new NotImplementedException(t.ToString());
 			}
@@ -154,6 +157,8 @@ namespace GPUGraph
 					    n.Add(0.5f);
                     if (nDimensions > 2)
                         n.Add(0.5f);
+					if (nDimensions > 3)
+						n.Add(0.5f);
 					break;
 				default: throw new NotImplementedException(t.ToString());
 			}
@@ -164,8 +169,8 @@ namespace GPUGraph
 		public NoiseTypes NoiseType;
 
 		public int NDimensions;
-		private static string[] DimensionsStrArray = new string[] { "1D", "2D", "3D" };
-		private static int[] DimensionsArray = new int[] { 1, 2, 3 };
+		private static string[] DimensionsStrArray = new string[] { "1D", "2D", "3D", "4D" };
+		private static int[] DimensionsArray = new int[] { 1, 2, 3, 4 };
 
 		public string Worley_DistanceCalc = "distance($1, $2)",
 					  Worley_NoiseCalc = "$1";
@@ -315,7 +320,7 @@ namespace GPUGraph
 
 	//Now calculate the rest of the noise values.
 #define DO_VAL(swizzle) \
-	cellPos = cellyyy = c.swizzle; \
+	cellPos = cellyyy + c.swizzle; \
 	cellNoise = DIST(WORLEY_POS(cellPos, 3), seed); \
 	INSERT_MIN(min1, min2, cellNoise);
 
@@ -348,6 +353,66 @@ namespace GPUGraph
 #undef DO_VAL
 
 	return OUTVAL(min1, min2);
+}");
+			}
+			else if (NDimensions == 4)
+			{
+				outCode.Append("(float4 seed, float4 cellVariance");
+				if (Wraps)
+					outCode.Append(", float4 valMax");
+				outCode.AppendLine(@")
+{
+	float min1, min2;
+	const float3 c = float3(-1.0, 0.0, 1.0);
+	float4 cellPos;
+	float cellNoise;
+
+	//The center noise value.
+	float4 cellyyyy = floor(seed);
+
+	//Calculate the first two noise values and store them in min1/min2.
+	cellPos = cellyyyy;
+	cellNoise = DIST(WORLEY_POS(cellPos, 4), seed);
+	{
+		cellPos = cellyyyy + c.xxxx;
+		float cellNoise2 = DIST(WORLEY_POS(cellPos, 4), seed);
+
+		min1 = min(cellNoise2, cellNoise);
+		min2 = max(cellNoise2, cellNoise);
+	}
+
+//Define a way to easily iterate over every possible swizzle of a 4D vector.
+#define DO(swizzle) \
+	cellPos = cellyyyy + c.swizzle; \
+	cellNoise = DIST(WORLEY_POS(cellPos, 4), seed); \
+	INSERT_MIN(min1, min2, cellNoise);
+//Runs DO() on every swizzle of 'c' that has the given XYZ.
+#define FOREACH_XYZ(swizzleXYZ) \
+	DO(swizzleXYZ##x) DO(swizzleXYZ##y) DO(swizzleXYZ##z)
+//Runs DO() on every swizzle of 'c' that has the given XY.
+#define FOREACH_XY(swizzleXY) \
+	FOREACH_XYZ(swizzleXY##x) FOREACH_XYZ(swizzleXY##y) FOREACH_XYZ(swizzleXY##z)
+//Runs DO() on every swizzle of 'c' that has the given X.
+#define FOREACH_X(swizzleX) \
+	FOREACH_XY(swizzleX##x) FOREACH_XY(swizzleX##y) FOREACH_XY(swizzleX##z)
+//Runs DO() on every swizzle, except yyyx and yyyy because we already did those.
+#define FOREACH_DO \
+	FOREACH_X(x) \
+		FOREACH_XY(yx) \
+			FOREACH_XYZ(yyx) \
+				DO(yyyz) \
+			FOREACH_XYZ(yyz) \
+		FOREACH_XY(yz) \
+	FOREACH_X(z)
+
+	FOREACH_DO;
+	return OUTVAL(min1, min2);
+
+#undef FOREACH_XYZ
+#undef FOREACH_XY
+#undef FOREACH_X
+#undef FOREACH_DO
+#undef DO
 }");
 			}
 			else

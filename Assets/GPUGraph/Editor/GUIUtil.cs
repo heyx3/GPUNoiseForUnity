@@ -72,6 +72,10 @@ namespace GPUGraph
 		}
 
 
+		/// <summary>
+		/// Gets the index of the first element to satisfy the given predicate.
+		/// Returns -1 if none were found.
+		/// </summary>
 		public static int IndexOf<T>(this IEnumerable<T> en, Predicate<T> p)
 		{
 			int i = 0;

@@ -282,9 +282,6 @@ namespace GPUGraph.Applications
 					}
 					GUILayout.EndVertical();
 
-					//NOTE: There is a unity bug that makes the preview texture flicker.
-					//Nothing I can do about it.
-					//https://issuetracker.unity3d.com/issues/a-texture-drawn-from-a-custom-propertydrawer-is-sometimes-not-drawn
 					Rect texPos = EditorGUILayout.GetControlRect(GUILayout.Width(previewTex.width * previewScale),
 																 GUILayout.Height(previewTex.height * previewScale));
 					EditorGUI.DrawPreviewTexture(texPos, previewTex);

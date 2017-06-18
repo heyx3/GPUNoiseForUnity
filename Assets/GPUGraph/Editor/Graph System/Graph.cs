@@ -428,7 +428,10 @@ namespace GPUGraph
             }
         }
     }");
-            return (shader.ToString() + "\r\n").Replace("\r\n", "\n");
+			//Add an extra line to the end of the file, then make sure all line endings match.
+            string output = (shader.ToString() + "\r\n").Replace("\r\n", "\n");
+
+			return output;
         }
 
 		/// <summary>

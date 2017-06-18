@@ -48,6 +48,7 @@ namespace GPUGraph
 		/// </summary>
 		public void GenerateToCurrentFramebuffer()
 		{
+			UpdateAllParams();
 			GraphUtils.GenerateToTexture(RenderTexture.active, GraphMat);
 		}
 		/// <summary>
@@ -55,6 +56,7 @@ namespace GPUGraph
 		/// </summary>
 		public void GenerateToFramebuffer(RenderTexture outTex)
 		{
+			UpdateAllParams();
 			GraphUtils.GenerateToTexture(outTex, GraphMat);
 		}
 
@@ -66,6 +68,7 @@ namespace GPUGraph
 		/// </param>
 		public void GenerateToTexture(Texture2D outTex, bool leaveReadable = false)
 		{
+			UpdateAllParams();
 			RenderTexture tempTex = RenderTexture.GetTemporary(outTex.width, outTex.height);
 			GraphUtils.GenerateToTexture(tempTex, GraphMat, outTex, leaveReadable);
 			RenderTexture.ReleaseTemporary(tempTex);
@@ -82,6 +85,7 @@ namespace GPUGraph
 										   bool mipmaps = true,
 										   bool leaveReadable = false)
 		{
+			UpdateAllParams();
 			Texture2D t = new Texture2D(width, height, fmt, mipmaps);
 			t.filterMode = filtering;
 			GenerateToTexture(t, leaveReadable);
@@ -93,6 +97,7 @@ namespace GPUGraph
 		/// </summary>
 		public void GenerateToArray(float[,] outData)
 		{
+			UpdateAllParams();
 			GraphUtils.GenerateToArray(outData, GraphMat);
 		}
 
@@ -164,7 +169,7 @@ namespace GPUGraph
 		/// Should be called if changes are made to this instance's parameter lists by external code.
 		/// Otherwise, those new parameter values won't actually be used when generating noise.
 		/// </summary>
-		public void UpdateAllParams()
+		private void UpdateAllParams()
 		{
 			Material m = GraphMat;
 			foreach (FloatParamKVP floatParam in FloatParams)
