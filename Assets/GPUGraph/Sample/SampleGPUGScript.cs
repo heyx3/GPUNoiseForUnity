@@ -8,11 +8,12 @@ namespace GPUGraph.Examples
 {
 	/// <summary>
 	/// An example of how to use GPUGraphs at runtime.
-	/// Creates two objects with a given mesh/material
-	///     and sets their textures to the output of two different graphs.
+	/// Generates one texture each from two graphs,
+	///     then displays them and their parameters in the GUI.
 	/// </summary>
 	public class SampleGPUGScript : MonoBehaviour
 	{
+		//Note that these objects are serializable, and can be edited in the Inspector.
 		public GPUGraph.RuntimeGraph MyGraph = new GPUGraph.RuntimeGraph();
 		public GPUGraph.RuntimeGraph MyGraph2 = new GPUGraph.RuntimeGraph();
 
@@ -29,6 +30,10 @@ namespace GPUGraph.Examples
 		}
 		private void OnGUI()
 		{
+			//If something went wrong with generating the textures, don't try to draw them.
+			if (myTex1 == null || myTex2 == null)
+				return;
+
 			//Draw the textures.
 			float borderPercent = 0.1f,
 				  borderW = Screen.width * borderPercent,
@@ -46,8 +51,8 @@ namespace GPUGraph.Examples
 							ScaleMode.ScaleToFit);
 
 
-			//Show a little UI for editing float parameters.
-			//If anything actually changed, regenerate the noise texture.
+			//Expose a UI for editing float parameters.
+			//If any values changed, regenerate the texture.
 
 			GUILayout.BeginArea(new Rect(0.0f, 0.0f, borderW, Screen.height));
 			{
