@@ -10,8 +10,6 @@ namespace GPUGraph
 	/// </summary>
 	public static class ShaderDefs
 	{
-		//TODO: Add the concept of a seed.
-
 		public static readonly string Functions = @"
 
 	//Hash functions.
@@ -59,7 +57,7 @@ namespace GPUGraph
 	#define INTERP_NOISE1(tModifier, posModifier) \
 		f = posModifier(f); \
         float minF = floor(f), \
-			  maxF = f + 1.0; \
+			  maxF = ceil(f); \
 		 \
 		float t = f - minF; \
 		t = tModifier; \
@@ -72,7 +70,7 @@ namespace GPUGraph
 	#define INTERP_NOISE2(tModifier, posModifier) \
 		f = posModifier(f); \
 		float2 minF = floor(f), \
-			   maxF = f + 1.0; \
+			   maxF = ceil(f); \
 		 \
 		float2 t = f - minF; \
 		t = tModifier; \
@@ -89,7 +87,7 @@ namespace GPUGraph
 	#define INTERP_NOISE3(tModifier, posModifier) \
 		f = posModifier(f); \
 		float3 minF = floor(f), \
-			   maxF = f + 1.0; \
+			   maxF = ceil(f); \
 		 \
 		float3 t = f - minF; \
 		t = tModifier; \
