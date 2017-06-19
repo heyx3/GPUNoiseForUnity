@@ -26,9 +26,8 @@ In the above image, note the various aspects of the graph editor:
 * On the far left is a section for choosing nodes to place down in the graph.
 * To the right of that is a set of options for the graph, and for loading/creating other ones.
 * On the top of this "options" section is the specific graph file being edited. This dropdown box lists all the .gpug files in your Unity project.
-* Below the "New Graph", "Save Changes", and "Discard Changes" buttons are the "hash" functions. The basis for all random noise is a function for hashing coordaintes into a pseudo-random value between 0 and 1. You may customize the hash for 1D, 2D, and 3D coordinates if you wish.
-* Below the hash functions is the preview window, which shows what would happen if you rendered your noise graph to a 2D texture. You can check the "Auto-Update Preview" box to automatically update the preview every time the graph is edited.
-* On the right side of the window, separated by a solid black bar, is the graph area. This displays all your nodes. The right-most node, "Output", represents the final output of the graph. You can right-click and drag to pan the area.
+* Below the "New Graph", "Save Changes", and "Discard Changes" buttons is the preview window, which shows what would happen if you rendered your noise graph to a 2D texture. You can check the "Auto-Update Preview" box to automatically update the preview every time the graph is edited.
+* On the right side of the window, is the graph area. This displays all your nodes. The right-most node, "Output", represents the final output of the graph. You can right-click and drag to pan the area.
 
 In order to add a new node, click the button for the node you want to place, then left-click in the graph to place it. Right-click in the graph to cancel. A node's inputs are on the left side, and its output is on the right side. Note that some nodes have no inputs at all. Each input to a node is either the output of a different node or a constant value entered in a text box.
 
@@ -39,15 +38,15 @@ You can add the basic arithmetic nodes by pressing their respective keys (`+`, `
 
 All the nodes this plugin currently offers are listed here:
 
-* Noise: Exposes a wide variety of 1D, 2D, or 3D noise algorithms (all of which return a value between 0 and 1) with a scale/weight value for convenience when combining multiple octaves of noise. They can all optionally wrap around their edges so that the resulting noise tiles nicely.
+* Noise: Exposes a variety of 1D, 2D, 3D, or 4D noise algorithms (all of which return a value between 0 and 1) with a scale/weight value for convenience when combining multiple octaves of noise. They can all optionally wrap around their edges so that the resulting noise tiles every 1 units.
     * White noise: a pseudo-random value.
     * Grid noise: Creates 1x1 square blocks of noise by getting White Noise for the `floor` of the seed value.
     * Linear noise: Like Grid noise but with a linear interpolation between values, yielding smooth diamond shapes instead of square blocks.
     * Smooth noise: Like Linear noise but smoother and a bit more expensive.
     * Smoother noise: Like Smooth noise but even smoother and a bit more expensive.
     * Perlin noise: Like Smooth noise but with fewer blocky artifacts, and much more expensive.
-    * Worley noise: Generates a random point in every 1x1 block of space and outputs noise based on how far away the given value is from the nearest point.
-* UV: The X, Y, or Z coordinate (from 0 to 1) of the pixel in the render texture currently being generated. The Z coordinate is useful when generating 3D textures.
+    * Worley noise: Generates a random point in every 1x1 block of space and outputs noise based on how far away the given value is from the nearest point. Note that Worley noise only tiles properly if the scale is a power of two.
+* UV: The X, Y, or Z coordinate (from 0 to 1) of the pixel in the render texture currently being generated. The Z coordinate is useful when generating 3D textures. It can also be thought of as a seed value for 2D noise.
 * Custom Expression: A custom HLSL expression with any number of inputs.
 * Float Parameter: A shader parameter that can be easily changed after the graph has been compiled into a Material.
 * Tex2D Parameter: A texture parameter that can be easily changed after the graph has been compiled into a Material.
@@ -129,16 +128,16 @@ A graph node is an instance of a class inheriting from `Node`. A node is given a
 
 A node's inputs are stored as a list of `NodeInput` instances. Each `NodeInput` is either a constant float (in which case `IsAConstant` returns `true` and `ConstantValue` is well-defined) or it is the output of another node (in which case `IsAConstant` returns `false` and `NodeID` contains the UID of the node whose output is being read).
 
-Graphs are represented by the `Graph` class, which has a collection of nodes, the file path of the graph, the 1D/2D/3D hashing functions (which are at the heart of all the noise generation functions), and the final output of the graph (a `NodeInput` instance). It exposes `Save()` and `Load()` methods, as well as `GenerateShader()` to get shader code, and the more abstract `InsertShaderCode()` to use the graph's noise output as part of a more complex shader.
+Graphs are represented by the `Graph` class, which has a collection of nodes, the file path of the graph, and the final output of the graph (a `NodeInput` instance). It exposes `Save()` and `Load()` methods, as well as `GenerateShader()` to get shader code, and the more abstract `InsertShaderCode()` to use the graph's noise output as part of a more complex shader.
 
 The `GraphEditorUtils` class provides various ways to interact with a graph in the editor, including `GetAllGraphsInProject()`, `SaveShader()`, `GenerateToTexture()`, and `GenerateToArray()`. There is a similar class `GraphUtils` that can be used at runtime.
 
 The number of `Node` child classes is actually fairly small:
 * `SimpleNode` handles any kind of one-line expression, including all the built-in shader functions like `sin`, `lerp`, `abs`, etc. The vast majority of nodes are instances of `SimpleNode`.
 * `CustomExprNode` allows the user to type a custom shader expression using any number of inputs (`$1`, `$2`, `$3`, etc).
-* `NoiseNode` is a node that generates 1D, 2D, or 3D noise. The noise can be "White", "Blocky", "Linear", "Smooth", "Smoother", "Perlin", or "Worley". Note that "Worley" has special editing options that the other noise types don't need.
+* `NoiseNode` is a node that generates 1D, 2D, 3D, or 4D noise. The noise can be "White", "Blocky", "Linear", "Smooth", "Smoother", "Perlin", or "Worley". Note that "Worley" has special editing options that the other noise types don't need.
 * `TexCoordNode` represents the UV coordinates of the texture the graph noise is being rendered into. This is generally how you get the input values for a noise function. It can output the X, Y, or Z coordinate. Z coordinate is used when you want to generate a 3D texture from the graph.
-* `ParamNode_Float` is a float parameter represented as either a text box or a slider.
+* `ParamNode_Float` is a float parameter, represented as either a text box or a slider.
 * `ParamNode_Texture2D` is a 2D texture parameter.
 * `SubGraphNode` allows graphs to be used inside other graphs.
 
@@ -155,7 +154,8 @@ If anybody wants to help out with these issues (or contribute to the codebase in
 * When you first click on the editor after creating a new graph, it goes back to a state of not editing anything for some reason.
 
 * The editor window's UI is pretty rough; you get what you pay for :P. You can pan the view, but you can't zoom in or out. Adding zoom functionality can most likely be done somehow with the use of the GUIUtility.ScaleAroundPivot() method.
-* Similarly, features like multi-node selection/movement, comments, and pressing Ctrl+S to save would be nice.
+* Additionally, the lines connecting nodes don't get drawn if they go off the right side of the graph area, and they get drawn over the other panes if they go off the left side.
+* Features like multi-node selection/movement, comments, and pressing Ctrl+S to save would be nice.
 
 * Terrain Generator should show a preview of the generated image.
 
@@ -163,7 +163,7 @@ If anybody wants to help out with these issues (or contribute to the codebase in
 
 * There are some bugs with drawing textures in RuntimeGraph's custom Inspector code; sometimes the textures aren't visible. As far as I can tell, this is Unity's problem.
 
-* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same path, "Resources/unity_buitin_extra"). Currently I have a check that logs a warning if you try to do that.
+* It seems impossible to use one of Unity's built-in textures as a "default" value for a Texture2D parameter because I can't serialize its asset path (they all have the same file path, "Resources/unity_buitin_extra"). Currently I log a warning if you try to use one of them.
 
 # License
 

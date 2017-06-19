@@ -12,6 +12,7 @@ using Option = GPUGraph.Editor.NodeTree_Element_Option;
 namespace GPUGraph.Editor
 {
 	//TODO: ParamNode_Texture3D and Cube (http://docs.unity3d.com/432/Documentation/Components/SL-Properties.html).
+	//TODO: CustomFunction node, like a fuller version of CustomExpression.
 	//TODO: Add buttons to addition, subtraction, min/max, etc. nodes for an arbitrary number of inputs.
 	//TODO: Optionally have more than one output. Use for noise, texture nodes, and TexCoordNode.
 
