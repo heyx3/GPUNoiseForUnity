@@ -26,7 +26,8 @@ namespace GPUGraph.Editor
 		private static readonly Vector2 MinGraphSize = new Vector2(700.0f, 500.0f);
 
 
-		public Graph Grph = null;
+		private Graph graph = null;
+		public GraphParamCollection graphParams;
 		public List<NodeTree_Element> NewNodeOptions = null;
 
 		public NodeTree_Element_Option CurrentlyPlacing = null;
@@ -92,7 +93,7 @@ namespace GPUGraph.Editor
 		{
 			wantsMouseMove = true;
 
-			Grph = null;
+			graph = null;
 
 			OnFocus();
 
@@ -109,7 +110,7 @@ namespace GPUGraph.Editor
 												". Do you want to save them?",
 											"Save", "Discard"))
 			{
-				Grph.Save();
+				graph.Save();
 			}
 
 			unsavedStr = "";
@@ -122,7 +123,7 @@ namespace GPUGraph.Editor
 			graphSelections = GraphPaths.Select(selector).ToArray();
 
 			//Keep the same graph selected even when the list of graphs changes.
-			selectedGraph = GraphPaths.IndexOf((Grph == null ? "" : Grph.FilePath));
+			selectedGraph = GraphPaths.IndexOf((graph == null ? "" : graph.FilePath));
 
 
 			//If this graph was deleted, reset the editor.
@@ -130,7 +131,7 @@ namespace GPUGraph.Editor
 			{
 				unsavedStr = "";
 
-				Grph = null;
+				graph = null;
 
 				reconnectingOutput = -1;
 				reconnectingInput = -2;
@@ -188,7 +189,7 @@ namespace GPUGraph.Editor
 			GUIUtil.DrawLine(new Vector2(NodeChoiceSpace + OptionsSpace + 4.0f, 0.0f),
 							 new Vector2(NodeChoiceSpace + OptionsSpace + 4.0f, position.height),
 							 2.0f, Color.black);
-			if (Grph == null)
+			if (graph == null)
 				return;
 
 			//Respond to UI events.
@@ -201,7 +202,7 @@ namespace GPUGraph.Editor
 			GUILayout.BeginArea(graphArea);
 			BeginWindows();
 			Rect oldPos, newPos;
-			foreach (Node n in Grph.Nodes)
+			foreach (Node n in graph.Nodes)
 			{
 				oldPos = new Rect(n.Pos.position - CamOffset, n.Pos.size);
 				newPos = GUINode(oldPos, n);
@@ -217,7 +218,7 @@ namespace GPUGraph.Editor
 				n.Pos = newPos;
 			}
 
-			oldPos = new Rect(Grph.OutputPos.position - CamOffset, Grph.OutputPos.size);
+			oldPos = new Rect(graph.OutputPos.position - CamOffset, graph.OutputPos.size);
 			newPos = GUINode(oldPos, null);
 			if (Mathf.Abs(oldPos.x - newPos.x) >= 2.0f ||
 				Mathf.Abs(oldPos.y - newPos.y) >= 2.0f)
@@ -226,7 +227,7 @@ namespace GPUGraph.Editor
 					unsavedStr += "moved graph output node, ";
 			}
 			newPos.position += CamOffset;
-			Grph.OutputPos = newPos;
+			graph.OutputPos = newPos;
 
 			EndWindows();
 			GUILayout.EndArea();
@@ -243,14 +244,25 @@ namespace GPUGraph.Editor
 			{
 				if (ConfirmLoseUnsavedChanges())
 				{
-					Grph = new Graph(GraphPaths[selectedGraph]);
-					string err = Grph.Load();
-					CamOffset = Grph.OutputPos.position - new Vector2(Mathf.RoundToInt(position.width * 0.5f),
+					graph = new Graph(GraphPaths[selectedGraph]);
+					string err = graph.Load();
+					CamOffset = graph.OutputPos.position - new Vector2(Mathf.RoundToInt(position.width * 0.5f),
 																	  Mathf.RoundToInt(position.height * 0.5f));
 					if (err.Length > 0)
 					{
+						graphParams = new GPUGraph.GraphParamCollection()
+						{
+							FloatParams = new List<GPUGraph.FloatParamInfo>(),
+							Tex2DParams = new List<GPUGraph.Texture2DParamInfo>(),
+						};
 						Debug.LogError("Error loading graph: " + err);
 					}
+					else
+					{
+						graphParams = new GraphParamCollection(graph);
+					}
+
+					UpdatePreview();
 				}
 				else
 				{
@@ -278,8 +290,8 @@ namespace GPUGraph.Editor
 					}
 					else
 					{
-						Grph = g;
-						CamOffset = Grph.OutputPos.position - new Vector2(Mathf.RoundToInt(position.width * 0.5f),
+						graph = g;
+						CamOffset = graph.OutputPos.position - new Vector2(Mathf.RoundToInt(position.width * 0.5f),
 																		  Mathf.RoundToInt(position.height * 0.5f));
 						GraphPaths = GraphEditorUtils.GetAllGraphsInProject();
 						NewNodeOptions = NodeOptionsGenerator.GenerateList();
@@ -288,7 +300,7 @@ namespace GPUGraph.Editor
 						graphSelections = GraphPaths.Select(selector).ToArray();
 
 						selectedGraph = -1;
-						string toFind = Path.GetFileNameWithoutExtension(Grph.FilePath);
+						string toFind = Path.GetFileNameWithoutExtension(graph.FilePath);
 						for (int i = 0; i < graphSelections.Length; ++i)
 						{
 							if (graphSelections[i].text == toFind)
@@ -305,11 +317,11 @@ namespace GPUGraph.Editor
 
 			GUILayout.Space(30.0f);
 
-			if (Grph != null && unsavedStr.Length > 0)
+			if (graph != null && unsavedStr.Length > 0)
 			{
 				if (GUILayout.Button("Save Changes"))
 				{
-					string err = Grph.Save();
+					string err = graph.Save();
 					if (err.Length > 0)
 					{
 						Debug.LogError("Error saving graph: " + err);
@@ -321,13 +333,19 @@ namespace GPUGraph.Editor
 				{
 					if (ConfirmLoseUnsavedChanges())
 					{
-						string err = Grph.Load();
+						string err = graph.Load();
 						if (err.Length > 0)
 						{
+							graphParams = new GPUGraph.GraphParamCollection()
+							{
+								FloatParams = new List<GPUGraph.FloatParamInfo>(),
+								Tex2DParams = new List<GPUGraph.Texture2DParamInfo>(),
+							};
 							Debug.LogError("Unable to reload graph: " + err);
 						}
 						else
 						{
+							graphParams = new GraphParamCollection(graph);
 							UpdatePreview();
 						}
 					}
@@ -343,7 +361,7 @@ namespace GPUGraph.Editor
 
 
 			//Noise previewing.
-			if (Grph != null)
+			if (graph != null)
 			{
 				bool oldAutoUpdate = autoUpdatePreview;
 				autoUpdatePreview = GUILayout.Toggle(autoUpdatePreview, "Auto-Update Preview");
@@ -384,23 +402,70 @@ namespace GPUGraph.Editor
 					}
 					GUILayout.EndHorizontal();
 
-					//TODO: Allow editing of params for preview.
+					//Edit parameters.
+					EditorGUI.BeginChangeCheck();
+					for (int i = 0; i < graphParams.FloatParams.Count; ++i)
+					{
+						var param = graphParams.FloatParams[i];
+
+						GUILayout.BeginHorizontal();
+						GUILayout.Label(param.Name);
+
+						if (param.IsSlider)
+						{
+							float val = Mathf.Lerp(param.SliderMin, param.SliderMax,
+												   param.DefaultValue);
+							val = GUILayout.HorizontalSlider(val, 0.0f, 1.0f,
+														     GUILayout.ExpandWidth(true),
+															 GUILayout.MinWidth(80.0f));
+							param.DefaultValue = Mathf.InverseLerp(param.SliderMin, param.SliderMax,
+																   val);
+
+							GUILayout.FlexibleSpace();
+						}
+						else
+						{
+							param.DefaultValue = EditorGUILayout.DelayedFloatField(param.DefaultValue);
+						}
+
+						GUILayout.EndHorizontal();
+
+						graphParams.FloatParams[i] = param;
+					}
+					for (int i = 0; i < graphParams.Tex2DParams.Count; ++i)
+					{
+						var param = graphParams.Tex2DParams[i];
+
+						GUILayout.BeginHorizontal();
+						GUILayout.Label(param.Name);
+
+						param.DefaultVal = (Texture2D)EditorGUILayout.ObjectField(param.Name,
+																				  param.DefaultVal,
+																				  typeof(Texture2D),
+																				  false);
+
+						GUILayout.EndHorizontal();
+
+						graphParams.Tex2DParams[i] = param;
+					}
+					if (EditorGUI.EndChangeCheck())
+						UpdatePreview(false);
 				}
 			}
 
 
 			//Update the title bar as well.
-			if (Grph == null)
+			if (graph == null)
 			{
 				titleContent = new GUIContent("GPUG Editor");
 			}
 			else if (unsavedStr.Length > 0)
 			{
-				titleContent = new GUIContent("*" + Path.GetFileNameWithoutExtension(Grph.FilePath) + "*");
+				titleContent = new GUIContent("*" + Path.GetFileNameWithoutExtension(graph.FilePath) + "*");
 			}
 			else
 			{
-				titleContent = new GUIContent(Path.GetFileNameWithoutExtension(Grph.FilePath));
+				titleContent = new GUIContent(Path.GetFileNameWithoutExtension(graph.FilePath));
 			}
 		}
 		private void GUIHandleEvents(Rect graphArea, float graphXOffset)
@@ -425,7 +490,7 @@ namespace GPUGraph.Editor
 					{
 						if (CurrentlyPlacing != null)
 						{
-							Node n = CurrentlyPlacing.NodeFactory(Grph, new Rect(localMPos, Vector2.one));
+							Node n = CurrentlyPlacing.NodeFactory(graph, new Rect(localMPos, Vector2.one));
 
 							//Double-check that the node is serializable.
 							if ((n.GetType().Attributes & System.Reflection.TypeAttributes.Serializable) == 0)
@@ -438,7 +503,7 @@ namespace GPUGraph.Editor
 							}
 							else
 							{
-								Grph.AddNode(n);
+								graph.AddNode(n);
 								if (!unsavedStr.Contains("added node"))
 									unsavedStr = "added node, ";
 								Repaint();
@@ -449,7 +514,7 @@ namespace GPUGraph.Editor
 						else
 						{
 							activeWindowID = -2; //TODO: Should this be -1? Also check the conditional below.
-							foreach (Node n in Grph.Nodes)
+							foreach (Node n in graph.Nodes)
 							{
 								if (n.Pos.Contains(localMPos))
 								{
@@ -476,7 +541,7 @@ namespace GPUGraph.Editor
 							draggingMouseDown = true;
 							draggingWindowID = -2;
 
-							foreach (Node n in Grph.Nodes)
+							foreach (Node n in graph.Nodes)
 							{
 								if (n.Pos.Contains(localMPos))
 								{
@@ -484,7 +549,7 @@ namespace GPUGraph.Editor
 									draggingWindowID = activeWindowID;
 								}
 							}
-							if (Grph.OutputPos.Contains(mPos))
+							if (graph.OutputPos.Contains(mPos))
 							{
 								draggingWindowID = -1;
 							}
@@ -558,7 +623,7 @@ namespace GPUGraph.Editor
 					}
 					if (nd != null && !EditorGUIUtility.editingTextField)
 					{
-						Grph.AddNode(nd);
+						graph.AddNode(nd);
 						if (!unsavedStr.Contains("added node"))
 							unsavedStr += "added node, ";
 						Repaint();
@@ -594,7 +659,7 @@ namespace GPUGraph.Editor
 				{
 					if (reconnectingOutput >= 0)
 					{
-						Grph.Output = new NodeInput(reconnectingOutput);
+						graph.Output = new NodeInput(reconnectingOutput);
 
 						if (!unsavedStr.Contains("connect nodes"))
 							unsavedStr += "connect nodes, ";
@@ -609,11 +674,11 @@ namespace GPUGraph.Editor
 						reconnectingInput_Index = 0;
 					}
 				}
-				if (Grph.Output.IsAConstant)
+				if (graph.Output.IsAConstant)
 				{
-					float oldOut = Grph.Output.ConstantValue;
-					Grph.Output = new NodeInput(EditorGUILayout.FloatField(Grph.Output.ConstantValue));
-					if (oldOut != Grph.Output.ConstantValue)
+					float oldOut = graph.Output.ConstantValue;
+					graph.Output = new NodeInput(EditorGUILayout.FloatField(graph.Output.ConstantValue));
+					if (oldOut != graph.Output.ConstantValue)
 					{
 						if (autoUpdatePreview)
 							UpdatePreview();
@@ -625,7 +690,7 @@ namespace GPUGraph.Editor
 				{
 					if (GUILayout.Button("Disconnect"))
 					{
-						Grph.Output = new NodeInput(0.5f);
+						graph.Output = new NodeInput(0.5f);
 
 						if (!unsavedStr.Contains("disconnect nodes"))
 							unsavedStr += "disconnect nodes, ";
@@ -637,9 +702,9 @@ namespace GPUGraph.Editor
 					}
 					else
 					{
-						Rect inR = Grph.GetNode(Grph.Output.NodeID).Pos;
-						Vector2 endPos = new Vector2(inR.xMax, inR.yMin + OutputHeight) - Grph.OutputPos.min;
-						GUIUtil.DrawLine(new Vector2(0.0f, Grph.OutputPos.height * 0.5f),
+						Rect inR = graph.GetNode(graph.Output.NodeID).Pos;
+						Vector2 endPos = new Vector2(inR.xMax, inR.yMin + OutputHeight) - graph.OutputPos.min;
+						GUIUtil.DrawLine(new Vector2(0.0f, graph.OutputPos.height * 0.5f),
 										 endPos, 4.0f, Color.red);
 					}
 				}
@@ -651,7 +716,7 @@ namespace GPUGraph.Editor
 			//Any other valid UID represents a normal node.
 			else
 			{
-				Node n = Grph.GetNode(windowID);
+				Node n = graph.GetNode(windowID);
 				UnityEngine.Assertions.Assert.IsNotNull(n, "Node " + windowID + " not found");
 
 				int isSelected = -2;
@@ -693,7 +758,7 @@ namespace GPUGraph.Editor
 						{
 							if (reconnectingInput == -1)
 							{
-								Grph.Output = new NodeInput(windowID);
+								graph.Output = new NodeInput(windowID);
 								if (!unsavedStr.Contains("connect node to graph output"))
 									unsavedStr += "connect node to graph output, ";
 								if (autoUpdatePreview)
@@ -701,7 +766,7 @@ namespace GPUGraph.Editor
 							}
 							else
 							{
-								Grph.GetNode(reconnectingInput).Inputs[reconnectingInput_Index] =
+								graph.GetNode(reconnectingInput).Inputs[reconnectingInput_Index] =
 									new NodeInput(windowID);
 
 								if (!unsavedStr.Contains("connect nodes"))
@@ -715,7 +780,7 @@ namespace GPUGraph.Editor
 						break;
 
 					case Node.GUIResults.Delete:
-						Grph.RemoveNode(Grph.GetNode(windowID));
+						graph.RemoveNode(graph.GetNode(windowID));
 
 						reconnectingInput = -2;
 						reconnectingOutput = -1;
@@ -730,8 +795,8 @@ namespace GPUGraph.Editor
 
 					case Node.GUIResults.Duplicate:
 
-						Node copy = Grph.GetNode(windowID).Clone();
-						Grph.AddNode(copy);
+						Node copy = graph.GetNode(windowID).Clone();
+						graph.AddNode(copy);
 						copy.Pos.y += copy.Pos.height;
 
 						if (!unsavedStr.Contains("duplicated node"))
@@ -751,7 +816,7 @@ namespace GPUGraph.Editor
 						}
 						else if (reconnectingInput >= 0)
 						{
-							Node connecting = Grph.GetNode(reconnectingInput);
+							Node connecting = graph.GetNode(reconnectingInput);
 							connecting.Inputs[reconnectingInput_Index] = new NodeInput(copy);
 
 							reconnectingInput = -2;
@@ -764,7 +829,7 @@ namespace GPUGraph.Editor
 							if (autoUpdatePreview)
 								UpdatePreview();
 
-							Grph.Output = new NodeInput(copy);
+							graph.Output = new NodeInput(copy);
 							reconnectingInput = -2;
 						}
 
@@ -805,7 +870,7 @@ namespace GPUGraph.Editor
 			//Create shader.
 			if (regenerateShader || cachedPreviewMat == null)
 			{
-				string shaderText = Grph.GenerateShader("Graph editor temp shader", "rgb", 1.0f);
+				string shaderText = graph.GenerateShader("Graph editor temp shader", "rgb", 1.0f);
 				Shader shader = ShaderUtil.CreateShaderAsset(shaderText);
 
 				if (shader == null)
@@ -821,7 +886,7 @@ namespace GPUGraph.Editor
 			}
 
 			//Set params and generate.
-			new GraphParamCollection(Grph).SetParams(cachedPreviewMat);
+			graphParams.SetParams(cachedPreviewMat);
 			cachedPreviewMat.SetFloat(GraphUtils.Param_UVz, uvZ);
 			GraphUtils.GenerateToTexture(cachedPreviewMat, previewNoise, true);
 		}
