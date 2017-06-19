@@ -17,6 +17,7 @@ namespace GPUGraph
 		public Shader GraphShader;
 		public List<FloatParamKVP> FloatParams = new List<FloatParamKVP>();
 		public List<Tex2DParamKVP> Tex2DParams = new List<Tex2DParamKVP>();
+		public float UVz = 0.0f;
 
 
 		public Material GraphMat
@@ -176,6 +177,7 @@ namespace GPUGraph
 				m.SetFloat(floatParam.Key, floatParam.Value);
 			foreach (Tex2DParamKVP texParam in Tex2DParams)
 				m.SetTexture(texParam.Key, texParam.Value);
+			m.SetFloat(GraphUtils.Param_UVz, UVz);
 		}
 
 		#endregion

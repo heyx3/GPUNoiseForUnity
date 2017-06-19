@@ -72,6 +72,7 @@ namespace GPUGraph
 					foreach (Tex2DParamKVP tx in graph.Tex2DParams)
 						height += tx.Value.height;
 				}
+				height += oneLine;
 
 				return height;
 			}
@@ -194,10 +195,10 @@ namespace GPUGraph
 							}
 							else
 							{
-								newVal = EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent,
-																	   position.y,
-																	   25.0f, oneLine),
-															  graph.FloatParams[i].Value);
+								newVal = EditorGUI.DelayedFloatField(new Rect(position.x + 105.0f + paramIndent,
+																			  position.y,
+																			  25.0f, oneLine),
+																	 graph.FloatParams[i].Value);
 							}
 
 							if (newVal != graph.FloatParams[i].Value)
@@ -244,7 +245,21 @@ namespace GPUGraph
 							position.y += graph.Tex2DParams[i].Value.height;
 						}
 					}
-					position.y += largeSpace;
+					position.y += normalSpace;
+				}
+				//UV Z coordinate.
+				GUI.Label(new Rect(position.x + paramIndent, position.y, 100.0f, oneLine), "UV.z");
+				float newUVz = EditorGUI.FloatField(new Rect(position.x + 105.0f + paramIndent,
+															 position.y,
+														     position.width, oneLine),
+													graph.UVz);
+				position.y += largeSpace;
+
+				if (graph.UVz != newUVz)
+				{
+					paramsChanged = true;
+					Undo.RecordObject(property.serializedObject.targetObject, "Inspector");
+					graph.UVz = newUVz;
 				}
 
 				if (paramsChanged)
