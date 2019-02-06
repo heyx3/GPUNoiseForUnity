@@ -14,7 +14,7 @@ namespace GPUGraph.Applications
 		[MenuItem("Assets/GPU Graph/Generate Terrain Heightmap", false, 3)]
 		public static void GenerateHeightmap()
 		{
-			ScriptableObject.CreateInstance<TerrainGenerator>().Show();
+			CreateInstance<TerrainGenerator>().Show();
 		}
 
 
@@ -22,9 +22,13 @@ namespace GPUGraph.Applications
 		private GUIContent[] graphNameOptions;
 		private int selectedGraphIndex = 0;
 
-		private float heightScale = 1.0f;
+		private Vector2 scrollPos = Vector2.zero;
+		private float heightScale = 1.0f,
+					  uvz = 0.0f;
 
+		private Graph graph;
 		private GraphParamCollection gParams;
+		private Texture2D previewTex;
 
 
 		void OnEnable()
@@ -37,16 +41,19 @@ namespace GPUGraph.Applications
 
 			this.titleContent = new GUIContent("Terrain Gen");
 			this.minSize = new Vector2(200.0f, 250.0f);
-
-			gParams = new GraphParamCollection();
-
+			
 			selectedGraphIndex = 0;
 			if (graphPaths.Count > 0)
 			{
-				Graph g = new Graph(graphPaths[selectedGraphIndex]);
-				if (g.Load().Length == 0)
+				graph = new Graph(graphPaths[selectedGraphIndex]);
+				if (graph.Load().Length == 0)
 				{
-					gParams = new GraphParamCollection(g);
+					gParams = new GraphParamCollection(graph);
+					GeneratePreview();
+				}
+				else
+				{
+					graph = null;
 				}
 			}
 		}
@@ -54,6 +61,7 @@ namespace GPUGraph.Applications
 		void OnGUI()
 		{
 			GUILayout.Space(10.0f);
+			scrollPos = GUILayout.BeginScrollView(scrollPos);
 
 			if (Selection.activeGameObject == null ||
 				Selection.activeGameObject.GetComponent<Terrain>() == null)
@@ -69,14 +77,17 @@ namespace GPUGraph.Applications
 				selectedGraphIndex = EditorGUILayout.Popup(selectedGraphIndex, graphNameOptions);
 				if (oldIndex != selectedGraphIndex)
 				{
-					Graph g = new Graph(graphPaths[selectedGraphIndex]);
-					if (g.Load().Length == 0)
+					var newGraph = new Graph(graphPaths[selectedGraphIndex]);
+					var errMsg = newGraph.Load();
+					if (errMsg.Length > 0)
 					{
+						Debug.LogError(errMsg);
 						selectedGraphIndex = oldIndex;
 					}
 					else
 					{
-						gParams = new GraphParamCollection(g);
+						gParams = new GraphParamCollection(newGraph);
+						graph = newGraph;
 					}
 				}
 				GUILayout.EndHorizontal();
@@ -96,6 +107,9 @@ namespace GPUGraph.Applications
 				EditorGUILayout.LabelField("Height scale:");
 				heightScale = EditorGUILayout.FloatField(heightScale);
 				EditorGUILayout.EndHorizontal();
+				EditorGUILayout.BeginHorizontal();
+				uvz = EditorGUILayout.Slider("UV.z", uvz, 0, 1);
+				EditorGUILayout.EndHorizontal();
 
 				GUILayout.Space(15.0f);
 
@@ -112,22 +126,28 @@ namespace GPUGraph.Applications
 					GUILayout.Space(15.0f);
 					GUILayout.Label("No graph files detected in the project!");
 				}
+
+				//Preview texture.
+				if (GUILayout.Button("Update Preview"))
+					GeneratePreview();
+				if (previewTex != null)
+					GUILayout.Box(previewTex, GUILayout.Width(256), GUILayout.Height(256));
 			}
+
+			GUILayout.EndScrollView();
+		}
+
+		private void GeneratePreview()
+		{
+			previewTex = GraphEditorUtils.GenerateToTexture(graph, gParams, 1024, 1024, uvz,
+															"rgb", 1.0f, TextureFormat.RGBAFloat);
 		}
 		private void Generate()
 		{
 			Terrain terr = Selection.activeGameObject.GetComponent<Terrain>();
 			TerrainData dat = terr.terrainData;
-			Graph g = new Graph(graphPaths[selectedGraphIndex]);
-
-			string err = g.Load();
-			if (err.Length > 0)
-			{
-				Debug.LogError("Error loading graph: " + err);
-				return;
-			}
-
-			float[,] heights = GraphEditorUtils.GenerateToArray(g, new GraphParamCollection(g, gParams),
+			
+			float[,] heights = GraphEditorUtils.GenerateToArray(graph, gParams,
 																dat.heightmapWidth,
 																dat.heightmapHeight);
 			if (heights == null)

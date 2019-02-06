@@ -10,20 +10,88 @@ using GPUGraph;
 
 namespace GPUGraph.Applications
 {
+	public enum ColorModes
+	{
+		Gradient,
+		Make2DVec,
+		Custom
+	}
+
 	[Serializable]
 	public abstract class TextureGenerator : EditorWindow
 	{
-		public int SelectedGraphIndex = 0;
+		[Serializable]
+		private class GraphSelection
+		{
+			public int Index = 0;
+			public GraphParamCollection Params;
 
-		public List<Color> GradientRamp_Colors = null;
-		public List<float> GradientRamp_Times = null;
+			/// <summary>
+			/// Does the GUI for this graph.
+			/// Returns what changed.
+			/// </summary>
+			public ChangeTypes DoGUILayout(string label, List<string> graphPaths, GUIContent[] graphOptions)
+			{
+				var changes = ChangeTypes.None;
+				
+				GUILayout.BeginHorizontal();
+				GUILayout.Label(label);
+				int oldIndex = Index;
+				Index = EditorGUILayout.Popup(oldIndex, graphOptions);
+				if (oldIndex != Index)
+				{
+					Graph g = new Graph(graphPaths[Index]);
+					if (g.Load().Length > 0)
+					{
+						Index = oldIndex;
+					}
+					else
+					{
+						Params = new GraphParamCollection(g);
+						changes = ChangeTypes.Everything;
+					}
+				}
+				GUILayout.EndHorizontal();
+
+				GUILayout_TabIn(25.0f);
+
+				if (Params != null && Params.ParamEditorGUI() && changes != ChangeTypes.Everything)
+					changes = ChangeTypes.Params;
+
+				GUILayout_TabOut(25.0f);
+
+				return changes;
+			}
+			
+			/// <summary>
+			/// The different aspects of this graph selection that can change.
+			/// </summary>
+			public enum ChangeTypes
+			{
+				None, Params, Everything
+			}
+		}
 
 
+		public ColorModes OutputMode = ColorModes.Gradient;
+	
+		public List<Color> Output_Gradient_Colors = new List<Color>()
+			{ Color.black, Color.white };
+		public List<float> Output_Gradient_Times = new List<float>()
+			{ 0, 1 };
+
+		public bool Output_AngleTo2DVec_Pack01 = true;
+
+		public string Output_Custom_CodeBody = "//Put 3 white noise values in the GBA channels\n//    based on the R channel.\n" +
+											   "return float4(graphResult1, hashTo3(graphResult1));";
+
+
+		private List<GraphSelection> chosenGraphs = new List<GraphSelection>();
+		private bool isLoaded = false;
+	
 		private List<string> graphPaths = new List<string>();
 		private GUIContent[] graphNameOptions;
-
-		private GraphParamCollection gParams;
-
+		
 		private Texture2D previewTex = null;
 		private Material previewMat = null;
 		private float previewScale = 1.0f;
@@ -31,29 +99,41 @@ namespace GPUGraph.Applications
 					  previewUVzMin = 0.0f,
 					  previewUVzMax = 1.0f;
 
+		[SerializeField]
+		private Vector2 scrollPos = Vector2.zero;
 
+		  
 		protected bool HasGraph { get { return graphPaths.Count > 0; } }
-		protected string SelectedGraphPath { get { return graphPaths[SelectedGraphIndex]; } }
-		protected GraphParamCollection GraphParams { get { return gParams; } }
 
-		protected Graph LoadGraph()
+		protected Graph[] LoadGraphs()
 		{
-			Graph graph = new Graph(SelectedGraphPath);
-			string errMsg = graph.Load();
-			if (errMsg.Length > 0)
+			var graphs = new Graph[chosenGraphs.Count];
+
+			for (int i = 0; i < graphs.Length; ++i)
 			{
-				Debug.LogError("Error loading graph " + graphPaths[SelectedGraphIndex] +
-							   ": " + errMsg);
-				return null;
+				var path = graphPaths[chosenGraphs[i].Index];
+				graphs[i] = new Graph(path);
+				string errMsg = graphs[i].Load();
+				if (errMsg.Length > 0)
+				{
+					Debug.LogError("Error loading graph " + path + ": " + errMsg);
+					return null;
+				}
 			}
 
-			return graph;
+			return graphs;
 		}
+		protected GraphParamCollection GetParams(int graphI)
+		{
+			return chosenGraphs[graphI].Params;
+		}
+
 		protected Gradient MakeGradient()
 		{
 			Gradient gradient = new Gradient();
-			gradient.SetKeys(GradientRamp_Colors.Select((c, i) =>
-							     new GradientColorKey(c, GradientRamp_Times[i])).ToArray(),
+			gradient.SetKeys(Output_Gradient_Colors.Select(
+							     (c, i) => new GradientColorKey(c, Output_Gradient_Times[i]))
+												   .ToArray(),
 							 new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f) });
 			return gradient;
 		}
@@ -68,34 +148,75 @@ namespace GPUGraph.Applications
 			//Regenerate shader.
 			if (regenerateShader || previewMat == null)
 			{
-				//Render the gradient ramp to a texture.
-				Gradient gradient = MakeGradient();
-				Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
-				myRamp.wrapMode = TextureWrapMode.Clamp;
-				Color[] cols = new Color[myRamp.width];
-				for (int i = 0; i < cols.Length; ++i)
-					cols[i] = gradient.Evaluate((float)i / (float)(cols.Length - 1));
-				myRamp.SetPixels(cols);
-				myRamp.Apply(false, true);
-
-				Graph graph = new Graph(graphPaths[SelectedGraphIndex]);
-				string errMsg = graph.Load();
-				if (errMsg.Length > 0)
-				{
-					Debug.LogError("Error loading graph " + graphPaths[SelectedGraphIndex] +
-								   ": " + errMsg);
+				var graphs = LoadGraphs();
+				if (graphs == null)
 					return null;
-				}
 
-				Shader shader = ShaderUtil.CreateShaderAsset(graph.GenerateShader(
-																 "Graph editor temp shader",
-																 "_textureGeneratorWindowGradient"));
-				previewMat = new Material(shader);
-				previewMat.SetTexture("_textureGeneratorWindowGradient", myRamp);
+				switch (OutputMode)
+				{
+					case ColorModes.Gradient: {
+
+						//Render the gradient ramp to a texture.
+						Gradient gradient = MakeGradient();
+						Texture2D myRamp = new Texture2D(1024, 1, TextureFormat.RGBA32, false);
+						myRamp.wrapMode = TextureWrapMode.Clamp;
+						Color[] cols = new Color[myRamp.width];
+						for (int i = 0; i < cols.Length; ++i)
+							cols[i] = gradient.Evaluate((float)i / (float)(cols.Length - 1));
+						myRamp.SetPixels(cols);
+						myRamp.Apply(false, true);
+
+						//Generate a shader that uses the gradient.
+						var shader = ShaderUtil.CreateShaderAsset(
+									     graphs[0].GenerateShader("Graph editor temp shader",
+															      "_textureGeneratorWindowGradient"));
+						previewMat = new Material(shader);
+						previewMat.SetTexture("_textureGeneratorWindowGradient", myRamp);
+					} break;
+
+					case ColorModes.Make2DVec: {
+						var shaderStr = Graph.GenerateShader(
+								"GraphEditorTempShader", graphs,
+								(fragBody) =>
+								{
+									fragBody.Append(@"
+	const float PI_2 = 3.14159265359 * 2.0;
+	float angle = PI_2 * graphResult1,
+		  magnitude = graphResult2;
+	float2 dir = magnitude * float2(cos(angle), sin(angle));");
+									if (Output_AngleTo2DVec_Pack01)
+										fragBody.AppendLine(@"
+    dir = 0.5 + (0.5 * dir);");
+									fragBody.AppendLine(@"
+	return float4(dir, 0, 1);");
+								});
+						var shader = UnityEditor.ShaderUtil.CreateShaderAsset(shaderStr);
+						previewMat = new Material(shader);
+					} break;
+
+					case ColorModes.Custom: {
+						var shaderStr = Graph.GenerateShader(
+							"GraphEditorTempShader", graphs,
+							(fragBody) =>
+							{
+								fragBody.AppendLine(Output_Custom_CodeBody);
+							});
+						var shader = UnityEditor.ShaderUtil.CreateShaderAsset(shaderStr);
+						previewMat = new Material(shader);
+					} break;
+
+					default: throw new NotImplementedException(OutputMode.ToString());
+				}
 			}
 
 			//Set parameters.
-			gParams.SetParams(previewMat);
+			for (int graphI = 0; graphI < chosenGraphs.Count; ++graphI)
+			{
+				var paramPrefix = (chosenGraphs.Count > 1) ?
+								      ("p" + (graphI + 1)) :
+									  "";
+				chosenGraphs[graphI].Params.SetParams(previewMat, paramPrefix);
+			}
 			previewMat.SetFloat(GraphUtils.Param_UVz, previewUVz);
 
 			//Generate.
@@ -111,20 +232,21 @@ namespace GPUGraph.Applications
 			Func<string, GUIContent> selector = (gp => new GUIContent(Path.GetFileNameWithoutExtension(gp), gp));
 			graphNameOptions = graphPaths.Select(selector).ToArray();
 
-			gParams = new GraphParamCollection();
-
-			GradientRamp_Colors = new List<Color>() { Color.black, Color.white };
-			GradientRamp_Times = new List<float>() { 0.0f, 1.0f };
-
-			SelectedGraphIndex = 0;
-			if (graphPaths.Count > 0)
+			if (!isLoaded)
 			{
-				Graph g = new Graph(graphPaths[SelectedGraphIndex]);
-				if (g.Load().Length == 0)
+				isLoaded = true;
+				chosenGraphs.Clear();
+				if (graphPaths.Count > 0)
 				{
-					gParams = new GraphParamCollection(g);
+					var graph = new Graph(graphPaths[0]);
+					if (graph.Load().Length == 0)
+						chosenGraphs.Add(new GraphSelection() { Index = 0, Params = new GraphParamCollection(graph) });
 				}
 			}
+		}
+		protected virtual void OnFocus()
+		{
+			OnEnable();
 		}
 
 		/// <summary>
@@ -140,114 +262,176 @@ namespace GPUGraph.Applications
 		/// </summary>
 		protected abstract void GenerateTexture();
 
-		//Defined in the same order they're called.
-		protected virtual void OnGUI_BelowGraphSelection() { }
-		protected virtual void OnGUI_BelowGradientAboveParams() { }
-		protected virtual void OnGUI_AboveGenerationButton() { }
+		protected virtual void DoCustomGUI() { }
+
 
 		private void OnGUI()
 		{
 			GUILayout.Space(15.0f);
+		
+			scrollPos = GUILayout.BeginScrollView(scrollPos);
 
-			//Choose the graph to use.
-			GUILayout.BeginHorizontal();
-			GUILayout.Label("Graph:");
-			int oldIndex = SelectedGraphIndex;
-			SelectedGraphIndex = EditorGUILayout.Popup(SelectedGraphIndex, graphNameOptions);
-			if (oldIndex != SelectedGraphIndex)
+			//Make sure we have enough graphs.
+			int nGraphs = -1;
+			switch (OutputMode)
 			{
-				Graph g = new Graph(graphPaths[SelectedGraphIndex]);
-				if (g.Load().Length > 0)
-				{
-					SelectedGraphIndex = oldIndex;
-				}
-				else
-				{
-					gParams = new GraphParamCollection(g);
-				}
+				case ColorModes.Custom:
+					nGraphs = EditorGUILayout.DelayedIntField("# Graphs", chosenGraphs.Count);
+				break;
 
-				GetPreview(true);
+				case ColorModes.Gradient:
+					nGraphs = 1;
+				break;
+
+				case ColorModes.Make2DVec:
+					nGraphs = 2;
+				break;
+
+				default: throw new NotImplementedException(OutputMode.ToString());
 			}
-			GUILayout.EndHorizontal();
+			while (nGraphs > chosenGraphs.Count)
+				chosenGraphs.Add(new GraphSelection());
+			while (nGraphs < chosenGraphs.Count)
+				chosenGraphs.RemoveAt(chosenGraphs.Count - 1);
 
-			GUILayout.Space(10.0f);
+			for (int graphI = 0; graphI < nGraphs; ++graphI)
+			{
+				GUILayout_TabIn(25.0f);
 
-			OnGUI_BelowGraphSelection();
+				var graph = chosenGraphs[graphI];
+				var changes = graph.DoGUILayout("Graph " + (graphI + 1),
+												graphPaths, graphNameOptions);
+				
+				switch (changes)
+				{
+					case GraphSelection.ChangeTypes.None:
+						break;
+					case GraphSelection.ChangeTypes.Params:
+						GetPreview(false);
+						break;
+					case GraphSelection.ChangeTypes.Everything:
+						GetPreview(true);
+						break;
 
-			//Choose the color gradient.
-			GUILayout.Label("Gradient");
-			GUILayout.BeginHorizontal();
+					default: throw new NotImplementedException(changes.ToString());
+				}
+
+				GUILayout_TabOut();
+
+				GUILayout.Space(25.0f);
+			}
+
+			//Do color-mode-specific UI.
+			OutputMode = (ColorModes)EditorGUILayout.EnumPopup("Mode", OutputMode);
+			switch (OutputMode)
+			{
+				case ColorModes.Gradient:
+					//Choose the color gradient.
+					GUILayout.Label("Gradient");
+					GUILayout.BeginHorizontal();
+					GUILayout.Space(15.0f);
+					GUILayout.BeginVertical();
+					for (int i = 0; i < Output_Gradient_Colors.Count; ++i)
+					{
+						GUILayout.BeginHorizontal();
+
+						//Edit the color value.
+						EditorGUI.BeginChangeCheck();
+						Output_Gradient_Colors[i] = EditorGUILayout.ColorField(Output_Gradient_Colors[i]);
+						if (i > 0)
+							Output_Gradient_Times[i] = EditorGUILayout.Slider(Output_Gradient_Times[i],
+																		   0.0f, 1.0f);
+						if (EditorGUI.EndChangeCheck())
+							GetPreview(true);
+
+						//Button to insert a new element.
+						if (i > 0 && GUILayout.Button("+"))
+						{
+							Output_Gradient_Colors.Insert(i, Output_Gradient_Colors[i]);
+							Output_Gradient_Times.Insert(i, Output_Gradient_Times[i] - 0.00000001f);
+
+							GetPreview(true);
+						}
+						//Button to remove this element.
+						if (i > 0 && Output_Gradient_Colors.Count > 2 && GUILayout.Button("-"))
+						{
+							Output_Gradient_Colors.RemoveAt(i);
+							Output_Gradient_Times.RemoveAt(i);
+							i -= 1;
+
+							GetPreview(true);
+						}
+						GUILayout.EndHorizontal();
+
+						//Make sure elements are in order.
+						if (i > 0 && Output_Gradient_Times[i] < Output_Gradient_Times[i - 1])
+						{
+							Output_Gradient_Times[i] = Output_Gradient_Times[i - 1] + 0.000001f;
+							GetPreview(true);
+						}
+						else if (i < Output_Gradient_Colors.Count - 1 &&
+								 Output_Gradient_Times[i] > Output_Gradient_Times[i + 1])
+						{
+							Output_Gradient_Times[i] = Output_Gradient_Times[i + 1] - 0.00001f;
+							GetPreview(true);
+						}
+					}
+					GUILayout.EndVertical();
+					GUILayout.EndHorizontal();
+				break;
+
+				case ColorModes.Make2DVec:
+					GUILayout.BeginHorizontal();
+					GUILayout.Space(30.0f);
+					GUILayout.BeginVertical();
+					EditorGUI.BeginChangeCheck();
+					Output_AngleTo2DVec_Pack01 = EditorGUILayout.Toggle("Pack into range [0,1]",
+																		Output_AngleTo2DVec_Pack01);
+					if (EditorGUI.EndChangeCheck())
+						GetPreview(true);
+					GUILayout.EndVertical();
+					GUILayout.EndHorizontal();
+				break;
+
+				case ColorModes.Custom:
+					GUILayout.BeginHorizontal();
+					GUILayout.Space(30.0f);
+					GUILayout.BeginVertical();
+
+					if (GUILayout.Button("Regenerate preview"))
+						GetPreview(true);
+					string args = "";
+					for (int graphI = 0; graphI < chosenGraphs.Count; ++graphI)
+					{
+						if (graphI > 0)
+							args += ", ";
+						args += "float graphResult" + (graphI + 1);
+					}
+					GUILayout.Label("float4 getTexOutputColor(" + args + ")");
+					GUILayout.Label("{");
+					
+					GUILayout.BeginHorizontal();
+					GUILayout.Space(30.0f);
+					GUILayout.BeginVertical();
+					Output_Custom_CodeBody = EditorGUILayout.TextArea(Output_Custom_CodeBody);
+					GUILayout.EndVertical();
+					GUILayout.EndHorizontal();
+
+					GUILayout.Label("}");
+
+					GUILayout.EndVertical();
+					GUILayout.EndHorizontal();
+				break;
+
+				default: throw new NotImplementedException(OutputMode.ToString());
+			}
+
 			GUILayout.Space(15.0f);
-			GUILayout.BeginVertical();
-			for (int i = 0; i < GradientRamp_Colors.Count; ++i)
-			{
-				GUILayout.BeginHorizontal();
 
-				//Edit the color value.
-				EditorGUI.BeginChangeCheck();
-				GradientRamp_Colors[i] = EditorGUILayout.ColorField(GradientRamp_Colors[i]);
-				if (i > 0)
-					GradientRamp_Times[i] = EditorGUILayout.Slider(GradientRamp_Times[i],
-																   0.0f, 1.0f);
-				if (EditorGUI.EndChangeCheck())
-					GetPreview(true);
-
-				//Button to insert a new element.
-				if (i > 0 && GUILayout.Button("+"))
-				{
-					GradientRamp_Colors.Insert(i, GradientRamp_Colors[i]);
-					GradientRamp_Times.Insert(i, GradientRamp_Times[i] - 0.00000001f);
-
-					GetPreview(true);
-				}
-				//Button to remove this element.
-				if (i > 0 && GradientRamp_Colors.Count > 2 && GUILayout.Button("-"))
-				{
-					GradientRamp_Colors.RemoveAt(i);
-					GradientRamp_Times.RemoveAt(i);
-					i -= 1;
-
-					GetPreview(true);
-				}
-				GUILayout.EndHorizontal();
-
-				//Make sure elements are in order.
-				if (i > 0 && GradientRamp_Times[i] < GradientRamp_Times[i - 1])
-				{
-					GradientRamp_Times[i] = GradientRamp_Times[i - 1] + 0.000001f;
-					GetPreview(true);
-				}
-				else if (i < GradientRamp_Colors.Count - 1 &&
-						 GradientRamp_Times[i] > GradientRamp_Times[i + 1])
-				{
-					GradientRamp_Times[i] = GradientRamp_Times[i + 1] - 0.00001f;
-					GetPreview(true);
-				}
-			}
-			GUILayout.EndVertical();
-			GUILayout.EndHorizontal();
+			DoCustomGUI();
 
 			GUILayout.Space(15.0f);
-
-			OnGUI_BelowGradientAboveParams();
-
-			//Edit the graph's parameters.
-			GUILayout.Label("Graph Parameters:");
-			GUILayout.BeginHorizontal();
-			GUILayout.FlexibleSpace();
-			GUILayout.BeginVertical();
-			{
-				if (graphPaths.Count > 0 && gParams.ParamEditorGUI())
-					GetPreview(false);
-			}
-			GUILayout.EndVertical();
-			GUILayout.FlexibleSpace();
-			GUILayout.EndHorizontal();
-
-			GUILayout.Space(10.0f);
-
-			OnGUI_AboveGenerationButton();
-
+			
 			//Show the preview texture.
 			if (previewTex != null)
 			{
@@ -302,16 +486,27 @@ namespace GPUGraph.Applications
 				GUILayout.Space(15.0f);
 				GUILayout.Label("No graph files detected in the project!");
 			}
-		}
 
-		private float Smoothstep(float t)
-		{
-			return (t * t * (3.0f - (2.0f * t)));
+			GUILayout.EndScrollView();
 		}
-		private float SmoothstepInv(float t)
+		
+		private static void GUILayout_TabIn(float spaceBefore)
 		{
-			//From https://stackoverflow.com/questions/28740544/inverted-smoothstep
-			return t + (t - ((t * t * (3.0f - (2.0f * t)))));
+			GUILayout.BeginHorizontal();
+			if (spaceBefore < 0.0f)
+				GUILayout.FlexibleSpace();
+			else if (spaceBefore > 0.0f)
+				GUILayout.Space(spaceBefore);
+			GUILayout.BeginVertical();
+		}
+		private static void GUILayout_TabOut(float spaceAfter = 0.0f)
+		{
+			GUILayout.EndVertical();
+			if (spaceAfter < 0.0f)
+				GUILayout.FlexibleSpace();
+			else if (spaceAfter > 0.0f)
+				GUILayout.Space(spaceAfter);
+			GUILayout.EndHorizontal();
 		}
 	}
 }

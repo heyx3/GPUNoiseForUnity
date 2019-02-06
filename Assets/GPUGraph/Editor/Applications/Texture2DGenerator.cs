@@ -35,7 +35,7 @@ namespace GPUGraph.Applications
 				GetPreview(true);
 		}
 
-		protected override void OnGUI_BelowGraphSelection()
+		protected override void DoCustomGUI()
 		{
 			EditorGUI.BeginChangeCheck();
 			{

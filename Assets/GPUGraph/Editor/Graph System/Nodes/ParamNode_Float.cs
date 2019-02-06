@@ -41,6 +41,7 @@ namespace GPUGraph
 
 			DefaultValue = 0.0f;
 		}
+
 		public FloatParamInfo(FloatParamInfo original, float newDefaultVal)
 		{
 			Name = original.Name;
@@ -48,6 +49,14 @@ namespace GPUGraph
 			SliderMin = original.SliderMin;
 			SliderMax = original.SliderMax;
 			DefaultValue = newDefaultVal;
+		}
+		public FloatParamInfo(FloatParamInfo original, string newName)
+		{
+			Name = newName;
+			IsSlider = original.IsSlider;
+			SliderMin = original.SliderMin;
+			SliderMax = original.SliderMax;
+			DefaultValue = original.DefaultValue;
 		}
 	}
 

@@ -10,11 +10,138 @@ using UnityEngine;
 
 namespace GPUGraph
 {
-	//TODO: Use a version number uint as the context for deserialization.
-
 	[Serializable]
 	public class Graph : ISerializable
 	{
+		#region Shader template
+
+		/// <summary>
+		/// The template for a Graph shader.
+		/// Is a normal Image-Effect-type shader, with the following tokens:
+		///     #GPUG_ShaderName: replace with the shader's name
+		///     #GPUG_Properties: replace with the shader's properties
+		///     #GPUG_CgDefs: replace with the shader's various uniforms/functions
+		///     #GPUG_FragBody: replace with the body of the fragment shader.
+		///						Access the UVs with "IN.texcoord.xy".
+		/// </summary>
+		public static readonly string ShaderTemplate =
+@"Shader ""#GPUG_ShaderName""
+{
+	Properties {
+		#GPUG_Properties
+	}
+	SubShader
+    {
+        Tags
+        {
+            ""RenderType"" = ""Opaque""
+            ""PreviewType"" = ""Plane""
+        }
+
+        Cull Off
+        Lighting Off
+        ZWrite Off
+        Fog { Mode Off }
+        Blend One Zero
+
+        Pass
+        {
+        CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include ""UnityCG.cginc""
+
+            struct appdata_t
+            {
+                float4 vertex    : POSITION;
+                float4 color     : COLOR;
+                float2 texcoord  : TEXCOORD0;
+            };
+
+            struct v2f
+			{
+				float4 vertex	: SV_POSITION;
+				fixed4 color	: COLOR;
+				half2 texcoord	: TEXCOORD0;
+			};
+
+			v2f vert(appdata_t IN)
+			{
+				v2f OUT;
+				OUT.vertex = (IN.vertex);
+				OUT.texcoord = IN.texcoord;
+				OUT.color = IN.color;
+
+				return OUT;
+			}
+			
+			#GPUG_CgDefs
+
+			float4 frag(v2f IN) : COLOR
+			{
+				#GPUG_FragBody
+			}
+		ENDCG
+		}
+	}
+}";
+
+		public static readonly string ShaderToken_ShaderName = "#GPUG_ShaderName",
+									  ShaderToken_Properties = "#GPUG_Properties",
+									  ShaderToken_CgDefs = "#GPUG_CgDefs",
+									  ShaderToken_FragBody = "#GPUG_FragBody";
+		
+		#endregion
+		
+		/// <summary>
+		/// Generates a shader that uses the given set of graphs.
+		/// The parameters in each graph are prefixed with "pN",
+		///     where N is the 1-based index of that graph.
+		/// </summary>
+		/// <param name="returnFromFragShaderGivenGraphOutputPrefix">
+		/// Given the StringBuilder for the fragment shader's body,
+		///     emits a return statement for the fragment shader.
+		/// To get the output from graph N (1-based index),
+		///     use the shader variable "graphResultN".
+		/// </param>
+		public static string GenerateShader(string shaderName, ICollection<Graph> graphs,
+										    Action<StringBuilder> returnFromFragShader)
+		{
+			if (graphs.Count == 0)
+				return null;
+
+			var shaderTxt = new StringBuilder(ShaderTemplate);
+			var propBlock = new StringBuilder();
+			var cgDefs = new StringBuilder();
+			var fragBody = new StringBuilder();
+
+			int nIDsPerGraph = int.MaxValue / graphs.Count;
+			int i = 0;
+			foreach (var graph in graphs)
+			{
+				int idOffset = i * nIDsPerGraph;
+				string graphExpr = graph.InsertShaderCode(
+								       propBlock, cgDefs, fragBody,
+									   idOffset, "p" + (i + 1), (i == 0));
+
+				i += 1;
+				fragBody.Append("float graphResult");
+				fragBody.Append(i);
+				fragBody.Append(" = ");
+				fragBody.Append(graphExpr);
+				fragBody.AppendLine(";");
+			}
+
+			returnFromFragShader(fragBody);
+
+			shaderTxt.Replace(ShaderToken_ShaderName, shaderName);
+			shaderTxt.Replace(ShaderToken_Properties, propBlock.ToString());
+			shaderTxt.Replace(ShaderToken_CgDefs, cgDefs.ToString());
+			shaderTxt.Replace(ShaderToken_FragBody, fragBody.ToString());
+
+			return shaderTxt.ToString();
+		}
+
 		public static bool IsValidUID(int uid) { return uid >= 0; }
 
 
@@ -69,7 +196,7 @@ namespace GPUGraph
 			Graph g = new Graph();
 			g.NextUID = NextUID + idOffset;
 			g.FilePath = FilePath;
-			g.Output = Output;
+			g.Output = (Output.IsAConstant ? Output : new NodeInput(Output.NodeID + idOffset));
 			g.OutputPos = OutputPos;
 
 			foreach (Node n in nodes)
@@ -173,6 +300,9 @@ namespace GPUGraph
         ///     so that they do not conflict with the ID's of any other nodes in other graphs used by this shader.
         /// This offset should be larger than any ID of a node in any other graph.
         /// </param>
+		/// <param name="paramPrefix">
+		/// A prefix added to all of this graph's parameters when emitting shader code.
+		/// </param>
         /// <param name="isFirstGraph">
         /// Indicates whether this is the first time that
         ///     generated code from a Graph is being inserted into this shader.
@@ -180,10 +310,27 @@ namespace GPUGraph
         /// </param>
         public string InsertShaderCode(StringBuilder shaderProperties, StringBuilder shaderCGDefines,
                                        StringBuilder shaderBody,
-                                       int idOffset, bool isFirstGraph)
+                                       int idOffset, string paramPrefix, bool isFirstGraph)
         {
-            //Clone this graph so nodes can pre-process it before generating the shader code.
+            //Clone this graph so it can be pre-processed without changing the original.
             Graph g = Clone(idOffset);
+			foreach (var node in g.nodes)
+			{
+				var fParam = node as ParamNode_Float;
+				if (fParam != null)
+				{
+					fParam.Param = new FloatParamInfo(fParam.Param, paramPrefix + fParam.Param.Name);
+					continue;
+				}
+
+				var tParam = node as ParamNode_Texture2D;
+				if (tParam != null)
+				{
+					tParam.Param = new Texture2DParamInfo(paramPrefix + tParam.Param.Name, tParam.Param.DefaultVal);
+					continue;
+				}
+			}
+
             return g.InsertShad(shaderProperties, shaderCGDefines, shaderBody, isFirstGraph);
         }
         private string InsertShad(StringBuilder properties, StringBuilder cgProperties,
@@ -209,8 +356,14 @@ namespace GPUGraph
             Dictionary<int, bool> uidDoneYet = new Dictionary<int, bool>();
             if (!Output.IsAConstant)
             {
-                toProcess.Add(GetNode(Output.NodeID));
-                uidDoneYet.Add(Output.NodeID, false);
+				var seedNode = GetNode(Output.NodeID);
+				if (seedNode == null)
+					Debug.LogError("Couldn't find the start node, id: " + Output.NodeID);
+				else
+				{
+					toProcess.Add(GetNode(Output.NodeID));
+					uidDoneYet.Add(Output.NodeID, false);
+				}
             }
             while (toProcess.Count > 0)
             {
@@ -227,12 +380,21 @@ namespace GPUGraph
 							{
 								//Move the node up to the top of the stack.
 								Node n2 = GetNode(ni.NodeID);
-								toProcess.Remove(n2);
-								toProcess.Add(n2);
+								if (n2 == null)
+									Debug.LogError("Couldn't find node with id " + ni.NodeID);
+								else
+								{
+									toProcess.Remove(n2);
+									toProcess.Add(n2);
+								}
 							}
 							else
                             {
-                                toProcess.Add(GetNode(ni.NodeID));
+								var nextN = GetNode(ni.NodeID);
+								if (nextN == null)
+									Debug.LogError("Couldn't find node with id " + ni.NodeID);
+                                else
+									toProcess.Add(nextN);
                                 uidDoneYet.Add(ni.NodeID, false);
                             }
                         }
@@ -338,100 +500,31 @@ namespace GPUGraph
 									 Action<StringBuilder> addToDefs,
 									 Action<string, StringBuilder> returnFragmentColor)
 		{
-            //Get the core parts of the shader code.
+			//Generate the important parts of the shader code.
             StringBuilder properties = new StringBuilder(),
                           cgProperties = new StringBuilder(),
                           body = new StringBuilder();
-            string outExpr = InsertShaderCode(properties, cgProperties, body, 0, true);
+            string graphOutExpr = InsertShaderCode(properties, cgProperties, body, 0, "", true);
+			addToProperties(properties);
+			addToDefs(cgProperties);
+			body.Append("float graphNoiseResult = ");
+			body.Append(graphOutExpr);
+			body.AppendLine(";");
+			returnFragmentColor("graphNoiseResult", body);
 
-            StringBuilder shader = new StringBuilder();
-            shader.Append("Shader \"");
-            shader.Append(shaderName);
-            shader.Append("\"");
-            shader.AppendLine(@"
-    {
-        Properties
-        {");
-			shader.AppendLine(properties.ToString());
-			addToProperties(shader);
-            shader.AppendLine(@"
-        }
-        SubShader
-        {
-            Tags
-            {
-                ""RenderType"" = ""Opaque""
-                ""PreviewType"" = ""Plane""
-            }
+			//Build the shader from the template.
+			var shaderTxt = new StringBuilder(ShaderTemplate);
+			shaderTxt.Replace(ShaderToken_ShaderName, shaderName);
+			shaderTxt.Replace(ShaderToken_Properties, properties.ToString());
+			shaderTxt.Replace(ShaderToken_CgDefs, cgProperties.ToString());
+			shaderTxt.Replace(ShaderToken_FragBody, body.ToString());
 
-            Cull Off
-            Lighting Off
-            ZWrite Off
-            Fog { Mode Off }
-            Blend One Zero
+			//Add an extra line to the end of the file,
+			//    then make sure all line endings are Unity-friendly.
+			shaderTxt.Append("\r\n");
+			shaderTxt.Replace("\r\n", "\n");
 
-            Pass
-            {
-            CGPROGRAM
-                #pragma vertex vert
-                #pragma fragment frag
-                #include ""UnityCG.cginc""
-
-                struct appdata_t
-                {
-                    float4 vertex    : POSITION;
-                    float4 color     : COLOR;
-                    float2 texcoord  : TEXCOORD0;
-                };
-
-                struct v2f
-				{
-					float4 vertex	: SV_POSITION;
-					fixed4 color	: COLOR;
-					half2 texcoord	: TEXCOORD0;
-				};
-
-				v2f vert(appdata_t IN)
-				{
-					v2f OUT;
-					OUT.vertex = (IN.vertex);
-					OUT.texcoord = IN.texcoord;
-					OUT.color = IN.color;
-
-					return OUT;
-				}
-
-				//--------GPUG/Node stuff---------
-				//--------------------------------");
-            shader.AppendLine(cgProperties.ToString());
-			addToDefs(shader);
-            shader.AppendLine(@"
-                //--------------------------------
-                //--------------------------------
-
-                fixed4 frag(v2f IN) : COLOR
-				{
-                    //------------GPUG/Node stuff------------
-                    //--------------------------------------");
-            shader.AppendLine(body.ToString());
-            shader.Append(@"
-                    //---------------------------------------
-                    //---------------------------------------
-
-                    float OUT_expr = ");
-            shader.Append(outExpr);
-            shader.AppendLine(";");
-			returnFragmentColor("OUT_expr", shader);
-			shader.AppendLine(@"
-                }
-            ENDCG
-            }
-        }
-    }");
-			//Add an extra line to the end of the file, then make sure all line endings match.
-            string output = (shader.ToString() + "\r\n").Replace("\r\n", "\n");
-
-			return output;
+			return shaderTxt.ToString();
         }
 
 		/// <summary>

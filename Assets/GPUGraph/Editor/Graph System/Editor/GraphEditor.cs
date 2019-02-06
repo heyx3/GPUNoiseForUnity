@@ -250,11 +250,7 @@ namespace GPUGraph.Editor
 																	  Mathf.RoundToInt(position.height * 0.5f));
 					if (err.Length > 0)
 					{
-						graphParams = new GPUGraph.GraphParamCollection()
-						{
-							FloatParams = new List<GPUGraph.FloatParamInfo>(),
-							Tex2DParams = new List<GPUGraph.Texture2DParamInfo>(),
-						};
+						graphParams = new GPUGraph.GraphParamCollection(graph);
 						Debug.LogError("Error loading graph: " + err);
 					}
 					else
@@ -413,13 +409,14 @@ namespace GPUGraph.Editor
 
 						if (param.IsSlider)
 						{
-							float val = Mathf.Lerp(param.SliderMin, param.SliderMax,
-												   param.DefaultValue);
-							val = GUILayout.HorizontalSlider(val, 0.0f, 1.0f,
-														     GUILayout.ExpandWidth(true),
-															 GUILayout.MinWidth(80.0f));
+							param.DefaultValue =
+								GUILayout.HorizontalSlider(Mathf.Lerp(param.SliderMin, param.SliderMax,
+																	  param.DefaultValue),
+														   param.SliderMin, param.SliderMax,
+														   GUILayout.ExpandWidth(true),
+														   GUILayout.MinWidth(80.0f));
 							param.DefaultValue = Mathf.InverseLerp(param.SliderMin, param.SliderMax,
-																   val);
+																   param.DefaultValue);
 
 							GUILayout.FlexibleSpace();
 						}
@@ -573,9 +570,9 @@ namespace GPUGraph.Editor
 						//}
 					}
 					break;
-
 				case EventType.KeyDown:
 					//Add certain kinds of nodes for different keystrokes.
+					/*
 					Node nd = null;
 					switch (evt.keyCode)
 					{
@@ -628,6 +625,7 @@ namespace GPUGraph.Editor
 							unsavedStr += "added node, ";
 						Repaint();
 					}
+					*/
 					break;
 			}
 		}
@@ -867,6 +865,11 @@ namespace GPUGraph.Editor
 		/// </param>
 		private void UpdatePreview(bool regenerateShader = true)
 		{
+			//Update params.
+			var oldParams = graphParams;
+			graphParams = new GPUGraph.GraphParamCollection(graph);
+			graphParams.SetParams(oldParams);
+
 			//Create shader.
 			if (regenerateShader || cachedPreviewMat == null)
 			{

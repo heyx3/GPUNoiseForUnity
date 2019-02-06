@@ -149,14 +149,23 @@ namespace GPUGraph
 		/// <summary>
 		/// Appends any necessary Shaderlab property definitions to the given shader.
 		/// </summary>
+		/// <param name="paramPrefix">
+		/// A prefix that should be applied to all Property names.
+		/// </param>
 		public virtual void EmitProperties(StringBuilder outCode) { }
 		/// <summary>
 		/// Appends any necessary definitions to the given shader.
 		/// </summary>
+		/// <param name="paramPrefix">
+		/// A prefix that should be applied to all Property names.
+		/// </param>
 		public virtual void EmitDefs(StringBuilder outCode) { }
 		/// <summary>
 		/// Appends the actual shader code that computes the output variable.
 		/// </summary>
+		/// <param name="paramPrefix">
+		/// A prefix that should be applied to all Property names.
+		/// </param>
 		public virtual void EmitCode(StringBuilder outCode) { }
 
 

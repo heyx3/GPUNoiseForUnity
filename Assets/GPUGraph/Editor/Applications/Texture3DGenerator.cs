@@ -47,7 +47,7 @@ namespace GPUGraph.Applications
 				GetPreview(true);
 		}
 
-		protected override void OnGUI_BelowGraphSelection()
+		protected override void DoCustomGUI()
 		{
 			EditorGUI.BeginChangeCheck();
 			{
@@ -141,8 +141,16 @@ namespace GPUGraph.Applications
                 baseDataSizeZ = Math.Max(baseDataSizeZ, Normals_Z);
             }
 
-			Graph graph = LoadGraph();
-			GraphParamCollection graphParams = GraphParams;
+			//TODO: Support other modes.
+			if (OutputMode != ColorModes.Gradient)
+				throw new NotImplementedException("Don't support non-Gradient modes yet!");
+
+			var graphs = LoadGraphs();
+			if (graphs == null)
+				return false;
+			var graph = graphs[0];
+
+			GraphParamCollection graphParams = GetParams(0);
 
             //Generate the initial data.
             float[,,] baseData = GraphEditorUtils.GenerateToArray(graph, graphParams,

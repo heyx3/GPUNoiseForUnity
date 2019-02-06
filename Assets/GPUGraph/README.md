@@ -18,6 +18,8 @@ Graphs are created in a custom editor window and saved as ".gpug" files into the
 
 ![White Noise](https://github.com/heyx3/GPUNoiseForUnity/blob/master/Readme%20Images/WhiteNoise.png)
 
+A side utility is also provided for easy random number generation on the GPU: "Assets/GPUGraph/GpuRandWithState.cginc".
+
 
 # Editor
 

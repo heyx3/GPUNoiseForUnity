@@ -10,6 +10,12 @@ namespace GPUGraph
 	/// </summary>
 	public static class ShaderDefs
 	{
+		/// <summary>
+		/// An exact copy of the contents of "GpuRand.cginc".
+		/// Because using an #include statement in the generated shaders
+		///     would mean I need the absolute path from Assets/ to the file,
+		///     which means users of this plugin can't easily move it to another folder.
+		/// </summary>
 		public static readonly string Functions = @"
 
 	//Hash functions.

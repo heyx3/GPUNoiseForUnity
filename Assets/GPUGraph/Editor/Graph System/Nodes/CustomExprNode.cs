@@ -44,9 +44,9 @@ namespace GPUGraph
 			GUILayout.Space(15.0f);
 			string newExpr;
 			if (IsLongForm)
-				newExpr = GUILayout.TextArea(Expr);
+				newExpr = EditorGUILayout.TextArea(Expr);
 			else
-				newExpr = GUILayout.TextField(Expr);
+				newExpr = EditorGUILayout.TextField(Expr);
 			GUILayout.EndHorizontal();
 
 			bool newIsLongForm = EditorGUILayout.Toggle("Is full function", IsLongForm);

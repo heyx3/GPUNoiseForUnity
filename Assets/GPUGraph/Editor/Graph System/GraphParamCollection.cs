@@ -11,23 +11,26 @@ namespace GPUGraph
 	/// A collection of all parameters in a Graph.
 	/// </summary>
 	[Serializable]
-	public struct GraphParamCollection
+	public class GraphParamCollection
 	{
 		public List<FloatParamInfo> FloatParams;
 		public List<Texture2DParamInfo> Tex2DParams;
 
 
+		public GraphParamCollection()
+		{
+			FloatParams = new List<FloatParamInfo>();
+			Tex2DParams = new List<Texture2DParamInfo>();
+		}
 		/// <summary>
 		/// Gets all the parameters in the given Graph.
 		/// </summary>
 		public GraphParamCollection(Graph g)
+			: this()
 		{
 			Graph gCopy = g.Clone();
 			gCopy.PreProcess();
-
-			FloatParams = new List<FloatParamInfo>();
-			Tex2DParams = new List<Texture2DParamInfo>();
-
+			
 			foreach (Node n in gCopy.Nodes)
 			{
 				if (n is ParamNode_Float)
@@ -66,22 +69,41 @@ namespace GPUGraph
 			}
 		}
 
+		
+		public FloatParamInfo? FindFloatParam(string name)
+		{
+			foreach (var param in FloatParams)
+				if (param.Name == name)
+					return param;
+			return null;
+		}
+		public Texture2DParamInfo? FindTex2DParam(string name)
+		{
+			foreach (var param in Tex2DParams)
+				if (param.Name == name)
+					return param;
+			return null;
+		}
 
 		/// <summary>
 		/// Sets the given material to use these parameters, with their default values.
 		/// </summary>
-		public void SetParams(Material m)
+		public void SetParams(Material m, string prefix = null)
 		{
 			foreach (FloatParamInfo dat in FloatParams)
 			{
-				if (!m.HasProperty(dat.Name))
+				string datName = (prefix == null) ?
+								     dat.Name :
+									 (prefix + dat.Name);
+
+				if (!m.HasProperty(datName))
 				{
-					Debug.LogWarning("Couldn't find property '" + dat.Name +
+					Debug.LogWarning("Couldn't find property '" + datName +
 										"'; Unity may have optimized it out");
 				}
 				else
 				{
-					m.SetFloat(dat.Name,
+					m.SetFloat(datName,
 							   (dat.IsSlider ?
 									Mathf.Lerp(dat.SliderMin, dat.SliderMax, dat.DefaultValue) :
 									dat.DefaultValue));
@@ -89,17 +111,43 @@ namespace GPUGraph
 			}
 			foreach (Texture2DParamInfo dat in Tex2DParams)
 			{
-				if (!m.HasProperty(dat.Name))
+				string datName = (prefix == null) ?
+								     dat.Name :
+									 (prefix + dat.Name);
+
+				if (!m.HasProperty(datName))
 				{
-					Debug.LogWarning("Couldn't find property '" + dat.Name +
+					Debug.LogWarning("Couldn't find property '" + datName +
 										"'; Unity may have optimized it out");
 				}
 				else
 				{
-					m.SetTexture(dat.Name, dat.DefaultVal);
+					m.SetTexture(datName, dat.DefaultVal);
 				}
 			}
 		}
+		/// <summary>
+		/// Sets this collection's parameter values from the given collection.
+		/// Ignores parameters that don't exist on this collection.
+		/// </summary>
+		public void SetParams(GraphParamCollection from)
+		{
+			for (int i = 0; i < FloatParams.Count; ++i)
+			{
+				var toParam = FloatParams[i];
+				var fromParam = from.FindFloatParam(toParam.Name);
+				if (fromParam.HasValue)
+					FloatParams[i] = new FloatParamInfo(toParam, fromParam.Value.DefaultValue);
+			}
+			for (int i = 0; i < Tex2DParams.Count; ++i)
+			{
+				var toParam = Tex2DParams[i];
+				var fromParam = from.FindTex2DParam(toParam.Name);
+				if (fromParam.HasValue)
+					Tex2DParams[i] = new Texture2DParamInfo(toParam.Name, fromParam.Value.DefaultVal);
+			}
+		}
+
 		/// <summary>
 		/// Runs a GUI using EditorGUILayout for these parameters.
 		/// This GUI can be used to modify each parameter's "default value" fields.
