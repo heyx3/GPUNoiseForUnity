@@ -181,7 +181,7 @@ namespace GPUGraph.Applications
                 }
             }
 
-            Texture3D valueTex = new Texture3D(X, Y, Z, TextureFormat.ARGB32, false);
+            Texture3D valueTex = new Texture3D(X, Y, Z, Format, UseMipmaps);
 			valueTex.wrapMode = Wrapping;
 			valueTex.filterMode = Filtering;
             valueTex.SetPixels(valueTexPixels);
